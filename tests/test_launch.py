@@ -1,6 +1,7 @@
 import shlex
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from wx_clawbot.hosts.launch import native_tui_command
@@ -19,7 +20,7 @@ class LaunchTests(unittest.TestCase):
         executable.write_text("#!/usr/bin/env node\n")
         executable.chmod(0o700)
         with self.assertRaisesRegex(ValueError, "native macOS"):
-            native_tui_command(executable, self.root / "socket", self.root)
+            native_tui_command(executable, self.root, self.root)
 
     def test_paths_cannot_expand_shell_commands(self):
         executable = self.root / "codex ' $(touch NEVER)"
@@ -27,8 +28,12 @@ class LaunchTests(unittest.TestCase):
         executable.chmod(0o700)
         project = self.root / 'project $(touch NEVER) "'
         project.mkdir()
-        socket = self.root / "socket ' $HOME"
-        command = native_tui_command(executable, socket, project)
-        self.assertEqual(shlex.split(command), [str(executable), "--remote", "unix://" + str(socket),
+        home = self.root / "runtime ' $HOME"
+        home.mkdir()
+        with patch.dict("os.environ", {"PATH": "/test/bin:/usr/bin:/bin"}):
+            command = native_tui_command(executable, home, project)
+        self.assertEqual(shlex.split(command), ["/usr/bin/env", "CODEX_HOME=" + str(home),
+                                               "PATH=/test/bin:/usr/bin:/bin", str(executable),
+                                               "--config", "check_for_update_on_startup=false",
                                                "--cd", str(project)])
         self.assertFalse((self.root / "NEVER").exists())

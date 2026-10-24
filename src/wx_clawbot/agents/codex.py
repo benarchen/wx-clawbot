@@ -7,9 +7,11 @@ from pathlib import Path
 from websockets.asyncio.client import unix_connect
 
 from .rpc import JsonRpc
+from .base import Capabilities, SubmissionReceipt
 
 
 class CodexConnection:
+    capabilities = Capabilities(observe=True, submit_idle=True)
     def __init__(self, transport):
         self.rpc = JsonRpc(transport)
 
@@ -93,6 +95,27 @@ class CodexConnection:
         if cursor is not None:
             params["cursor"] = cursor
         return await self.rpc.request("thread/turns/list", params)
+
+    async def submit_idle(self, thread_id: str, project: Path, text: str,
+                          client_submission_id: str) -> SubmissionReceipt:
+        """Submit once to a verified idle native thread; never queue or replay here."""
+        if not isinstance(text, str) or not text.strip() or not isinstance(client_submission_id, str) or not client_submission_id:
+            raise ValueError("Nonempty input and stable submission identity required")
+        thread = await self.inspect(thread_id)
+        if Path(thread["cwd"]).resolve() != project.resolve(strict=True):
+            raise ValueError("Native project identity mismatch")
+        if thread.get("status", {}).get("type") != "idle":
+            raise ValueError("Session is not idle; native queue coordination required")
+        if thread.get("canAcceptDirectInput") is not True:
+            raise ValueError("Native thread does not permit direct input")
+        result = await self.rpc.request("turn/start", {
+            "threadId": thread_id, "input": [{"type": "text", "text": text}],
+            "clientUserMessageId": client_submission_id,
+        })
+        turn_id = result.get("turn", {}).get("id")
+        if not isinstance(turn_id, str) or not turn_id:
+            raise ValueError("Native submission receipt has no turn identity; reconcile before retry")
+        return SubmissionReceipt(client_submission_id, turn_id)
 
     async def close(self) -> None:
         await self.rpc.close()

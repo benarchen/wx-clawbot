@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-10-24 21:39",
+  "runtime_version": "0.164.0",
+  "projects": 2,
+  "continuity_turns_per_project": 3,
+  "same_directory_native_threads_distinct": true,
+  "ordinary_shell_rejected": true,
+  "real_exited_endpoint_rejected": true,
+  "independent_runtime_refused_without_resume": true,
+  "original_terminal_process_runtime_and_native_session_preserved": true,
+  "models_and_providers_preserved": true,
+  "authorized_config_baseline_unchanged": true,
+  "verification_performed_no_model_tasks": true
+}

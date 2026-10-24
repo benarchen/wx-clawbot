@@ -31,9 +31,9 @@ Go 并非不能实现；博主的 Go 方案也不构成我们必须使用 Go 的
 
 本机已有 Python，iTerm2 提供官方 Python SDK，Python 标准库又能处理 SQLite、异步子进程和测试。采用 Python 可以少维护一个宿主适配进程。语言选择以集成成本为依据，没有声称获得未经测量的性能提升。标准能力依据：[sqlite3](https://docs.python.org/3.14/library/sqlite3.html) 、[异步子进程](https://docs.python.org/3.14/library/asyncio-subprocess.html) 。
 
-## 3. 已核对的本机基线
+## 3. 设计输入时的静态快照
 
-以下来自本轮只读检查；不是建议自动升级到最新版本。
+以下为最初文档准备时的历史输入，不是当前安装与进度声明。实施基线见 [协议记录](protocol-baseline.md)，原终端现场证据见 [W02 验收](validation/w02.md)，当前状态只见 ROADMAP；不据此自动升级。
 
 | 项目 | 本机结果 | 解释 |
 | --- | --- | --- |
@@ -110,6 +110,8 @@ Socket 优先沿用被核验的原生运行时地址，不猜测固定路径。�
 | /attach 与 /detach | 截图语义不足 | 先给出与 focus 的独立差异，再确认保留、别名或延期，不擅自删除 |
 | 数值默认值 | 仍为设计建议 | 小负载与故障测试后校准 |
 
-可以开始工程骨架与关键链路原型。完整功能开发须经过 V01 至 V04；不能用伪造事件或另建会话跳过核心体验关卡。当前阶段不缺一份更大的愿景文档，缺的是这几项接口的现场证据。
+以上表格保留设计输入时的验证问题；当前完成状态只见 ROADMAP。完整功能开发须经过 V01 至 V04，不能用伪造事件或另建会话跳过核心体验关卡。
+
+本机新 TUI 使用已核对的原生可执行文件、既有 CODEX_HOME 和本机共享 daemon 模式；桥接器用原生 Unix WebSocket 连接同一运行时。`--remote` 即使指向本机 Unix socket 也采用远端目录信任判定，不能假定与本机仓库根信任继承相同。托管启动仅对子进程关闭更新检查，防止自动化输入落入更新菜单，不修改全局更新设置或模型。相关实际证据和边界见 W02 验收。
 
 实施核对：`app-server proxy` 仅透传原始字节，不能直接写 JSONL。Unix 控制 socket 使用 WebSocket；桥接直连该 socket，不新建运行时。见 [官方固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/stdio-to-uds/src/lib.rs)。

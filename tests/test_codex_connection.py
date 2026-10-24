@@ -24,8 +24,10 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.server_version = "0.164.0"
         self.thread = {"id": "fixture-thread", "cwd": str(Path(self.temp.name)),
                        "status": {"type": "idle"}, "sessionId": "fixture-session",
-                       "model": "fixture-model", "modelProvider": "fixture-provider"}
+                       "model": "fixture-model", "modelProvider": "fixture-provider",
+                       "canAcceptDirectInput": True}
         self.resume_changes = {}
+        self.resume_error = None
         self.list_rows = [self.thread]
 
         async def peer(websocket):
@@ -40,9 +42,14 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
                 elif message["method"] == "thread/read":
                     result = {"thread": {**self.thread, "id": message["params"]["threadId"]}}
                 elif message["method"] == "thread/resume":
+                    if self.resume_error is not None:
+                        await websocket.send(json.dumps({"id": message["id"], "error": self.resume_error}))
+                        continue
                     result = {"thread": {**self.thread, **self.resume_changes}}
                 elif message["method"] == "thread/list":
                     result = {"data": self.list_rows, "nextCursor": None}
+                elif message["method"] == "turn/start":
+                    result = {"turn": {"id": "fixture-turn", "status": "inProgress"}}
                 else:
                     continue
                 await websocket.send(json.dumps({"id": message["id"], "result": result}))
@@ -111,5 +118,41 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         try:
             with self.assertRaisesRegex(ValueError, "identity or model changed"):
                 await connection.observe_loaded("fixture-thread", Path(self.temp.name))
+        finally:
+            await connection.close()
+
+    async def test_idle_submission_preserves_config_and_returns_native_receipt(self):
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            result = await connection.submit_idle("fixture-thread", Path(self.temp.name), "fixture input", "stable-id")
+            self.assertEqual(result.turn_id, "fixture-turn")
+            self.assertEqual(result.client_submission_id, "stable-id")
+        finally:
+            await connection.close()
+        request = next(r for r in self.requests if r["method"] == "turn/start")
+        self.assertEqual(request["params"], {"threadId": "fixture-thread",
+                                          "input": [{"type": "text", "text": "fixture input"}],
+                                          "clientUserMessageId": "stable-id"})
+
+    async def test_busy_or_read_only_native_input_is_not_submitted(self):
+        for status, accepts in [("active", True), ("idle", False)]:
+            self.thread.update(status={"type": status}, canAcceptDirectInput=accepts)
+            connection = await CodexConnection.connect(self.socket)
+            try:
+                with self.assertRaises(ValueError):
+                    await connection.submit_idle("fixture-thread", Path(self.temp.name), "fixture input", "stable-id")
+            finally:
+                await connection.close()
+        self.assertNotIn("turn/start", self.methods)
+
+    async def test_native_subscription_denial_is_not_reported_as_observing(self):
+        from wx_clawbot.agents.rpc import RpcError
+
+        self.resume_error = {"code": -32003, "message": "subscription denied by peer"}
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            with self.assertRaises(RpcError) as raised:
+                await connection.observe_loaded("fixture-thread", Path(self.temp.name))
+            self.assertEqual(raised.exception.code, -32003)
         finally:
             await connection.close()
