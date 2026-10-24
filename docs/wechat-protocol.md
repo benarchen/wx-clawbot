@@ -11,11 +11,13 @@
 | `POST ilink/bot/getupdates` | 自有 bot token、已确认游标 `get_updates_buf`、`base_info`；不用已废弃的 `sync_buf` |
 | `POST ilink/bot/sendmessage` | `from_user_id: ""`，收件人必须是扫码且明确确认的 owner；稳定 `client_id`，type／state 为 2，单个 type 1 文本 item，原消息回复上下文 |
 
-公共 `iLink-App-Id` 采用参考中的 `bot`；客户端版本按参考的 uint32 算法编码本项目自身版本，`0.1.0.dev0` 对应 256。`base_info.channel_version` 使用本项目版本，`bot_agent` 为 `wx-clawbot/<version>`，不伪装成参考插件及其版本。真实接口已返回有效二维码字段，已登录收发的兼容性另按本人 V06 联调核对。
+公共 `iLink-App-Id` 采用参考中的 `bot`；客户端版本按参考的 uint32 算法编码本项目自身版本，`0.1.0.dev0` 对应 256。`base_info.channel_version` 使用本项目版本，`bot_agent` 为 `wx-clawbot/<version>`，不伪装成参考插件及其版本。真实接口已完成独立扫码与鉴权轮询，文本发送兼容性仍须按本人 V06 联调核对。
 
 POST 加入 `Content-Type: application/json`、`AuthorizationType: ilink_bot_token` 和随机 uint32 十进制字符串的 base64 `X-WECHAT-UIN`。只有已登录 bot POST 才加入 Bearer。HTTPS 服务地址仅接受经校验的微信域名与标准端口；HTTP 重定向不自动跟随。登录的 IDC 跳转按应用层状态核对新 host，不能把凭据带到任意返回地址。
 
 HTTP 错误、非零业务码、会话失效和未知投递区分处理。消息与发送回执 ID 用 Python 无损整数／十进制字符串处理；响应有上限，非对象、重复 JSON 字段和非法数值拒绝。登录、轮询和发送各用单工作线程与独立槽位，取消调用者不会提前释放仍在运行的槽位；关闭需要等待有限超时的请求排空，不能仅宣称已停止输出。
+
+真实 `getupdates` 可省略 `ret`，与固定类型定义中的可选字段一致；只有返回可识别的消息列表和非空游标时才接受这种响应，空对象、无游标的无状态响应、显式 null／错误类型及非零业务码仍拒绝。接收与事务层共用同一校验，不能在接收层通过后又因同一可选字段丢弃整批消息。此规则只适用于接收，不自动推断缺少发送成功回执等于已送达。
 
 ## 身份、去重、游标和回复上下文
 

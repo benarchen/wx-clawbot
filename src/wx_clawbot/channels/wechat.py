@@ -24,17 +24,29 @@ class DeliveryUnknown(ChannelError):
     pass
 
 
-def business(response: dict, *, require_success: bool = False):
+def business(response: dict):
     for key in ("ret", "errcode"):
-        value = response.get(key)
-        if value is not None and type(value) is not int:
+        if key not in response:
+            continue
+        value = response[key]
+        if type(value) is not int:
             raise ProtocolError("Invalid Weixin business return code")
         if value == -14:
             raise SessionExpired(value)
         if value:
             raise BusinessError(value)
-    if require_success and response.get("ret") != 0:
-        raise ProtocolError("Weixin response has no explicit success acknowledgement")
+
+
+def validate_updates(response: dict):
+    business(response)
+    messages, cursor = response.get("msgs", []), response.get("get_updates_buf")
+    if (not isinstance(messages, list) or len(messages) > 1000
+            or (cursor is not None and (not isinstance(cursor, str) or len(cursor) > 256000))):
+        raise ProtocolError("Invalid Weixin update batch")
+    # The observed server omits optional ret on a valid message/cursor envelope.
+    # Empty or unrecognized JSON still cannot advance the durable receive state.
+    if "ret" not in response and not (isinstance(response.get("msgs"), list) and cursor):
+        raise ProtocolError("Weixin response has no recognizable update acknowledgement")
 
 
 def required_text(response, key, limit=4096):
@@ -109,12 +121,7 @@ class WechatApi:
         response = await self.http.request("poll", "POST", credentials.base, "ilink/bot/getupdates",
                                            body={"get_updates_buf": cursor, "base_info": base_info()},
                                            token=credentials.token, timeout=35)
-        business(response, require_success=True)
-        if not isinstance(response.get("msgs", []), list) or len(response.get("msgs", [])) > 1000:
-            raise ProtocolError("Invalid Weixin message batch")
-        next_cursor = response.get("get_updates_buf")
-        if next_cursor is not None and (not isinstance(next_cursor, str) or len(next_cursor) > 256000):
-            raise ProtocolError("Invalid Weixin update cursor")
+        validate_updates(response)
         return response
 
     async def send_text(self, credentials: Credentials, *, peer: str, text: str,

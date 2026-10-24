@@ -11,7 +11,7 @@ from pathlib import Path
 from .http import ChannelError, ProtocolError
 from .messages import parse_text
 from .private import private_directory, private_file
-from .wechat import business
+from .wechat import validate_updates
 
 
 class ChannelState:
@@ -99,12 +99,9 @@ class ChannelState:
         return await self._call(self._accept_batch, response, phase)
 
     def _accept_batch(self, response, phase):
-        business(response, require_success=True)
+        validate_updates(response)
         messages = response.get("msgs", [])
         cursor = response.get("get_updates_buf")
-        if (not isinstance(messages, list) or len(messages) > 1000
-                or (cursor is not None and (not isinstance(cursor, str) or len(cursor) > 256000))):
-            raise ProtocolError("Invalid transactional update batch")
         accepted, rejected, duplicates, conflicts = [], {}, 0, 0
         self.db.execute("BEGIN IMMEDIATE")
         try:

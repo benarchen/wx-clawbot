@@ -39,6 +39,11 @@ class StateTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result["accepted"])
         self.assertEqual(os.stat(self.path).st_mode & 0o777, 0o600)
 
+    async def test_optional_return_code_envelope_commits_inbox_and_cursor(self):
+        result = await self.state.accept_batch({"msgs": [message(1)], "get_updates_buf": "fixture-cursor"})
+        self.assertEqual(len(result["accepted"]), 1)
+        self.assertEqual(await self.state.cursor(), "fixture-cursor")
+
     async def test_unknown_identity_unsupported_media_and_missing_ids_never_enter_inbox(self):
         samples = []
         for field, value in (("from_user_id", "stranger"), ("to_user_id", "another-bot"),

@@ -63,6 +63,16 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("sync_buf", body)
         self.assertTrue(body["base_info"]["bot_agent"].startswith("wx-clawbot/"))
 
+    async def test_observed_update_envelope_can_omit_optional_return_code(self):
+        response = {"msgs": [], "sync_buf": "unused", "get_updates_buf": "fixture-cursor"}
+        self.http.request.return_value = response
+        self.assertEqual(await self.api.updates(self.account, ""), response)
+        for invalid in ({}, {"msgs": []}, {"msgs": [], "get_updates_buf": ""},
+                        {"ret": None, **response}, {"errcode": -14, **response}):
+            self.http.request.return_value = invalid
+            with self.assertRaises((ProtocolError, SessionExpired)):
+                await self.api.updates(self.account, "")
+
     async def test_send_is_bound_to_owner_context_and_stable_client_identity(self):
         with self.assertRaises(ValueError):
             await self.api.send_text(self.account, peer="someone-else", text="hello",
