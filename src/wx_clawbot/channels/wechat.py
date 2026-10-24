@@ -132,7 +132,10 @@ class WechatApi:
                                                body=body, token=credentials.token)
         except ChannelError as exc:
             raise DeliveryUnknown("Send outcome unknown; do not automatically resend") from exc
-        business(response)
+        try:
+            business(response)
+        except ProtocolError as exc:
+            raise DeliveryUnknown("Send acknowledgement is malformed; do not automatically resend") from exc
         if response.get("ret") != 0:
             raise DeliveryUnknown("Send response has no explicit success acknowledgement")
         return response

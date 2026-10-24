@@ -1,4 +1,4 @@
-import json
+import sqlite3
 import tempfile
 import time
 import unittest
@@ -99,3 +99,20 @@ class LoginTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(api.send_text.await_count, 2)
         self.assertNotEqual(api.send_text.await_args_list[0].kwargs["client_id"],
                             api.send_text.await_args_list[1].kwargs["client_id"])
+
+    async def test_malformed_send_ack_persists_unknown_without_another_send(self):
+        save_credentials(self.root / "credentials.json", self.account)
+        confirm_owner(self.root, owner_fingerprint(self.account))
+        challenge = "WX-TEST-12345678"
+        http = AsyncMock()
+        http.request.side_effect = [
+            {"ret": 0, "get_updates_buf": "cursor-a", "msgs": [message(1, text=challenge)]},
+            {"ret": True},
+        ]
+        with patch("wx_clawbot.channels.diagnostics.WeixinHttp", return_value=http):
+            report = await echo(self.root, challenge=challenge, count=1, timeout=2)
+        self.assertEqual(report["status"], "delivery_unknown")
+        self.assertEqual(report["sent_accepted"], 0)
+        self.assertEqual(http.request.await_count, 2)  # One poll and one send, without a retry.
+        with sqlite3.connect(self.root / "state.sqlite3") as db:
+            self.assertEqual(db.execute("SELECT state FROM channel_outgoing").fetchall(), [("unknown",)])

@@ -133,7 +133,7 @@ submitted 超时不表示未提交。恢复时先检查原生队列、turn 与�
 
 ## 7. 微信请求字段核对清单
 
-以下是实现前逐字段核对入口，具体 payload 以冻结版本源码为准。参考：[API](https://raw.githubusercontent.com/Tencent/openclaw-weixin/main/src/api/api.ts) 、[登录](https://raw.githubusercontent.com/Tencent/openclaw-weixin/main/src/auth/login-qr.ts) 、[发送](https://raw.githubusercontent.com/Tencent/openclaw-weixin/main/src/messaging/send.ts) 。
+以下是实现前逐字段核对入口，具体 payload 以[固定 commit 与文件哈希](wechat-reference.json)为准；本项目字段对照见[微信协议](wechat-protocol.md)。
 
 当前公开源码中的客户端标识和版本生成方式是参考事实，不是我们可任意填写的保证。W04 必须核对独立客户端所需标识与适用条件，既不盲目伪造版本，也不声称官方授权；无法确认时记录为接入阻塞。
 
@@ -183,6 +183,6 @@ submitted 超时不表示未提交。恢复时先检查原生队列、turn 与�
 | V07 故障恢复 | 发送前后、RPC 回执前后、Outbox 写入后分别中断桥接进程 | 已执行任务不重跑；不确定状态明确；原终端保留；关键结果可恢复 |
 | V08 延迟与资源 | 两会话、各 10 条任务上限下持续收事件；长轮询断连；超长输出 | 统计本地控制处理 p95、内存趋势和队列上界；目标 p95 < 1 秒，排除模型及公网时间 |
 
-V03 必须有真实原生交互；测试替身只能补边界，不能代替平台行为证据。V06 的扫码、绑定及实际发消息属于后续明确安排的联调，本轮没有执行。
+V03 必须有真实原生交互；测试替身只能补边界，不能代替平台行为证据。V06 的扫码、绑定及实际发消息必须在明确安排的本人联调中执行，不能以模拟替代；实际验证状态见 ROADMAP。
 
 每次记录版本、前置状态、步骤、预期、实际、脱敏日志和结论。失败结果进入 ROADMAP，证据文件只保存必要内容；没有采集到的状态标记未验证。V01 至 V04 通过后才扩大核心功能建设；微信通道也须在完整产品验收前通过 V06。

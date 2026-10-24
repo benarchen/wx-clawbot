@@ -6,7 +6,7 @@ import re
 import time
 from pathlib import Path
 
-from .http import ProtocolError, TransportError, WeixinHttp
+from .http import TransportError, WeixinHttp
 from .private import load_credentials, private_directory
 from .state import ChannelState
 from .wechat import BusinessError, DeliveryUnknown, WechatApi

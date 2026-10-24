@@ -90,3 +90,11 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
             await self.api.send_text(self.account, peer="fixture-owner", text="hello",
                                      context_token="context", client_id="delivery-2")
         self.assertEqual(self.http.request.await_count, 2)
+
+    async def test_malformed_send_business_ack_is_an_unknown_delivery(self):
+        for response in ({"ret": True}, {"ret": "0"}, {"ret": 0, "errcode": []}):
+            self.http.request.return_value = response
+            with self.assertRaises(DeliveryUnknown):
+                await self.api.send_text(self.account, peer="fixture-owner", text="hello",
+                                         context_token="context", client_id="delivery-malformed")
+        self.assertEqual(self.http.request.await_count, 3)
