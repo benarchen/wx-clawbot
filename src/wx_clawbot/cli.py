@@ -5,13 +5,30 @@ import json
 import platform
 import shutil
 import subprocess
+import sys
+from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
 
 from . import __version__
 from .config import ConfigError, load_projects
 
 
-def doctor(config: Path | None = None) -> tuple[dict, bool]:
+def probe_host() -> dict:
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "wx_clawbot.hosts.iterm2"],
+            capture_output=True, text=True, timeout=20,
+        )
+        if result.returncode == 0:
+            return json.loads(result.stdout)
+    except subprocess.TimeoutExpired:
+        return {"status": "unavailable", "error_type": "AuthenticationTimeout"}
+    except (OSError, ValueError):
+        pass
+    return {"status": "failed", "error_type": "ProbeFailed"}
+
+
+def doctor(config: Path | None = None, *, iterm: bool = False) -> tuple[dict, bool]:
     codex = shutil.which("codex")
     version = None
     if codex:
@@ -24,6 +41,29 @@ def doctor(config: Path | None = None) -> tuple[dict, bool]:
     report = {"version": __version__, "python": platform.python_version(),
               "codex_version": version, "config": "not_checked"}
     ok = version is not None
+    dependencies = {}
+    for name in ["iterm2", "protobuf", "websockets"]:
+        try:
+            dependencies[name] = package_version(name)
+        except PackageNotFoundError:
+            dependencies[name] = None
+            ok = False
+    report["dependencies"] = dependencies
+    if codex:
+        try:
+            result = subprocess.run([codex, "app-server", "daemon", "version"],
+                                    capture_output=True, text=True, timeout=5)
+            runtime = json.loads(result.stdout) if result.returncode == 0 else {}
+            report["runtime"] = {key: runtime.get(key) for key in
+                                 ("status", "cliVersion", "appServerVersion")}
+            if runtime.get("status") != "running":
+                ok = False
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            report["runtime"] = {"status": "unavailable"}
+            ok = False
+    if iterm:
+        report["iterm2"] = probe_host()
+        ok = ok and report["iterm2"].get("status") == "connected"
     if config is not None:
         try:
             report["project_count"] = len(load_projects(config))
@@ -41,7 +81,8 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     check = commands.add_parser("doctor", help="只读核对本机版本与项目配置")
     check.add_argument("--config", type=Path)
+    check.add_argument("--iterm2", action="store_true", help="显式测试 iTerm2 API，可能触发脚本授权")
     args = parser.parse_args(argv)
-    report, ok = doctor(args.config)
+    report, ok = doctor(args.config, iterm=args.iterm2)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if ok else 1

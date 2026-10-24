@@ -1,0 +1,37 @@
+{
+  "commit": "874637a0dbc24050f72d1385add4fc6170a2d726",
+  "files": [
+    {
+      "file": "package.json",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/package.json",
+      "sha256": "89e9e2a5883ccf46cb579e76dccb80c4ce7e619a499352eaf07d1022cf56c813"
+    },
+    {
+      "file": "LICENSE",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/LICENSE",
+      "sha256": "7f1e8cf099cf03de7c775e33e97e3c950c3a56a9616bb4de6b14d3c911bc5573"
+    },
+    {
+      "file": "docs/protocol.md",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/docs/protocol.md",
+      "sha256": "8d778054436f6a0d93b4b38abf2dfd09c16e4a961bed044634cac2d3b8f155dd"
+    },
+    {
+      "file": "src/api/api.ts",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/api/api.ts",
+      "sha256": "7a808846a33c70423b4a4a5fcf3c1a45f885d005994218ef5f4db663d4e6e935"
+    },
+    {
+      "file": "src/auth/login-qr.ts",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/auth/login-qr.ts",
+      "sha256": "1347ceff3da2fc0df82aefff684be2c12870778d026b1cbe063226dfa9bea0c4"
+    },
+    {
+      "file": "src/messaging/send.ts",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/messaging/send.ts",
+      "sha256": "2f33e3e9cccb18ef03620669deb1c415749f6ac3835f4ff24f25847ecb753f4d"
+    }
+  ],
+  "version": "2.4.10",
+  "license": "MIT; reference only, no upstream implementation vendored"
+}

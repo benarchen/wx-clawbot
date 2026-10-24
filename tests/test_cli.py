@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import patch
 
 from wx_clawbot.cli import doctor
+from wx_clawbot.cli import probe_host
+import subprocess
 
 
 class DoctorTests(unittest.TestCase):
@@ -11,3 +13,14 @@ class DoctorTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIsNone(report["codex_version"])
         self.assertNotIn("path", report)
+
+    @patch("wx_clawbot.cli.subprocess.run", side_effect=subprocess.TimeoutExpired("probe", 20))
+    def test_host_auth_timeout_is_failure(self, _run):
+        self.assertEqual(probe_host()["status"], "unavailable")
+
+    @patch("wx_clawbot.cli.subprocess.run")
+    def test_host_crash_does_not_leak_stderr(self, run):
+        run.return_value = subprocess.CompletedProcess([], 1, "", "private token")
+        result = probe_host()
+        self.assertEqual(result["status"], "failed")
+        self.assertNotIn("private", str(result))

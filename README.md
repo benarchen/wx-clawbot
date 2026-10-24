@@ -10,7 +10,8 @@
 
 ```sh
 python3 -m venv .venv
-.venv/bin/python -m pip install -e .
+.venv/bin/python -m pip install --require-hashes -r requirements.lock
+.venv/bin/python -m pip install --no-deps -e .
 .venv/bin/wx-clawbot doctor
 ```
 
@@ -21,6 +22,8 @@ python3 -m venv .venv
 ```
 
 诊断输出只包含版本、配置状态和项目数量；无效配置返回非零状态，不打印配置内容。
+
+显式检查 iTerm2 API：`.venv/bin/wx-clawbot doctor --iterm2`。这可能触发宿主脚本授权；诊断不会启用 API、发送终端输入或启动 Codex。[协议与依赖基线](docs/protocol-baseline.md) 记录版本和重建方式。
 
 ## 开发与文档
 

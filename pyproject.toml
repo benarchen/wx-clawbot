@@ -7,7 +7,7 @@ name = "wx-clawbot"
 version = "0.1.0.dev0"
 description = "WeChat bridge for native Codex sessions in iTerm2"
 requires-python = ">=3.14,<3.15"
-dependencies = []
+dependencies = ["iterm2==2.30"]
 
 [project.scripts]
 wx-clawbot = "wx_clawbot.cli:main"
