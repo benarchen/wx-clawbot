@@ -34,6 +34,5 @@ class LaunchTests(unittest.TestCase):
             command = native_tui_command(executable, home, project)
         self.assertEqual(shlex.split(command), ["/usr/bin/env", "CODEX_HOME=" + str(home),
                                                "PATH=/test/bin:/usr/bin:/bin", str(executable),
-                                               "--config", "check_for_update_on_startup=false",
                                                "--cd", str(project)])
         self.assertFalse((self.root / "NEVER").exists())

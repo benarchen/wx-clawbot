@@ -18,8 +18,10 @@ def native_tui_command(executable: Path, codex_home: Path, project: Path) -> str
         raise ValueError("Use the installed native macOS Codex executable, not a PATH-dependent wrapper")
     # The local daemon mode preserves local repository trust inheritance. --remote
     # treats even a local Unix endpoint as a remote workspace with exact-cwd trust.
+    # General -c overrides disable implicit daemon reuse in the verified CLI.
+    # Runtime membership must still be checked after launch (fallback is possible).
     return shlex.join([
         "/usr/bin/env", "CODEX_HOME=" + str(codex_home),
         "PATH=" + os.environ.get("PATH", os.defpath), str(executable),
-        "--config", "check_for_update_on_startup=false", "--cd", str(project),
+        "--cd", str(project),
     ])

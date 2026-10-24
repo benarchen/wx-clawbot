@@ -59,6 +59,17 @@ class RpcTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(event["id"], "approval")
         self.assertTrue(self.writer.sent.empty())
 
+    async def test_native_answer_uses_original_typed_id_without_starting_a_task(self):
+        await self.rpc.respond("approval-1", {"decision": "cancel"})
+        self.assertEqual(await self.writer.sent.get(), {
+            "id": "approval-1", "result": {"decision": "cancel"}})
+        self.assertFalse(self.rpc.pending)
+        with self.assertRaises(ConnectionLost):
+            await self.rpc.respond(True, {"decision": "accept"})
+        with self.assertRaises(ValueError):
+            await self.rpc.respond(1, [])
+        self.assertTrue(self.writer.sent.empty())
+
     async def test_timeout_is_unknown_without_replay(self):
         task = asyncio.create_task(self.rpc.request("submit", {}, timeout=0.01))
         request = await self.writer.sent.get()

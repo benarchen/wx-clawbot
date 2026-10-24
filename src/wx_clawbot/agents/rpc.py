@@ -73,6 +73,12 @@ class JsonRpc:
     async def notify(self, method: str, params: dict) -> None:
         await self._send({"method": method, "params": params})
 
+    async def respond(self, request_id: int | str, result: dict) -> None:
+        self.key(request_id)
+        if not isinstance(result, dict):
+            raise ValueError("Native response must be an object")
+        await self._send({"id": request_id, "result": result})
+
     async def next_event(self, *, timeout: float = 10) -> dict:
         # Poll the bounded queue without allowing a disconnect to hang a consumer.
         async with asyncio.timeout(timeout):

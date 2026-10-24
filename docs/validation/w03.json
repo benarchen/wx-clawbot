@@ -1,0 +1,21 @@
+{
+  "checks": {
+    "same_original_terminals_and_native_threads": true,
+    "approval_both_first_answer_orders": true,
+    "concurrent_conflicting_attempts_single_native_outcome": true,
+    "expiry_disconnect_reconnect_and_late_answers": true,
+    "multi_question_single_choice_free_text_invalid_and_cancel": true,
+    "native_queue_deletion_and_actual_running_interruption": true,
+    "lost_queue_receipt_reconciled_without_resubmission": true,
+    "bridge_ten_item_admission_bound": true,
+    "bridge_fifo_distinct_turns": true,
+    "dedicated_desktop_cli_and_bridge_share_native_fifo": true,
+    "original_tui_tab_and_bridge_distinct_task_queue": false,
+    "authorized_configuration_baseline_unchanged": true
+  },
+  "desktop_entry_contract": "original-tui",
+  "v03_passed": true,
+  "v04_passed": false,
+  "passed": false,
+  "checked_at": "2026-10-24 22:35"
+}
