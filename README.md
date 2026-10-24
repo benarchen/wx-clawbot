@@ -2,7 +2,7 @@
 
 面向本机 iTerm2 Codex 原生会话的微信桥接项目。
 
-当前提供严格的项目配置读取、目录边界校验和只读环境诊断。
+当前提供严格的项目配置读取、目录边界校验、只读环境诊断和既有 Codex Unix WebSocket 握手检查。
 
 ## 安装与使用
 
@@ -24,6 +24,14 @@ python3 -m venv .venv
 诊断输出只包含版本、配置状态和项目数量；无效配置返回非零状态，不打印配置内容。
 
 显式检查 iTerm2 API：`.venv/bin/wx-clawbot doctor --iterm2`。这可能触发宿主脚本授权；诊断不会启用 API、发送终端输入或启动 Codex。[协议与依赖基线](docs/protocol-baseline.md) 记录版本和重建方式。
+
+核对现有运行时 socket 后，可只读测试握手：
+
+```sh
+.venv/bin/wx-clawbot native-probe --socket /absolute/path/to/native-control.sock
+```
+
+该命令核验 socket 归属、访问模式和已核对的协议版本，不创建、恢复或执行会话；输出连接状态与运行时版本。
 
 ## 开发与文档
 

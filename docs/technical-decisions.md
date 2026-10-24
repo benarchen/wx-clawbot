@@ -15,7 +15,7 @@
 | T01 主语言 | Python 3.14，开发基线为本机 3.14.5 | 可直接使用 iTerm2 官方 Python SDK，并复用标准库；减少 Go 主程序加 Python 适配进程的边界 |
 | T02 进程模型 | 一个 asyncio 服务，有限后台工作线程 | 收消息、处理控制命令和观察 Agent 并行；数据库、HTTPS 阻塞操作不阻塞主事件循环 |
 | T03 终端宿主 | iTerm2 官方 Python SDK | 负责发现、校验、创建终端；Agent 语义由 Codex 适配器提供 |
-| T04 Codex 通信 | 优先连接现有共享 daemon，通过本机 proxy 的标准输入输出访问 | 原终端和桥接器连接同一运行时；既有会话是否满足此条件必须验证 |
+| T04 Codex 通信 | 连接现有共享 daemon 的本机 Unix WebSocket | 原终端和桥接器连接同一运行时；既有会话是否满足此条件必须验证 |
 | T05 会话排队 | 优先使用经验证的 Codex 原生队列 | 桌面与微信共享调度事实；SQLite 记录桥接任务，不再维护一个独立执行队列与原生队列竞争 |
 | T06 微信接入 | 基于腾讯公开客户端协议实现最小文本适配器 | 不安装整个 OpenClaw；仅承接登录、接收、发送和必需的连接状态处理 |
 | T07 状态 | 标准库 sqlite3；配置 JSON | 消息、路由、任务和 Outbox 支持事务；不引入 ORM、Redis 或外部数据库服务 |
@@ -51,7 +51,7 @@ Go 并非不能实现；博主的 Go 方案也不构成我们必须使用 Go 的
 
 ## 4. Codex：优先接入共享运行时
 
-官方资料描述了共享本地 app-server、远程连接及队列命令；本机帮助也提供 app-server proxy --sock。首选方案是由桥接器启动一个代理连接，读写 JSON 消息，让原终端继续拥有自己的界面。参考：[开发命令](https://learn.chatgpt.com/docs/developer-commands) 、[App Server](https://learn.chatgpt.com/docs/app-server) 。
+官方资料描述了共享本地 app-server、远程连接及队列命令；本机帮助也提供 app-server proxy --sock。首选方案是由桥接器连接同一原生 Unix WebSocket，读写 JSON 消息，让原终端继续拥有自己的界面。参考：[开发命令](https://learn.chatgpt.com/docs/developer-commands) 、[App Server](https://learn.chatgpt.com/docs/app-server) 。
 
 必须区分以下情况：
 
@@ -111,3 +111,5 @@ Socket 优先沿用被核验的原生运行时地址，不猜测固定路径。�
 | 数值默认值 | 仍为设计建议 | 小负载与故障测试后校准 |
 
 可以开始工程骨架与关键链路原型。完整功能开发须经过 V01 至 V04；不能用伪造事件或另建会话跳过核心体验关卡。当前阶段不缺一份更大的愿景文档，缺的是这几项接口的现场证据。
+
+实施核对：`app-server proxy` 仅透传原始字节，不能直接写 JSONL。Unix 控制 socket 使用 WebSocket；桥接直连该 socket，不新建运行时。见 [官方固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/stdio-to-uds/src/lib.rs)。

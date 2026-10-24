@@ -1,6 +1,7 @@
 """Local diagnostics. No terminal input, model calls, or WeChat traffic."""
 
 import argparse
+import asyncio
 import json
 import platform
 import shutil
@@ -82,7 +83,27 @@ def main(argv: list[str] | None = None) -> int:
     check = commands.add_parser("doctor", help="只读核对本机版本与项目配置")
     check.add_argument("--config", type=Path)
     check.add_argument("--iterm2", action="store_true", help="显式测试 iTerm2 API，可能触发脚本授权")
+    native = commands.add_parser("native-probe", help="只读测试既有 Codex Unix WebSocket 握手")
+    native.add_argument("--socket", required=True, type=Path)
     args = parser.parse_args(argv)
+    if args.command == "native-probe":
+        from .agents.codex import CodexConnection
+
+        async def probe_native():
+            connection = await CodexConnection.connect(args.socket)
+            try:
+                return {"status": "connected", "server_version": connection.server_version}
+            finally:
+                await connection.close()
+
+        try:
+            report = asyncio.run(probe_native())
+            ok = True
+        except Exception as exc:
+            report = {"status": "failed", "error_type": type(exc).__name__}
+            ok = False
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if ok else 1
     report, ok = doctor(args.config, iterm=args.iterm2)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if ok else 1

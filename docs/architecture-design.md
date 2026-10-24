@@ -156,7 +156,7 @@ SessionHost 是宿主连接接口，独立于 AgentAdapter。首版 iTerm2 宿�
 
 规范化事件包括 accepted、progress、interaction_required、completed、failed、interrupted、disconnected。所有事件携带 project_id、session_id、task_id；原协议字段保留在适配器内部。能力不足返回明确 unsupported，不能返回伪成功。
 
-CodexAdapter 优先通过本机 `codex app-server proxy --sock` 连接既有共享运行时，核对线程、任务、事件、审批和中断接口。本项目必须操作 iTerm2 中真实会话；具体连接仍需原型验证，不能因接口存在就认定另启 app-server 能控制已有 TUI。新会话也须在 iTerm2 可见可用。仅回收本服务拥有的代理连接，不自动关闭用户终端；断开连接与结束原会话分开处理。
+CodexAdapter 通过本机 Unix WebSocket 连接既有共享运行时，核对线程、任务、事件、审批和中断接口。本项目必须操作 iTerm2 中真实会话；具体连接仍需原型验证，不能因接口存在就认定另启 app-server 能控制已有 TUI。新会话也须在 iTerm2 可见可用。仅回收本服务拥有的代理连接，不自动关闭用户终端；断开连接与结束原会话分开处理。
 
 本项目与 openclaw-local 完全独立；禁止读取、参考、复用或修改其代码、配置、凭据和服务，不安排关联迁移或退役。
 
@@ -233,3 +233,5 @@ launchd 负责单实例常驻与有限退避重启；本机管理 CLI 提供 sta
 - 用户两轮明确需求与五张截图：需求和参考交互的一手输入。
 - [Codex App Server 官方文档](https://learn.chatgpt.com/docs/app-server) ：本轮核对其本地通信、线程、任务、审批与中断接口；方法和字段须再以实施时本机版本生成的 schema 校验。接口存在不证明外部终端已提供同等控制能力。
 - 已定技术方向与本机检查结果见技术决策；仍需验证原终端映射、共享运行时双端交互、原生队列和微信文本闭环。依赖精确锁、attach 独立行为及数值默认值在施工关卡中关闭；改变已确认用户体验时再确认。
+
+实施核对：`app-server proxy` 仅透传原始字节，不能直接写 JSONL。Unix 控制 socket 使用 WebSocket；桥接直连该 socket，不新建运行时。见 [官方固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/stdio-to-uds/src/lib.rs)。
