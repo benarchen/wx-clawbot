@@ -27,3 +27,13 @@ iTerm2 SDK 真实连接 localhost:1912 被拒绝，等待启用 API 与脚本授
 V01 的 terminal／process／runtime／thread 四方关联及 V02 的桌面 → 桥接 → 桌面三轮仍未验证。不能把本阶段的握手成功称为原终端接入，也不能进入依赖它的 W03 验收。
 
 离线测试使用内存对端及本地临时 Unix WebSocket 服务器，分别覆盖乱序响应、整数／字符串 ID、原生请求分类、超时与迟到响应、EOF、RPC 错误、畸形消息、事件溢出、版本拒绝及 socket 权限。它们不是 Codex 双端交互的实测。
+
+## API 启用后的现场定位
+
+2026-10-24 17:21，用户启用 Python API 后，真实 SDK 诊断成功，返回 1 个窗口、1 个终端。原先的未启用障碍已解除。现代 SDK 优先使用本机 Unix socket，只有不存在时才回退 TCP；单凭 TCP:1912 无监听不能判断 API 未启用，后续以 SDK 真实响应为准。依据为锁定 iterm2 2.30 的 connection.py 中 `_get_connect_coro` 实现。
+
+本次专用窗口启动尝试暴露入口错误：传入的 Codex CLI 是 `#!/usr/bin/env node` 包装脚本，GUI 子进程找不到 node，用户截图显示 `env: node: No such file or directory`，会话已经退出。该尝试没有成功启动 Agent。已核对本机存在与 daemon 匹配的 0.164.0 原生可执行文件；新增启动命令构造检查拒绝包装脚本并安全引用参数，不修改全局 PATH 或 Codex 配置。修正后的启动尚待执行，不能宣称可见会话验收通过。
+
+随后 SDK 创建调用停在返回创建响应后的 `_async_load → async_list_sessions`；受控中断了本次测试脚本，未停止 daemon 或用户终端。新连接的 WebSocket 握手也出现超时。本机只读线程采样显示 iTerm2 主线程处于 `_maybeWarnAboutShortLivedSessions → iTermWarning runModal → NSAlert runSheetModalForWindow`，可确认有短命会话退出警告正在等待处理；Unix API socket 由 iTerm2 持有。已请用户仅处理该警告及失败测试会话，不退出整个应用。界面工具被平台禁止访问 iTerm2，没有使用其他界面方式绕过。
+
+诊断现在分别报告 connect／list_sessions 阶段，超时不再归因为未启用 API；关闭连接设定有限等待。启动测试将在创建回执返回后立即保存端点身份，再读取会话，避免失去已创建资源的核对依据。未收到界面恢复确认前不重试窗口创建。
