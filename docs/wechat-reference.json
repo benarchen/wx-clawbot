@@ -30,6 +30,11 @@
       "file": "src/messaging/send.ts",
       "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/messaging/send.ts",
       "sha256": "2f33e3e9cccb18ef03620669deb1c415749f6ac3835f4ff24f25847ecb753f4d"
+    },
+    {
+      "file": "src/api/types.ts",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/api/types.ts",
+      "sha256": "9e321e1a79bd7ec385b8e2b9695f1d87507282ff33f9cfdafbe4e33aea5387ac"
     }
   ],
   "version": "2.4.10",

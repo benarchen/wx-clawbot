@@ -57,3 +57,5 @@ git diff --check
 ```
 
 [项目规范](AGENTS.md) · [当前进度与阻塞](ROADMAP.md) · [产品设计](docs/product-design.md) · [架构](docs/architecture-design.md) · [技术决策](docs/technical-decisions.md) · [开发契约](docs/development-contracts.md) · [施工清单](goals/implementation-plan.md)
+
+独立二维码登录、本人确认及指定口令文本诊断的操作入口见 [微信通道协议与联调说明](docs/wechat-protocol.md)。诊断命令不会执行 Agent 任务，只有已明确确认的本人绑定才能进行测试收发。

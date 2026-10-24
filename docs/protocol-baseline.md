@@ -23,4 +23,4 @@ daemon version 真实查询成功。CLI 与 daemon 不同版本不能混为同�
 
 ## 微信参考冻结
 
-腾讯公开参考固定在 commit `874637a0dbc24050f72d1385add4fc6170a2d726`，package.json 版本 2.4.10、MIT。下载核对了协议、API、登录、发送、package 与 LICENSE 六份文件，固定链接及 SHA-256 见 [参考清单](wechat-reference.json)。未 vendor 源码或安装其 OpenClaw 依赖，也未读取本机其他项目。字段逐项实现与真机联调属于 W04，当前没有扫码、绑定或收发微信。
+腾讯公开参考固定在 commit `874637a0dbc24050f72d1385add4fc6170a2d726`，package.json 版本 2.4.10、MIT。W01 核对协议、API、登录、发送、package 与 LICENSE 六份文件，W04 补充同一 commit 的消息类型定义，共七份固定链接及 SHA-256 见 [参考清单](wechat-reference.json)。未 vendor 源码或安装其 OpenClaw 依赖，也未读取本机其他项目。实际字段选择、独立客户端标识与扫码展示依赖见 [微信通道协议](wechat-protocol.md)，真实联调进度只见 ROADMAP。
