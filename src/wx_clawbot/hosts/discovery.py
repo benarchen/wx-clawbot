@@ -1,17 +1,10 @@
 """Read-only endpoint evidence. A Codex process alone does not establish a thread."""
 
 import asyncio
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
-
-@dataclass(frozen=True)
-class ProcessIdentity:
-    pid: int
-    started: str
-    executable: str
-    tty: str
+from .process import ProcessIdentity, read_process
 
 
 @dataclass(frozen=True)
@@ -21,39 +14,31 @@ class TerminalEndpoint:
     classification: str
 
 
-async def read_process(pid: int) -> ProcessIdentity | None:
-    if type(pid) is not int or pid <= 0:
+def tty_device(value: object) -> int | None:
+    if not isinstance(value, str):
         return None
-    process = await asyncio.create_subprocess_exec(
-        "/bin/ps", "-p", str(pid), "-o", "lstart=,comm=,tty=",
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
-        env={**os.environ, "LC_ALL": "C"},
-    )
+    path = Path(value)
+    if path.parent != Path("/dev") or not path.name.startswith("tty"):
+        return None
     try:
-        stdout, _ = await asyncio.wait_for(process.communicate(), 3)
-    except TimeoutError:
-        process.kill()
-        await process.wait()
+        return path.stat().st_rdev if path.is_char_device() else None
+    except OSError:
         return None
-    if process.returncode:
-        return None
-    parts = stdout.decode(errors="replace").strip().split(maxsplit=5)
-    if len(parts) != 6:
-        return None
-    executable, tty = parts[5].rsplit(maxsplit=1)
-    return ProcessIdentity(pid, " ".join(parts[:5]), executable, tty.removeprefix("/dev/"))
 
 
 async def inspect_terminal(session) -> TerminalEndpoint:
     pid = await session.async_get_variable("jobPid")
     tty = await session.async_get_variable("tty")
     try:
-        identity = await read_process(int(pid))
+        valid_pid = type(pid) is int or (
+            type(pid) is float and pid.is_integer()
+        ) or (isinstance(pid, str) and pid.isascii() and pid.isdigit())
+        identity = await asyncio.to_thread(read_process, int(pid)) if valid_pid else None
     except (TypeError, ValueError):
         identity = None
     if identity is None:
         classification = "exited_or_unavailable"
-    elif identity.tty != str(tty).removeprefix("/dev/"):
+    elif identity.tty_device != tty_device(tty):
         classification = "unverified_process"
     elif Path(identity.executable).name == "codex":
         classification = "codex_candidate"

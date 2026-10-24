@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from wx_clawbot.hosts.discovery import ProcessIdentity, inspect_terminal
+from wx_clawbot.hosts.discovery import ItermDirectory, TerminalEndpoint, inspect_terminal
+from wx_clawbot.hosts.process import ProcessIdentity
 
 
 class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
@@ -9,8 +10,9 @@ class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
         session = AsyncMock()
         session.session_id = "fixture-terminal"
         session.async_get_variable.side_effect = [100, "/dev/ttys001"]
-        identity = ProcessIdentity(100, "fixture-start", "/bin/zsh", "ttys001")
-        with patch("wx_clawbot.hosts.discovery.read_process", return_value=identity):
+        identity = ProcessIdentity(100, (1, 100), "/bin/zsh", 101)
+        with patch("wx_clawbot.hosts.discovery.read_process", return_value=identity), \
+                patch("wx_clawbot.hosts.discovery.tty_device", return_value=101):
             endpoint = await inspect_terminal(session)
         self.assertEqual(endpoint.classification, "ordinary_terminal")
 
@@ -18,8 +20,9 @@ class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
         session = AsyncMock()
         session.session_id = "fixture-terminal"
         session.async_get_variable.side_effect = [100, "/dev/ttys001"]
-        identity = ProcessIdentity(100, "fixture-start", "/opt/bin/codex", "ttys002")
-        with patch("wx_clawbot.hosts.discovery.read_process", return_value=identity):
+        identity = ProcessIdentity(100, (1, 100), "/opt/bin/codex", 102)
+        with patch("wx_clawbot.hosts.discovery.read_process", return_value=identity), \
+                patch("wx_clawbot.hosts.discovery.tty_device", return_value=101):
             endpoint = await inspect_terminal(session)
         self.assertEqual(endpoint.classification, "unverified_process")
 
@@ -28,3 +31,32 @@ class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
         session.session_id = "fixture-terminal"
         session.async_get_variable.side_effect = ["", "/dev/ttys001"]
         self.assertEqual((await inspect_terminal(session)).classification, "exited_or_unavailable")
+
+    async def test_pid_reuse_within_same_second_invalidates_endpoint(self):
+        old = ProcessIdentity(100, (1, 100), "/opt/bin/codex", 101)
+        new = ProcessIdentity(100, (1, 101), "/opt/bin/codex", 101)
+        endpoint = TerminalEndpoint("fixture-terminal", old, "codex_candidate")
+        directory = ItermDirectory(None)
+        directory.discover = AsyncMock(return_value=[
+            TerminalEndpoint("fixture-terminal", new, "codex_candidate")
+        ])
+        self.assertFalse(await directory.validate(endpoint))
+
+    async def test_exited_terminal_invalidates_endpoint(self):
+        endpoint = TerminalEndpoint("fixture-terminal",
+                                    ProcessIdentity(100, (1, 100), "/opt/bin/codex", 101),
+                                    "codex_candidate")
+        directory = ItermDirectory(None)
+        directory.discover = AsyncMock(return_value=[])
+        self.assertFalse(await directory.validate(endpoint))
+
+    async def test_invalid_host_pid_does_not_inspect_another_process(self):
+        for value in (True, 100.5, float("inf"), "100.5", "invalid"):
+            session = AsyncMock()
+            session.session_id = "fixture-terminal"
+            session.async_get_variable.side_effect = [value, "/dev/ttys001"]
+            with self.subTest(pid=value), \
+                    patch("wx_clawbot.hosts.discovery.read_process") as read:
+                endpoint = await inspect_terminal(session)
+                read.assert_not_called()
+                self.assertEqual(endpoint.classification, "exited_or_unavailable")
