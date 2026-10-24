@@ -39,6 +39,48 @@ def output(turn):
     return "\n".join(item.get("text", "") for item in turn["items"] if item["type"] == "agentMessage")
 
 
+V03_CHECKS = (
+    "same_original_terminals_and_native_threads",
+    "approval_both_first_answer_orders",
+    "concurrent_conflicting_attempts_single_native_outcome",
+    "expiry_disconnect_reconnect_and_late_answers",
+    "multi_question_single_choice_free_text_invalid_and_cancel",
+    "authorized_configuration_baseline_unchanged",
+)
+V04_CHECKS = (
+    "same_original_terminals_and_native_threads",
+    "native_queue_deletion_and_actual_running_interruption",
+    "lost_queue_receipt_reconciled_without_resubmission",
+    "bridge_ten_item_admission_bound",
+    "bridge_fifo_distinct_turns",
+    "original_tui_tab_and_bridge_distinct_task_queue",
+    "authorized_configuration_baseline_unchanged",
+)
+
+
+def verdict(checks):
+    v03 = all(checks.get(key) is True for key in V03_CHECKS)
+    v04 = all(checks.get(key) is True for key in V04_CHECKS)
+    return {"checks": checks, "desktop_entry_contract": "original-tui",
+            "v03_passed": v03, "v04_passed": v04, "passed": v03 and v04}
+
+
+def distinct_fifo(turns, first_client_id, first_marker, second_marker):
+    first, second = [], []
+    for index, turn in enumerate(turns):
+        for item in users(turn):
+            if item.get("clientId") == first_client_id:
+                first.append((index, turn))
+            text = "\n".join(part.get("text", "") for part in item["content"] if part.get("type") == "text")
+            if second_marker in text:
+                second.append((index, turn))
+    if len(first) != 1 or len(second) != 1 or first[0][0] >= second[0][0]:
+        return False
+    return all(turn["status"] == "completed" and len(users(turn)) == 1
+               and marker in output(turn)
+               for (_, turn), marker in zip((first[0], second[0]), (first_marker, second_marker)))
+
+
 async def history(native, thread_id):
     turns, cursors, cursor = [], set(), None
     for _ in range(50):
@@ -71,7 +113,7 @@ def paired_request(case):
     return first
 
 
-async def verify(primary, comparison, desktop_entry):
+async def verify(primary, comparison):
     root = (Path(__file__).resolve().parents[2] / ".tmp").resolve()
     require(primary["project"] != comparison["project"], "Two fixture projects required")
     for record in (primary, comparison):
@@ -173,22 +215,21 @@ async def verify(primary, comparison, desktop_entry):
                     [item["clientUserMessageId"] for item in snapshot], "Queue to actual turn association differs")
         checks["bridge_fifo_distinct_turns"] = True
         checks["dedicated_desktop_cli_and_bridge_share_native_fifo"] = True
-        for record, native_turns, case_label, client_key in (
-            (primary, turns, "busy-queue", "bridge_first"),
-            (comparison, other_turns, "mixed-queue-164-v2", "first_client_id"),
+        tui_results = []
+        for record, native_turns, case_label, client_key, first_marker, second_marker in (
+            (primary, turns, "busy-queue", "bridge_first", "QUEUE_BRIDGE_FIRST", "QUEUE_DESKTOP_SECOND"),
+            (comparison, other_turns, "mixed-queue-164-v2", "first_client_id",
+             "QUEUE_164_BRIDGE_FIRST", "QUEUE_164_DESKTOP_SECOND"),
         ):
             case = record["cases"][case_label]
             client_id = case[client_key]["client_id"] if client_key == "bridge_first" else case[client_key]
-            merged = [turn for turn in native_turns if any(item.get("clientId") == client_id for item in users(turn))]
-            require(len(merged) == 1 and len(users(merged[0])) == 2, "Expected TUI mixed queue counterexample changed")
-        checks["original_tui_tab_and_bridge_distinct_task_queue"] = False
+            tui_results.append(distinct_fifo(native_turns, client_id, first_marker, second_marker))
+        checks["original_tui_tab_and_bridge_distinct_task_queue"] = all(tui_results)
         digest = hashlib.sha256((Path.home() / ".codex" / "config.toml").read_bytes()).hexdigest()
         require(digest == primary["expected_config_sha256"] == comparison["expected_config_sha256"],
                 "Authorized global configuration baseline changed")
         checks["authorized_configuration_baseline_unchanged"] = True
-        return {"checks": checks, "desktop_entry_contract": desktop_entry,
-                "v03_passed": True, "v04_passed": desktop_entry == "dedicated-queue",
-                "passed": desktop_entry == "dedicated-queue"}
+        return verdict(checks)
     finally:
         await native.close()
         if host is not None:
@@ -200,12 +241,11 @@ def main():
     parser.add_argument("--live", action="store_true", required=True)
     parser.add_argument("--primary-record", type=Path, required=True)
     parser.add_argument("--comparison-record", type=Path, required=True)
-    parser.add_argument("--desktop-entry", choices=("original-tui", "dedicated-queue"), default="original-tui")
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
     try:
         report = asyncio.run(verify(json.loads(args.primary_record.read_text()),
-                                   json.loads(args.comparison_record.read_text()), args.desktop_entry))
+                                   json.loads(args.comparison_record.read_text())))
     except Exception as exc:
         report = {"passed": False, "error": str(exc) if isinstance(exc, EvidenceFailure) else type(exc).__name__}
     report["checked_at"] = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M")
