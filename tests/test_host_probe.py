@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from wx_clawbot.hosts.iterm2 import probe
@@ -13,7 +14,7 @@ class HostProbeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("不能据此判断", result["next_step"])
 
     async def test_list_timeout_reports_phase_and_closes_connection(self):
-        connection = AsyncMock()
+        connection = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
         with patch("iterm2.Connection.async_create", new=AsyncMock(return_value=connection)), \
                 patch("iterm2.async_get_app", new=AsyncMock(side_effect=TimeoutError)):
             result = await probe()

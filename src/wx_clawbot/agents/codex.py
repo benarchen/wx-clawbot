@@ -57,5 +57,42 @@ class CodexConnection:
             raise ValueError("Native thread identity mismatch")
         return thread
 
+    async def list_project_threads(self, project: Path, *, cursor: str | None = None) -> dict:
+        project = project.resolve(strict=True)
+        if not project.is_dir():
+            raise ValueError("Existing project directory required")
+        params = {"cwd": str(project), "useStateDbOnly": True, "limit": 100}
+        if cursor is not None:
+            params["cursor"] = cursor
+        result = await self.rpc.request("thread/list", params)
+        if not isinstance(result, dict) or not isinstance(result.get("data"), list):
+            raise ValueError("Invalid native thread page")
+        for thread in result["data"]:
+            if not isinstance(thread, dict) or not isinstance(thread.get("cwd"), str) or (
+                Path(thread["cwd"]).resolve() != project
+            ):
+                raise ValueError("Native thread escaped requested project scope")
+        return result
+
+    async def observe_loaded(self, thread_id: str, project: Path) -> dict:
+        """Subscribe to a loaded thread; never hydrate a stored or forked copy."""
+        before = await self.inspect(thread_id)
+        if Path(before["cwd"]).resolve() != project.resolve(strict=True):
+            raise ValueError("Native project identity mismatch")
+        if before.get("status", {}).get("type") not in {"idle", "active"}:
+            raise ValueError("Thread is not loaded in the target native runtime")
+        result = await self.rpc.request("thread/resume", {"threadId": thread_id, "excludeTurns": True})
+        after = result.get("thread", {})
+        for field in ("id", "cwd", "sessionId", "model", "modelProvider"):
+            if after.get(field) != before.get(field):
+                raise ValueError("Native identity or model changed during subscription")
+        return after
+
+    async def read_turns(self, thread_id: str, *, cursor: str | None = None) -> dict:
+        params = {"threadId": thread_id, "limit": 20, "itemsView": "full", "sortDirection": "asc"}
+        if cursor is not None:
+            params["cursor"] = cursor
+        return await self.rpc.request("thread/turns/list", params)
+
     async def close(self) -> None:
         await self.rpc.close()

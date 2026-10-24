@@ -3,6 +3,7 @@
 import asyncio
 import json
 
+from .connection import close_connection
 
 async def probe() -> dict:
     import iterm2
@@ -27,10 +28,7 @@ async def probe() -> dict:
         return {"status": "failed", "error_type": type(exc).__name__}
     finally:
         if connection is not None:
-            try:
-                await asyncio.wait_for(connection.websocket.close(), 2)
-            except TimeoutError:
-                pass
+            await close_connection(connection)
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@
 
 ## 未通过关卡
 
-iTerm2 SDK 真实连接 localhost:1912 被拒绝，等待启用 API 与脚本授权。2026-10-24 17:05 只读检查仍未发现该端口监听，设置查询未返回启用值；没有再次触发 SDK 授权或自动改设置。两个私有临时测试项目已准备；未创建或操作测试终端。
+早期 iTerm2 SDK 真实连接 localhost:1912 被拒绝。2026-10-24 17:05 只读检查仍未发现该端口监听，设置查询未返回启用值；未自动改设置。该项为历史失败证据，启用后的实际结果见后续记录；两个私有临时测试项目已准备。
 
 V01 的 terminal／process／runtime／thread 四方关联及 V02 的桌面 → 桥接 → 桌面三轮仍未验证。不能把本阶段的握手成功称为原终端接入，也不能进入依赖它的 W03 验收。
 
@@ -37,3 +37,22 @@ V01 的 terminal／process／runtime／thread 四方关联及 V02 的桌面 → 
 随后 SDK 创建调用停在返回创建响应后的 `_async_load → async_list_sessions`；受控中断了本次测试脚本，未停止 daemon 或用户终端。新连接的 WebSocket 握手也出现超时。本机只读线程采样显示 iTerm2 主线程处于 `_maybeWarnAboutShortLivedSessions → iTermWarning runModal → NSAlert runSheetModalForWindow`，可确认有短命会话退出警告正在等待处理；Unix API socket 由 iTerm2 持有。已请用户仅处理该警告及失败测试会话，不退出整个应用。界面工具被平台禁止访问 iTerm2，没有使用其他界面方式绕过。
 
 诊断现在分别报告 connect／list_sessions 阶段，超时不再归因为未启用 API；关闭连接设定有限等待。启动测试将在创建回执返回后立即保存端点身份，再读取会话，避免失去已创建资源的核对依据。未收到界面恢复确认前不重试窗口创建。
+
+## 现场恢复与持久信任关卡
+
+2026-10-24 19:05，用户确认已关闭失败页面，SDK 真实复测成功，原工作终端未被注入测试输入。新的专用窗口已通过官方 SDK 创建，原生 Codex 0.164.0 正常运行，当前停在文件夹信任提示；没有创建 native thread 或执行模型任务。
+
+原生提示明确说明信任决定会被保存，且临时目录位于本仓库内，信任目标为仓库根。测试没有直接确认提示。一次 SDK restart 的实测显示终端 ID 会改变，且即使先修改会话 profile，重启后的实际 argv 仍不包含新增参数；因此没有把 profile 修改当作启动成功依据。随后独立创建带真实单次 CLI 参数的测试 tab，逐字段核对其专用进程确实收到项目 trust_level 覆盖，仍显示信任提示。
+
+已核对 0.163.0 正式标签对应提交与 0.164.0 现场行为：连接共享运行时后，TUI 的 check_directory_trust 调用服务端 read_remote_project_trust；不能用客户端 CLI 的临时覆盖替代此持久信任判断。依据：[0.163.0 实现](https://github.com/openai/codex/blob/83086188ae0614bd882818ff1aa23f3194962012/codex-rs/tui/src/onboarding/directory_trust.rs)、[当前固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/tui/src/onboarding/directory_trust.rs)。[官方单次 CLI 覆盖文档](https://learn.chatgpt.com/docs/config-file/config-advanced) 只说明一般覆盖机制，不能证明该远程信任检查接受覆盖。
+
+服务端使用标准 Codex 配置根，当前项目没有项目级 `.codex` 目录或已有持久信任表。待用户确认的唯一配置增量为：
+
+```toml
+[projects."<project-root>"]
+trust_level = "trusted"
+```
+
+这是一项待批准的例外，不是已经执行的变更，也不扩大其他项目或模型、认证、Skills、插件配置的修改范围。2026-10-24 19:16，全局 config.toml 摘要仍与任务开始时一致。没有批准前不接受原生信任提示或写入该文件。
+
+项目范围的 thread 查询、已加载 thread 的订阅校验与连接清理已补齐；37 项离线及合成对端测试通过。真实 V01／V02 仍缺 native thread 绑定与三轮连续性，不能以原生程序启动成功替代验收。

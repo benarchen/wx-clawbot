@@ -20,18 +20,29 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.temp.cleanup)
         self.socket = Path(self.temp.name) / "rpc.sock"
         self.methods = []
+        self.requests = []
         self.server_version = "0.164.0"
+        self.thread = {"id": "fixture-thread", "cwd": str(Path(self.temp.name)),
+                       "status": {"type": "idle"}, "sessionId": "fixture-session",
+                       "model": "fixture-model", "modelProvider": "fixture-provider"}
+        self.resume_changes = {}
+        self.list_rows = [self.thread]
 
         async def peer(websocket):
             async for raw in websocket:
                 message = json.loads(raw)
                 self.methods.append(message["method"])
+                self.requests.append(message)
                 if message["method"] == "initialize":
                     result = {"userAgent": "fixture/" + self.server_version,
                               "platformFamily": "unix", "platformOs": "macos",
                               "codexHome": "/example/private-runtime"}
                 elif message["method"] == "thread/read":
-                    result = {"thread": {"id": message["params"]["threadId"]}}
+                    result = {"thread": {**self.thread, "id": message["params"]["threadId"]}}
+                elif message["method"] == "thread/resume":
+                    result = {"thread": {**self.thread, **self.resume_changes}}
+                elif message["method"] == "thread/list":
+                    result = {"data": self.list_rows, "nextCursor": None}
                 else:
                     continue
                 await websocket.send(json.dumps({"id": message["id"], "result": result}))
@@ -64,3 +75,41 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError, "private"):
             await CodexConnection.connect(self.socket)
         self.assertEqual(self.methods, [])
+
+    async def test_project_listing_rejects_out_of_scope_native_result(self):
+        self.list_rows = [{**self.thread, "cwd": "/example/outside-project"}]
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            with self.assertRaisesRegex(ValueError, "project scope"):
+                await connection.list_project_threads(Path(self.temp.name))
+        finally:
+            await connection.close()
+
+    async def test_observe_loaded_preserves_identity_and_model(self):
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            after = await connection.observe_loaded("fixture-thread", Path(self.temp.name))
+            self.assertEqual(after, self.thread)
+        finally:
+            await connection.close()
+        resume = next(r for r in self.requests if r["method"] == "thread/resume")
+        self.assertEqual(resume["params"], {"threadId": "fixture-thread", "excludeTurns": True})
+
+    async def test_stored_thread_is_not_resumed_as_an_original_terminal(self):
+        self.thread["status"] = {"type": "notLoaded"}
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            with self.assertRaisesRegex(ValueError, "not loaded"):
+                await connection.observe_loaded("fixture-thread", Path(self.temp.name))
+        finally:
+            await connection.close()
+        self.assertNotIn("thread/resume", self.methods)
+
+    async def test_subscription_identity_change_is_rejected(self):
+        self.resume_changes = {"model": "unexpected-model"}
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            with self.assertRaisesRegex(ValueError, "identity or model changed"):
+                await connection.observe_loaded("fixture-thread", Path(self.temp.name))
+        finally:
+            await connection.close()
