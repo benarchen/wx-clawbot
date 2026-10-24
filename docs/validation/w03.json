@@ -13,9 +13,9 @@
     "original_tui_tab_and_bridge_distinct_task_queue": false,
     "authorized_configuration_baseline_unchanged": true
   },
-  "desktop_entry_contract": "original-tui",
+  "desktop_entry_contract": "dedicated-queue",
   "v03_passed": true,
-  "v04_passed": false,
-  "passed": false,
-  "checked_at": "2026-10-24 22:45"
+  "v04_passed": true,
+  "passed": true,
+  "checked_at": "2026-10-25 00:46"
 }

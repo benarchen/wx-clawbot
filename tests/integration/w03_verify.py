@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -18,7 +19,7 @@ import iterm2
 from wx_clawbot.agents.codex import CodexConnection
 from wx_clawbot.agents.queue import NativeQueue
 from wx_clawbot.hosts.connection import close_connection
-from wx_clawbot.hosts.discovery import ItermDirectory, TerminalEndpoint
+from wx_clawbot.hosts.discovery import ItermDirectory, TerminalEndpoint, inspect_terminal
 from wx_clawbot.hosts.process import ProcessIdentity
 
 
@@ -53,7 +54,7 @@ V04_CHECKS = (
     "lost_queue_receipt_reconciled_without_resubmission",
     "bridge_ten_item_admission_bound",
     "bridge_fifo_distinct_turns",
-    "original_tui_tab_and_bridge_distinct_task_queue",
+    "dedicated_desktop_cli_and_bridge_share_native_fifo",
     "authorized_configuration_baseline_unchanged",
 )
 
@@ -61,8 +62,33 @@ V04_CHECKS = (
 def verdict(checks):
     v03 = all(checks.get(key) is True for key in V03_CHECKS)
     v04 = all(checks.get(key) is True for key in V04_CHECKS)
-    return {"checks": checks, "desktop_entry_contract": "original-tui",
+    return {"checks": checks, "desktop_entry_contract": "dedicated-queue",
             "v03_passed": v03, "v04_passed": v04, "passed": v03 and v04}
+
+
+def desktop_receipt(case, thread_id):
+    snapshot, receipt = case["shared_native_snapshot"], case["desktop_receipt"]
+    require(len(snapshot) == 2 and receipt.get("thread_id") == thread_id
+            and receipt.get("queue_id") == snapshot[1]["id"], "Desktop CLI receipt does not match shared queue")
+    require(snapshot[0]["id"] != snapshot[1]["id"]
+            and snapshot[0]["clientUserMessageId"] != snapshot[1]["clientUserMessageId"],
+            "Desktop and bridge queue identities are not distinct")
+    return receipt
+
+
+def config_baseline(primary, comparison):
+    original = primary["expected_config_sha256"]
+    require(original == comparison["expected_config_sha256"], "Original configuration baselines differ")
+    approved = primary.get("confirmed_config_baseline")
+    require(approved == comparison.get("confirmed_config_baseline"), "Configuration approval records differ")
+    if approved is None:
+        return original
+    require(isinstance(approved, dict) and approved.get("previous_sha256") == original
+            and isinstance(approved.get("sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", approved["sha256"])
+            and isinstance(approved.get("confirmed_at"), str) and bool(approved["confirmed_at"])
+            and approved.get("reason") == "user_accepted_external_desktop_configuration_sync",
+            "Invalid explicit configuration baseline record")
+    return approved["sha256"]
 
 
 def distinct_fifo(turns, first_client_id, first_marker, second_marker):
@@ -214,6 +240,16 @@ async def verify(primary, comparison):
             require([users(turn)[0]["clientId"] for turn in sequence[1:]] ==
                     [item["clientUserMessageId"] for item in snapshot], "Queue to actual turn association differs")
         checks["bridge_fifo_distinct_turns"] = True
+        desktop_case = comparison["cases"]["desktop-native-queue"]
+        receipt = desktop_receipt(desktop_case, comparison["thread_id"])
+        app = await iterm2.async_get_app(host)
+        controller = app.get_session_by_id(desktop_case["controller_terminal_id"])
+        require(controller is not None and (await inspect_terminal(controller)).classification == "ordinary_terminal",
+                "Dedicated desktop controller is not a visible ordinary shell")
+        screen = await controller.async_get_screen_contents()
+        screen_text = "".join(screen.line(i).string for i in range(screen.number_of_lines)).replace("\0", " ")
+        expected = "Queued message " + receipt["queue_id"] + " for thread " + receipt["thread_id"]
+        require("".join(expected.split()) in "".join(screen_text.split()), "Visible native queue receipt missing")
         checks["dedicated_desktop_cli_and_bridge_share_native_fifo"] = True
         tui_results = []
         for record, native_turns, case_label, client_key, first_marker, second_marker in (
@@ -226,7 +262,7 @@ async def verify(primary, comparison):
             tui_results.append(distinct_fifo(native_turns, client_id, first_marker, second_marker))
         checks["original_tui_tab_and_bridge_distinct_task_queue"] = all(tui_results)
         digest = hashlib.sha256((Path.home() / ".codex" / "config.toml").read_bytes()).hexdigest()
-        require(digest == primary["expected_config_sha256"] == comparison["expected_config_sha256"],
+        require(digest == config_baseline(primary, comparison),
                 "Authorized global configuration baseline changed")
         checks["authorized_configuration_baseline_unchanged"] = True
         return verdict(checks)
