@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from .wechat import Credentials
+from .wechat import Credentials, normalize_message_id
 
 
 @dataclass(frozen=True)
@@ -27,14 +27,8 @@ def parse_text(raw: dict, credentials: Credentials) -> tuple[IncomingText | None
         return None, "non_user_message"
     if type(raw.get("message_state")) is not int or raw["message_state"] != 2:
         return None, "unfinished_message"
-    native_id = raw.get("message_id")
-    if type(native_id) is int:
-        valid_id = 0 < native_id < 2**64
-    else:
-        valid_id = isinstance(native_id, str) and native_id.isascii() and native_id.isdigit() and len(native_id) <= 20
-        if valid_id:
-            valid_id = 0 < int(native_id) < 2**64
-    if not valid_id:
+    native_id = normalize_message_id(raw.get("message_id"))
+    if native_id is None:
         return None, "missing_stable_message_id"
     items = raw.get("item_list")
     if not isinstance(items, list) or not 1 <= len(items) <= 20:
@@ -58,4 +52,4 @@ def parse_text(raw: dict, credentials: Credentials) -> tuple[IncomingText | None
     if (type(timestamp) is not int or not 0 <= timestamp < 2**53
             or type(sequence) is not int or not 0 <= sequence < 2**53):
         return None, "invalid_order_metadata"
-    return IncomingText(str(int(native_id)), text, context, timestamp, sequence), None
+    return IncomingText(native_id, text, context, timestamp, sequence), None

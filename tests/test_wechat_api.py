@@ -108,3 +108,22 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
                 await self.api.send_text(self.account, peer="fixture-owner", text="hello",
                                          context_token="context", client_id="delivery-malformed")
         self.assertEqual(self.http.request.await_count, 3)
+
+    async def test_observed_native_message_id_ack_can_omit_optional_return_code(self):
+        for identity in (1, 2**64 - 1, "18446744073709551615"):
+            self.http.request.return_value = {"message_id": identity}
+            response = await self.api.send_text(self.account, peer="fixture-owner", text="hello",
+                                                 context_token="context", client_id="native-id-ack")
+            self.assertEqual(response["message_id"], identity)
+        for identity in (None, 0, -1, True, 1.5, "invalid", 2**64):
+            self.http.request.return_value = {"message_id": identity}
+            with self.assertRaises(DeliveryUnknown):
+                await self.api.send_text(self.account, peer="fixture-owner", text="hello",
+                                         context_token="context", client_id="invalid-id-ack")
+        for response, error in (({"message_id": 1, "ret": -2}, BusinessError),
+                                ({"message_id": 1, "errcode": -14}, SessionExpired),
+                                ({"message_id": 1, "ret": "0"}, DeliveryUnknown)):
+            self.http.request.return_value = response
+            with self.assertRaises(error):
+                await self.api.send_text(self.account, peer="fixture-owner", text="hello",
+                                         context_token="context", client_id="error-with-native-id")

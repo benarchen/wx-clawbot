@@ -24,6 +24,15 @@ class DeliveryUnknown(ChannelError):
     pass
 
 
+def normalize_message_id(value) -> str | None:
+    if type(value) is int:
+        return str(value) if 0 < value < 2**64 else None
+    if (isinstance(value, str) and value.isascii() and value.isdigit() and len(value) <= 20
+            and 0 < int(value) < 2**64):
+        return str(int(value))
+    return None
+
+
 def business(response: dict):
     for key in ("ret", "errcode"):
         if key not in response:
@@ -143,6 +152,6 @@ class WechatApi:
             business(response)
         except ProtocolError as exc:
             raise DeliveryUnknown("Send acknowledgement is malformed; do not automatically resend") from exc
-        if response.get("ret") != 0:
+        if response.get("ret") != 0 and normalize_message_id(response.get("message_id")) is None:
             raise DeliveryUnknown("Send response has no explicit success acknowledgement")
         return response
