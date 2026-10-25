@@ -182,7 +182,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.state.delivery_counts(), before)
         await self.engine.event({"method": "turn/started", "params": {"threadId": "thread-one", "turn": {"id": "new-turn"}}})
         await self.engine.complete("thread-one", {**turn, "id": "new-turn"})
-        self.assertEqual((await self.state.delivery_counts())["pending"], before["pending"] + 2)
+        self.assertEqual((await self.state.delivery_counts())["pending"], before["pending"] + 1)
 
     async def test_control_with_plain_acceptance_word_is_not_native_approval(self):
         await self.select()
@@ -553,3 +553,89 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
             await self.command(f"task {index}")
         self.assertEqual(len(await self.state.tasks(active_only=True)), 10)
         self.assertEqual(self.queue.add.await_count, 10)
+
+    async def test_delivery_backlog_refuses_new_execution_but_status_still_works(self):
+        await self.select()
+        with patch.object(self.state, "admission_budget", new=AsyncMock(return_value={"allowed": False})):
+            await self.command("do not admit with full backlog")
+            await self.command("/status")
+        self.assertEqual(await self.state.tasks(), [])
+        self.queue.add.assert_not_awaited()
+
+    async def test_memory_cleanup_keeps_recent_handled_interactions_and_drops_detached_turns(self):
+        broker, record = await self.approval()
+        for index in range(80):
+            event = {"id": index, "method": APPROVAL, "params": {"threadId": "thread-one",
+                "turnId": "turn-a", "itemId": f"item-{index}", "command": "fixture"}}
+            await self.engine.event(event)
+            await self.engine.event({"method": "serverRequest/resolved", "params": {
+                "threadId": "thread-one", "requestId": index}})
+        # Preserve the first still-pending record, while bounding old handled history.
+        self.assertEqual(record.state, "pending")
+        self.engine.observed_turns.add(("thread-one", "detached-mid-turn"))
+        await self.command("/detach")
+        await self.engine.prune_memory()
+        self.assertEqual(len(broker.records), 65)
+        self.assertEqual(len(self.engine.interaction_targets), 65)
+        self.assertEqual(self.engine.observed_turns, set())
+        self.assertIn(record.public_id, broker.records)
+
+    async def test_unsupported_native_request_is_reported_without_automatic_reply(self):
+        await self.select()
+        await self.engine.event({"id": 17, "method": "item/unsupported/requestApproval", "params": {"threadId": "thread-two"}})
+        reply = await self.state.claim_reply()
+        self.assertIn("尚未支持", reply["text"])
+        self.agent.rpc.respond.assert_not_awaited()
+
+    async def desktop_start(self, *, observe=False):
+        await self.select()
+        if observe:
+            await self.command("/attach 2")
+        await self.engine.event({"method": "turn/started", "params": {"threadId": "thread-two", "turn": {"id": "desktop-turn"}}})
+        await self.engine.event({"method": "item/started", "params": {"threadId": "thread-two", "turnId": "desktop-turn",
+            "item": {"type": "userMessage", "clientId": "desktop-native-client"}}})
+        return (await self.state.tasks(active_only=True))[0]
+
+    async def test_focused_desktop_turn_is_identifiable_and_stoppable_without_fabricated_inbox(self):
+        task = await self.desktop_start()
+        self.assertEqual(task["target"]["source"], "external")
+        self.assertIsNone(task["source_message_id"])
+        self.assertEqual(task["input"], "")
+        await self.command("/stop " + task["id"])
+        self.queue.request_interrupt.assert_awaited_once_with("desktop-turn")
+        await self.engine.complete("thread-two", {"id": "desktop-turn", "status": "interrupted", "items": [
+            {"type": "userMessage", "clientId": "desktop-native-client"}]})
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "interrupted")
+        self.assertEqual((await self.state.delivery_counts())["pending"], 4)
+
+    async def test_focus_only_does_not_forward_unobserved_desktop_results_or_new_approvals(self):
+        task = await self.desktop_start()
+        counts = await self.state.delivery_counts()
+        await self.engine.event({"id": "desktop-approval", "method": APPROVAL, "params": {
+            "threadId": "thread-two", "turnId": "desktop-turn", "itemId": "desktop-item", "command": "fixture"}})
+        await self.engine.complete("thread-two", {"id": "desktop-turn", "status": "completed", "items": [
+            {"type": "userMessage", "clientId": "desktop-native-client"}, {"type": "agentMessage", "text": "desktop result"}]})
+        self.assertEqual(await self.state.delivery_counts(), counts)
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "completed")
+        self.assertEqual(await self.state.interaction_rows(), [])
+        self.agent.rpc.respond.assert_not_awaited()
+
+    async def test_observed_external_turn_forwards_result_once_and_detach_stops_future_results(self):
+        task = await self.desktop_start(observe=True)
+        before = await self.state.delivery_counts()
+        turn = {"id": "desktop-turn", "status": "completed", "items": [
+            {"type": "userMessage", "clientId": "desktop-native-client"}, {"type": "agentMessage", "text": "desktop result"}]}
+        await self.engine.complete("thread-two", turn)
+        await self.engine.complete("thread-two", turn)
+        self.assertEqual((await self.state.delivery_counts())["pending"], before["pending"] + 1)
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "completed")
+
+    async def test_focus_adopts_already_running_native_turn_without_submitting_or_replaying_history(self):
+        await self.command("/sessions")
+        self.agent.inspect.return_value = {"status": {"type": "active"}}
+        self.agent.rpc.request.return_value = {"data": [{"id": "already-running", "status": "inProgress",
+            "items": [{"type": "userMessage", "clientId": "desktop-current"}]}], "nextCursor": None}
+        await self.command("/focus 2")
+        task = (await self.state.tasks())[0]
+        self.assertEqual((task["turn_id"], task["target"]["source"]), ("already-running", "external"))
+        self.queue.add.assert_not_awaited()

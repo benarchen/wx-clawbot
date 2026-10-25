@@ -12,6 +12,7 @@ from .hosts.visible import LaunchPending, reconcile_launch
 from .routing import RouteError, Routes, Target
 from .sessions import SessionUnbound
 from .subscriptions import Subscriptions
+from .output import split_text
 
 
 HELP = ("/projects：项目列表\n/cd <别名或目录>：选择或创建受管会话\n"
@@ -72,8 +73,10 @@ class Controller:
 
     async def reply(self, message, text, *, priority=2):
         key = hashlib.sha256(message.message_id.encode()).hexdigest()[:32]
-        for index in range(0, len(text), 7000):
-            await self.state.queue_reply(f"command-{key}-{index // 7000}", text[index:index + 7000], priority=priority,
+        chunks = split_text(text)
+        for index, chunk in enumerate(chunks, 1):
+            prefix = f"〔命令回执 {index}/{len(chunks)}〕\n" if len(chunks) > 1 else ""
+            await self.state.queue_reply(f"command-{key}-{index - 1}", prefix + chunk, priority=priority,
                                          kind="control" if priority == 0 else "reply")
 
     async def execute(self, message, command, revision, target, dispatch, destination):
@@ -237,6 +240,8 @@ class Controller:
     async def _set_focus(self, target, expected, routes, *, managed=False):
         previous = routes.target
         await self.subscriptions.acquire(target, "route")
+        if self.engine:
+            await self.engine.sync_external(target)
         try:
             if previous is not None and previous != target:
                 await self.subscriptions.release(previous, "route")

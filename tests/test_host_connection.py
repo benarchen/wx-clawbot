@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 from wx_clawbot.hosts.connection import close_connection
 
@@ -18,3 +18,20 @@ class HostConnectionTests(unittest.IsolatedAsyncioTestCase):
         setattr(connection, "_Connection__dispatch_forever_future", reader)
         await close_connection(connection)
         connection.websocket.close.assert_awaited_once()
+
+    async def test_closed_connection_cannot_leave_stale_app_singleton_for_reconnect(self):
+        from iterm2.app import App
+
+        connection = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
+        with patch.object(App, "instance", SimpleNamespace(connection=connection)):
+            await close_connection(connection)
+            self.assertIsNone(App.instance)
+
+    async def test_closing_another_connection_does_not_invalidate_live_app(self):
+        from iterm2.app import App
+
+        connection = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
+        app = SimpleNamespace(connection=object())
+        with patch.object(App, "instance", app):
+            await close_connection(connection)
+            self.assertIs(App.instance, app)

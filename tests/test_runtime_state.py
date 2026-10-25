@@ -82,7 +82,7 @@ class RuntimeTests(RuntimeFixture):
         parts = []
         for index in range(3):
             reply = await self.state.claim_reply()
-            self.assertTrue(reply["text"].startswith(f"〔{index+1}/3〕\n"))
+            self.assertTrue(reply["text"].startswith(f"〔{index+1}/3〕{task['id']}\n"))
             parts.append(reply["text"].split("\n", 1)[1])
             await self.state.finish_reply(reply["id"], "accepted", index + 1)
         self.assertEqual("".join(parts), text)
@@ -137,3 +137,47 @@ class RuntimeTests(RuntimeFixture):
         changed = await self.state.accept_batch({"ret": 0, "msgs": [message(text="changed")]}, phase="runtime")
         self.assertEqual(changed["conflicts"], 1)
         self.assertFalse(changed["accepted"])
+
+    async def test_latest_progress_atomically_supersedes_old_acceptance_without_late_regression(self):
+        task = await self.admit()
+        await self.state.queue_reply("accepted", "queued", task_id=task["id"], kind="accepted")
+        await self.state.task_update(task["id"], "running", turn_id="fixture-turn")
+        await self.state.queue_reply("running", "running", task_id=task["id"], kind="progress")
+        self.assertFalse(await self.state.queue_reply("late-accepted", "queued", task_id=task["id"], kind="accepted"))
+        self.assertEqual(await self.state.delivery_counts(), {"pending": 1, "superseded": 1})
+        self.assertEqual((await self.state.claim_reply())["id"], "running")
+
+    async def test_failed_progress_insert_keeps_previous_pending_progress(self):
+        task = await self.admit()
+        await self.state.queue_reply("old-progress", "old", task_id=task["id"], kind="progress")
+        await self.state._call(lambda: self.state.db.execute("""CREATE TRIGGER reject_new_progress BEFORE INSERT ON outbox
+            BEGIN SELECT RAISE(ABORT,'injected failure'); END"""))
+        with self.assertRaises(sqlite3.IntegrityError):
+            await self.state.queue_reply("new-progress", "new", task_id=task["id"], kind="progress")
+        self.assertEqual(await self.state.delivery_counts(), {"pending": 1})
+        self.assertEqual((await self.state.claim_reply())["id"], "old-progress")
+
+    async def test_unknown_segment_blocks_later_segments_but_does_not_block_urgent_controls(self):
+        task = await self.admit()
+        await self.state.task_finish(task["id"], "completed", "x" * 15000)
+        first = await self.state.claim_reply()
+        await self.state.finish_reply(first["id"], "unknown")
+        self.assertIsNone(await self.state.claim_reply())
+        await self.state.queue_reply("urgent-control", "status", priority=0, kind="control")
+        self.assertEqual((await self.state.claim_reply())["id"], "urgent-control")
+        await self.state.finish_reply("urgent-control", "accepted")
+        await self.state.retry_reply(first["id"], confirm_unknown=True)
+        retried = await self.state.claim_reply()
+        self.assertEqual(retried["id"], first["id"])
+        await self.state.finish_reply(retried["id"], "accepted")
+        self.assertEqual((await self.state.claim_reply())["id"], task["id"] + "-final-2")
+
+    async def test_backlog_bound_stops_admission_without_discarding_existing_results(self):
+        await self.state.accept_batch({"ret": 0, "msgs": [message()]}, phase="runtime")
+        for index in range(1000):
+            await self.state.queue_reply(f"backlog-{index}", "retained result")
+        self.assertFalse((await self.state.admission_budget())["allowed"])
+        reply = await self.state.claim_reply()
+        await self.state.finish_reply(reply["id"], "accepted", 7)
+        self.assertTrue((await self.state.admission_budget())["allowed"])
+        self.assertEqual((await self.state.delivery_counts())["pending"], 999)

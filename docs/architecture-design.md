@@ -200,7 +200,7 @@ Markdown 格式化只作用于展示；命令、代码、路径、URL 和引用�
 
 ## 11. 本机部署与数据边界
 
-源码目录已明确为 `<project-root>/`。私有运行目录设计为 `~/Library/Application Support/wx-clawbot/`，保存 config.json、state.sqlite3、logs、secrets、runtime；源码仓库只保留脱敏模板、代码、测试与文档。当前没有创建运行目录或部署服务。
+源码目录为 `<project-root>/`。默认私有运行目录为 `~/Library/Application Support/wx-clawbot/`，保存本项目配置、凭据、诊断 state.sqlite3、运行 runtime.sqlite3 和启动登记；源码仓库只保留脱敏模板、代码、测试与文档。运行目录由显式登录或前台运行创建，结构与保留期操作见[账本说明](state-schema.md)；不自动注册常驻服务。
 
 launchd 负责单实例常驻与有限退避重启；本机管理 CLI 提供 start、stop、status、doctor。应用自身检查消息循环及 Agent 连接健康；有实际需要再增加独立 watchdog，避免双重重启风暴。
 

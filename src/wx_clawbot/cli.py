@@ -89,6 +89,10 @@ def main(argv: list[str] | None = None) -> int:
     migration.add_argument("--state-dir", type=Path,
                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     migration.add_argument("--apply", action="store_true", help="显式执行已授权升级；先验证备份，要求前台已停止")
+    maintenance = commands.add_parser("maintain-state", help="默认只读查看程序自有已结记录的保留期计划")
+    maintenance.add_argument("--state-dir", type=Path,
+                            default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
+    maintenance.add_argument("--apply", action="store_true", help="显式授权清理七天正文／三十天已结摘要，要求前台停止")
     run = commands.add_parser("serve", help="前台运行本人微信与已注册项目桥接")
     run.add_argument("--config", required=True, type=Path)
     run.add_argument("--socket", required=True, type=Path)
@@ -114,12 +118,16 @@ def main(argv: list[str] | None = None) -> int:
         action.add_argument("--state-dir", type=Path,
                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     args = parser.parse_args(argv)
-    if args.command == "migrate-state":
+    if args.command in {"migrate-state", "maintain-state"}:
         from . import schema
         from .channels.private import load_credentials
         try:
             credentials = load_credentials(args.state_dir / "credentials.json")
-            report = schema.upgrade(args.state_dir, credentials) if args.apply else schema.inspect(args.state_dir, credentials)
+            if args.command == "maintain-state":
+                from .retention import maintain
+                report = maintain(args.state_dir, credentials, apply=args.apply)
+            else:
+                report = schema.upgrade(args.state_dir, credentials) if args.apply else schema.inspect(args.state_dir, credentials)
         except Exception as exc:
             print(json.dumps({"status": "failed", "error_type": type(exc).__name__}, ensure_ascii=False))
             return 1

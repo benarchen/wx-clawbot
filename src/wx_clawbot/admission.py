@@ -36,7 +36,7 @@ async def repository_key(cwd: Path, project_root: Path) -> str:
 async def conflict(task, active, catalog, projects):
     target = task["target"]
     holds = [t for t in active if t["id"] != task["id"] and t["state"] not in {"received", "prepared"}]
-    aliases = {t["target"]["project_alias"] for t in holds}
+    aliases = {t["target"]["project_alias"] for t in holds if t["target"].get("source") != "external"}
     if target["project_alias"] not in aliases and len(aliases) >= 2:
         return "已有两个桥接活动项目"
     keys = {target["cwd"]: target["repository"]}

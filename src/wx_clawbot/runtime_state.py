@@ -12,6 +12,7 @@ from .channels.http import ProtocolError
 from .channels.private import private_file
 from .channels.state import ChannelState
 from . import schema
+from .output import split_text
 
 
 class RuntimeState(ChannelState):
@@ -67,7 +68,7 @@ class RuntimeState(ChannelState):
         if schema.validate(self.db, self.credentials) != schema.VERSION:
             raise schema.UpgradeRequired("Runtime schema 1 requires an explicitly authorized upgrade")
         # No task, inbound command or uncertain HTTP send is replayed on restart.
-        self.db.execute("UPDATE tasks SET state='unknown' WHERE state IN ('prepared','dispatching','queued','running','stopping')")
+        self.db.execute("UPDATE tasks SET state='unknown' WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')")
         self.db.execute("UPDATE outbox SET state='unknown' WHERE state='sending'")
         self.db.execute("UPDATE delivery_attempts SET state='unknown' WHERE state='sending'")
         self.db.execute("UPDATE inbox SET phase='stale' WHERE phase='runtime'")
@@ -84,6 +85,14 @@ class RuntimeState(ChannelState):
 
     async def handled(self, message_id):
         await self._call(lambda: self.db.execute("UPDATE inbox SET phase='handled' WHERE message_id=?", (message_id,)))
+
+    async def admission_budget(self):
+        def read():
+            count, size = self.db.execute("""SELECT count(*),COALESCE(sum(length(CAST(text AS BLOB))),0)
+                FROM outbox WHERE state IN ('pending','sending','unknown','rejected')""").fetchone()
+            return {"allowed": count < 1000 and size < 8 * 1024 * 1024,
+                    "unsettled_replies": count, "unsettled_bytes": size}
+        return await self._call(read)
 
     async def save_routes(self, snapshot):
         if not isinstance(snapshot, dict):
@@ -207,12 +216,12 @@ class RuntimeState(ChannelState):
         return await self._call(insert)
 
     async def task_update(self, task_id, state, *, queue_id=None, turn_id=None):
-        if state not in {"received", "dispatching", "queued", "running", "stopping", "unknown"}:
+        if state not in {"received", "dispatching", "queued", "running", "waiting_interaction", "stopping", "unknown"}:
             raise ValueError("Explicit nonterminal native task state required")
         def update():
             previous = self.db.execute("SELECT state FROM tasks WHERE id=?", (task_id,)).fetchone()
-            if previous and ((state == "queued" and previous[0] in {"running", "stopping"})
-                             or (state == "running" and previous[0] == "stopping")):
+            if previous and ((state == "queued" and previous[0] in {"running", "waiting_interaction", "stopping"})
+                             or (state in {"running", "waiting_interaction"} and previous[0] == "stopping")):
                 return  # A delayed queue ACK must not regress an observed native turn.
             result = self.db.execute("""UPDATE tasks SET state=?,queue_id=COALESCE(?,queue_id),
                 turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=? AND state NOT IN ('completed','failed','interrupted','cancelled')""",
@@ -220,6 +229,30 @@ class RuntimeState(ChannelState):
             if result.rowcount != 1:
                 raise ProtocolError("Task is missing or already terminal")
         await self._call(update)
+
+    async def external_task(self, target, turn_id, *, native_client_id=None):
+        if not isinstance(target, dict) or not target.get("thread_id") or not isinstance(turn_id, str) or not turn_id:
+            raise ValueError("Verified original thread and exact native turn required")
+        identity = uuid.uuid5(uuid.NAMESPACE_URL, target["thread_id"] + "\0" + turn_id).hex
+        destination = dict(target, source="external", native_client_id=native_client_id)
+        encoded = json.dumps(destination, ensure_ascii=False, sort_keys=True, allow_nan=False)
+        def insert():
+            row = self.db.execute("SELECT target FROM tasks WHERE id=?", ("e-" + identity,)).fetchone()
+            if row:
+                if json.loads(row[0]) != destination:
+                    raise ProtocolError("External native turn identity changed")
+                return "e-" + identity
+            if self.db.execute("SELECT count(*) FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
+                raise ProtocolError("Unresolved task bound prevents adopting another external turn")
+            now = time.time()
+            # client_id is explicitly local for this external row, not a claimed
+            # native submission receipt. No fabricated inbox or task text is stored.
+            self.db.execute("""INSERT INTO tasks(id,client_id,target,thread_id,input,state,turn_id,created_at,updated_at)
+                VALUES(?,?,?,?,'','running',?,?,?)""", ("e-" + identity, "wx-external-" + identity,
+                    encoded, target["thread_id"], turn_id, now, now))
+            return "e-" + identity
+        task_id = await self._call(insert)
+        return await self.tasks(task_id=task_id)
 
     @staticmethod
     def _task(row):
@@ -230,13 +263,18 @@ class RuntimeState(ChannelState):
         result["target"] = json.loads(result["target"])
         return result
 
-    async def tasks(self, *, task_id=None, client_id=None, active_only=False):
+    async def tasks(self, *, task_id=None, client_id=None, active_only=False, native_turn=None):
         def read():
             query = "SELECT id,source_message_id,client_id,target,thread_id,input,state,queue_id,turn_id FROM tasks"
             if task_id is not None:
                 return self._task(self.db.execute(query + " WHERE id=?", (task_id,)).fetchone())
             if client_id is not None:
                 return self._task(self.db.execute(query + " WHERE client_id=?", (client_id,)).fetchone())
+            if native_turn is not None:
+                rows = self.db.execute(query + " WHERE thread_id=? AND turn_id=?", native_turn).fetchall()
+                if len(rows) > 1:
+                    raise ProtocolError("Native turn has multiple local task associations")
+                return self._task(rows[0]) if rows else None
             if active_only:
                 rows = list(self.db.execute(query + " WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"))
                 if len(rows) > 128:
@@ -260,14 +298,27 @@ class RuntimeState(ChannelState):
             task = self.db.execute("SELECT state FROM tasks WHERE id=?", (task_id,)).fetchone()
             if task is None or task[0] in {"completed", "failed", "interrupted", "cancelled"}:
                 return False
+            if kind == "accepted" and task[0] in {"running", "stopping"}:
+                return False
+            if kind == "progress":
+                self.db.execute("UPDATE outbox SET state='superseded' WHERE task_id=? AND state='pending' AND kind IN ('accepted','progress')", (task_id,))
         self.db.execute("INSERT INTO outbox(id,text,priority,state,task_id,kind,created_at,body_sha256) VALUES(?,?,?,'pending',?,?,?,?)",
                         (event_id, text, priority, task_id, kind, time.time(), digest))
         return True
 
     async def queue_reply(self, event_id, text, *, priority=5, task_id=None, kind="reply"):
-        return await self._call(self._queue_reply, event_id, text, priority, task_id, kind)
+        def queue():
+            self.db.execute("BEGIN IMMEDIATE")
+            try:
+                result = self._queue_reply(event_id, text, priority, task_id, kind)
+                self.db.execute("COMMIT")
+                return result
+            except BaseException:
+                self.db.execute("ROLLBACK")
+                raise
+        return await self._call(queue)
 
-    async def task_finish(self, task_id, state, text, *, turn_id=None, only_if=None):
+    async def task_finish(self, task_id, state, text, *, turn_id=None, only_if=None, deliver=True):
         if state not in {"completed", "failed", "interrupted", "cancelled"}:
             raise ValueError("Explicit terminal native task state required")
         if not isinstance(text, str) or not text.strip() or len(text) > 512000:
@@ -285,9 +336,9 @@ class RuntimeState(ChannelState):
                 self.db.execute("UPDATE tasks SET state=?,turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=?",
                                 (state, turn_id, time.time(), task_id))
                 self.db.execute("UPDATE outbox SET state='superseded' WHERE task_id=? AND state='pending' AND kind IN ('accepted','progress')", (task_id,))
-                chunks = [text[i:i + 7000] for i in range(0, len(text), 7000)]
+                chunks = split_text(text) if deliver else []
                 for index, chunk in enumerate(chunks, 1):
-                    prefix = f"〔{index}/{len(chunks)}〕\n" if len(chunks) > 1 else ""
+                    prefix = f"〔{index}/{len(chunks)}〕{task_id}\n" if len(chunks) > 1 else ""
                     self._queue_reply(f"{task_id}-final-{index}", prefix + chunk, 1, task_id, "final")
                 self.db.execute("COMMIT")
                 return True
@@ -304,7 +355,11 @@ class RuntimeState(ChannelState):
             context = self.db.execute("SELECT token FROM reply_context WHERE id=1").fetchone()
             if not context:
                 return None
-            row = self.db.execute("SELECT id,text FROM outbox WHERE state='pending' ORDER BY priority,rowid LIMIT 1").fetchone()
+            row = self.db.execute("""SELECT o.id,o.text FROM outbox o WHERE o.state='pending'
+                AND (o.kind!='final' OR NOT EXISTS(SELECT 1 FROM outbox earlier
+                    WHERE earlier.task_id=o.task_id AND earlier.kind='final' AND earlier.rowid<o.rowid
+                    AND earlier.state NOT IN ('accepted','superseded')))
+                ORDER BY o.priority,o.rowid LIMIT 1""").fetchone()
             if row is None:
                 return None
             self.db.execute("BEGIN IMMEDIATE")

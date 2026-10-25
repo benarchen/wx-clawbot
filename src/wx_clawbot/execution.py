@@ -14,6 +14,7 @@ from .controller import target_record
 from .interactions import APPROVAL, QUESTION, InteractionBroker
 from .routing import Target
 from .sessions import SessionUnbound
+from .output import native_output, split_text
 
 
 TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
@@ -35,6 +36,7 @@ class Execution:
         self.observed_turns = set()
         self.generation = uuid.uuid4().hex
         self.interaction_targets = {}
+        self.interaction_sizes = {}
         self.admission_gate = asyncio.Lock()
 
     async def persist_interaction(self, record):
@@ -75,12 +77,14 @@ class Execution:
     async def _submit_locked(self, message_id, dispatch):
         if not self.native.capabilities.queue:
             raise CommandError("当前 Agent 未提供已验证的原生队列能力，任务未接收。")
+        if not (await self.state.admission_budget())["allowed"]:
+            raise CommandError("待核对回执已达容量上限，新任务未接收；请先恢复通道并处理未知投递。")
         session = await self.catalog.require(dispatch.target)
         record = target_record(session)
         record["repository"] = await repository_key(dispatch.target.cwd,
                                   self.controller.routes.projects[dispatch.target.project_alias].root)
         active = await self.state.tasks(active_only=True)
-        if sum(t["target"]["session_id"] == dispatch.target.session_id and t["state"] not in {"running", "stopping"}
+        if sum(t["target"]["session_id"] == dispatch.target.session_id and t["state"] not in {"running", "waiting_interaction", "stopping"}
                for t in active) >= 10:
             raise CommandError("该会话的桥接排队或准入等待已达十条，新任务未接收。")
         task = await self.state.task_intent(message_id, record, dispatch.text)
@@ -198,6 +202,14 @@ class Execution:
             if session.binding.thread_id != task["thread_id"]:
                 raise ValueError("Stored task thread differs from current native identity")
             await self.controller.subscriptions.acquire(target, "task-" + task["id"])
+            if task["target"].get("source") == "external":
+                if task["turn_id"]:
+                    turn = await self.read_turn(task["thread_id"], task["turn_id"])
+                    if turn.get("status") in {"completed", "failed", "interrupted"}:
+                        await self.complete(task["thread_id"], turn)
+                    elif turn.get("status") == "inProgress":
+                        await self.state.task_update(task["id"], "running", turn_id=turn["id"])
+                continue
             groups.setdefault(task["thread_id"], []).append(task)
         for thread_id, group in groups.items():
             queued = await self.queue(thread_id, restore_target(group[0]["target"]).cwd).list()
@@ -245,30 +257,61 @@ class Execution:
         if len(matches) == 1:
             self.turn_tasks[(thread_id, turn["id"])] = matches[0]["id"]
             return matches[0]
-        return None
+        task = await self.state.tasks(native_turn=(thread_id, turn["id"]))
+        return task if task and task["target"].get("source") == "external" else None
+
+    def controlled_target(self, thread_id):
+        observer = self.observed(thread_id)
+        if observer:
+            return observer
+        target = self.controller.routes.target
+        session = self.catalog.sessions.get(target.session_id) if target else None
+        return target if session and session.binding.thread_id == thread_id else None
+
+    async def adopt_external(self, target, turn_id, user):
+        session = await self.catalog.require(target)
+        task = await self.state.external_task(target_record(session), turn_id,
+                                              native_client_id=user.get("clientId"))
+        await self.controller.subscriptions.acquire(target, "task-" + task["id"])
+        self.turn_tasks[(session.binding.thread_id, turn_id)] = task["id"]
+        return task
+
+    async def sync_external(self, target):
+        session = await self.catalog.require(target)
+        thread_id = session.binding.thread_id
+        if (await self.native.inspect(thread_id)).get("status", {}).get("type") != "active":
+            return
+        async for turn in self.turns(thread_id):
+            if turn.get("status") != "inProgress":
+                return
+            users = [i for i in turn["items"] if i.get("type") == "userMessage"]
+            if len(users) == 1 and await self.map_turn(thread_id, turn) is None:
+                await self.adopt_external(target, turn["id"], users[0])
+            return  # Only the latest currently running turn, never historic adoption.
 
     async def complete(self, thread_id, turn):
         task = await self.map_turn(thread_id, turn)
         status = turn.get("status")
         if status not in {"completed", "failed", "interrupted"}:
             return
-        output = "\n".join(item.get("text", "") for item in turn.get("items", []) if item.get("type") == "agentMessage")
-        error = turn.get("error")
-        if status == "failed" and isinstance(error, dict) and isinstance(error.get("message"), str) and error["message"].strip():
-            output = (output + "\n\n原生错误：" + error["message"]).strip()
+        output = native_output(turn)
         if task:
+            external = task["target"].get("source") == "external"
             text = f"{task['target']['project_alias']}｜{task['id']}｜{status}\n" + (output or "原生任务已结束，没有文本结果。")
-            await self.state.task_finish(task["id"], status, text, turn_id=turn["id"])
+            await self.state.task_finish(task["id"], status, text, turn_id=turn["id"],
+                                         deliver=not external or task["state"] == "stopping")
             await self.controller.subscriptions.release(restore_target(task["target"]), "task-" + task["id"])
-        elif (thread_id, turn["id"]) in self.observed_turns:
+        if (task is None or task["target"].get("source") == "external") and (thread_id, turn["id"]) in self.observed_turns:
             observer = self.controller.routes.observer
             session = self.catalog.sessions.get(observer.session_id) if observer else None
             if session and session.binding.thread_id == thread_id:
                 key = hashlib.sha256((thread_id + turn["id"]).encode()).hexdigest()
                 text = f"观察：{observer.project_alias}｜{status}\n" + (output or "原生任务已结束，没有文本结果。")
                 # Observation output uses the same bounded transport segmentation.
-                for index in range(0, len(text), 7000):
-                    await self.state.queue_reply(f"observe-{key}-{index // 7000}", text[index:index + 7000], priority=2)
+                chunks = split_text(text)
+                for index, chunk in enumerate(chunks, 1):
+                    prefix = f"〔观察：{observer.project_alias} {index}/{len(chunks)}〕\n" if len(chunks) > 1 else ""
+                    await self.state.queue_reply(f"observe-{key}-{index - 1}", prefix + chunk, priority=2)
             self.observed_turns.discard((thread_id, turn["id"]))
         self.turn_tasks.pop((thread_id, turn["id"]), None)
         self.observed_turns.discard((thread_id, turn["id"]))
@@ -289,15 +332,20 @@ class Execution:
             turn_id = params.get("turn", {}).get("id")
             if turn_id and self.observed(thread_id):
                 self.observed_turns.add((thread_id, turn_id))
-                await self.state.queue_reply("observe-start-" + hashlib.sha256((thread_id + turn_id).encode()).hexdigest(),
-                                            f"观察：{self.observed(thread_id).project_alias} 的桌面任务已开始。", priority=3)
         elif method == "item/started" and params.get("item", {}).get("type") == "userMessage":
             task = await self.map_turn(thread_id, {"id": turn_id, "items": [params["item"]]})
+            if task is None and (target := self.controlled_target(thread_id)):
+                task = await self.adopt_external(target, turn_id, params["item"])
+                if self.observed(thread_id):
+                    await self.state.queue_reply("observe-start-" + hashlib.sha256((thread_id + turn_id).encode()).hexdigest(),
+                        f"观察：{target.project_alias} 的桌面任务已开始。", priority=3)
             if task and task["state"] not in TERMINAL:
                 await self.state.task_update(task["id"], "running", turn_id=turn_id)
-                await self.state.queue_reply(task["id"] + "-running",
-                    f"任务正在原生会话执行：{task['target']['project_alias']}｜{task['id']}。",
-                    priority=3, task_id=task["id"], kind="progress")
+                if task["target"].get("source") != "external":
+                    self.observed_turns.discard((thread_id, turn_id))
+                    await self.state.queue_reply(task["id"] + "-running",
+                        f"任务正在原生会话执行：{task['target']['project_alias']}｜{task['id']}。",
+                        priority=3, task_id=task["id"], kind="progress")
         elif method == "turn/completed":
             turn_id = params.get("turn", {}).get("id")
             if turn_id:
@@ -307,25 +355,40 @@ class Execution:
             target = self.observed(thread_id)
             if task_id:
                 task = await self.state.tasks(task_id=task_id)
+                if task["target"].get("source") == "external" and not self.observed(thread_id):
+                    return  # Focus alone does not subscribe to new desktop interactions.
                 target = restore_target(task["target"])
             if target is None:
                 # Map using the exact native turn, without adopting unrelated desktop tasks.
                 turn = await self.read_turn(thread_id, turn_id)
                 task = await self.map_turn(thread_id, turn)
                 if task:
+                    if task["target"].get("source") == "external" and not self.observed(thread_id):
+                        return
                     target = restore_target(task["target"])
             if target is None:
                 return  # No approval is synthesized for an unobserved desktop task.
+            self.trim_interactions()
+            size = len(json.dumps(params, ensure_ascii=False).encode())
+            if len(self.interaction_targets) >= 256 or sum(self.interaction_sizes.values()) + size > 16 * 1024 * 1024:
+                key = hashlib.sha256(json.dumps([thread_id, event.get("id")]).encode()).hexdigest()
+                await self.state.queue_reply("interaction-limit-" + key,
+                    "交互记录已达容量上限，请在原终端处理本次请求；没有发送自动答复。", priority=0)
+                return
             broker = self.brokers.setdefault(thread_id, InteractionBroker(self.native.rpc, thread_id,
                                             generation=self.generation, persist=self.persist_interaction))
             record = broker.register(event)
             if record.public_id not in self.interaction_targets:
                 session = await self.catalog.require(target)
                 self.interaction_targets[record.public_id] = (target_record(session), time.time() + broker.ttl)
+                self.interaction_sizes[record.public_id] = size
             await broker.sync(record)
             if record.state != "pending":
                 return
             await self.controller.subscriptions.acquire(target, "interaction-" + record.public_id)
+            task = await self.state.tasks(native_turn=(thread_id, turn_id))
+            if task and task["state"] not in TERMINAL:
+                await self.state.task_update(task["id"], "waiting_interaction")
             if method == APPROVAL:
                 text = (f"审批：{target.project_alias}｜{record.public_id}\n{params['command']}\n"
                         f"/approve {record.public_id}\n/deny {record.public_id}")
@@ -342,8 +405,47 @@ class Execution:
             record = broker.resolved(event) if broker else None
             if record:
                 await broker.sync(record)
+                task = await self.state.tasks(native_turn=(thread_id, record.turn_id))
+                if task and task["state"] == "waiting_interaction":
+                    await self.state.task_update(task["id"], "running")
                 await self.release_interaction(thread_id, record)
                 await self.state.queue_reply(record.public_id + "-resolved", f"交互已由原生会话处理：{record.public_id}；迟到答复不再接受。", priority=0)
+        elif "id" in event:
+            key = hashlib.sha256(json.dumps([thread_id, event["id"], method]).encode()).hexdigest()
+            await self.state.queue_reply("unsupported-" + key,
+                "当前原生请求类型尚未支持，请在原终端处理；没有发送自动答复。", priority=0)
+
+    def trim_interactions(self):
+        closed = sorted(((r.deadline, broker, r) for broker in self.brokers.values()
+                         for r in broker.records.values() if r.state in {"resolved", "stale"}), key=lambda v: v[0])
+        # Keep a bounded recent handled history and all current unanswered requests.
+        for _, broker, record in closed[:-64]:
+            broker.records.pop(record.public_id, None)
+            broker.native.pop((type(record.native_id), record.native_id), None)
+        retained = {public_id for broker in self.brokers.values() for public_id in broker.records}
+        for public_id in set(self.interaction_targets) - retained:
+            self.interaction_targets.pop(public_id, None)
+            self.interaction_sizes.pop(public_id, None)
+
+    async def prune_memory(self):
+        active = await self.state.tasks(active_only=True)
+        sessions = tuple(self.catalog.sessions.values()) + tuple(self.controller.subscriptions.bound.values())
+        valid_ids = {s.target.session_id for s in sessions} | {t["target"]["session_id"] for t in active}
+        for key, lock in tuple(self.admission.items()):
+            if key not in valid_ids and not lock.locked():
+                del self.admission[key]
+        valid_queues = {(s.binding.thread_id, s.target.cwd) for s in sessions}
+        valid_queues |= {(t["thread_id"], Path(t["target"]["cwd"])) for t in active}
+        for key in set(self.queues) - valid_queues:
+            del self.queues[key]
+        active_ids = {t["id"] for t in active}
+        self.turn_tasks = {key: value for key, value in self.turn_tasks.items() if value in active_ids}
+        self.observed_turns = {key for key in self.observed_turns if self.observed(key[0])}
+        self.trim_interactions()
+        bound_threads = {s.binding.thread_id for s in sessions}
+        for thread_id, broker in tuple(self.brokers.items()):
+            if not broker.records and thread_id not in bound_threads:
+                del self.brokers[thread_id]
 
     async def run(self):
         try:
@@ -362,6 +464,7 @@ class Execution:
         while True:
             await self.expire_interactions()
             await self.drain_admission()
+            await self.prune_memory()
             await asyncio.sleep(1)
 
     async def control(self, command):
@@ -395,7 +498,8 @@ class Execution:
             routes = self.controller.routes
             describe = lambda t: f"{t.project_alias}｜{t.session_id}" if t else "未选择"
             tasks = await self.state.tasks(active_only=True)
-            active = [f"{t['id']}：{t['state']}" for t in tasks if t["state"] not in TERMINAL]
+            active = [f"{'桌面任务 ' if t['target'].get('source') == 'external' else ''}{t['id']}：{t['state']}"
+                      for t in tasks if t["state"] not in TERMINAL]
             interactions = [f"待处理交互：{r.public_id}（剩余 {max(0, int(r.deadline-b.clock()))} 秒）"
                             for b in self.brokers.values() for r in b.records.values()
                             if r.state == "pending" and b.clock() < r.deadline]
