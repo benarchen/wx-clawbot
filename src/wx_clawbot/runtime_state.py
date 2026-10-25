@@ -12,7 +12,7 @@ from .channels.http import ProtocolError
 from .channels.private import private_file
 from .channels.state import ChannelState
 from . import schema
-from .output import split_text
+from .output import display_text, display_segments, LINE_BREAK
 
 
 class RuntimeState(ChannelState):
@@ -307,6 +307,7 @@ class RuntimeState(ChannelState):
         return True
 
     async def queue_reply(self, event_id, text, *, priority=5, task_id=None, kind="reply"):
+        text = display_text(text)
         def queue():
             self.db.execute("BEGIN IMMEDIATE")
             try:
@@ -336,10 +337,10 @@ class RuntimeState(ChannelState):
                 self.db.execute("UPDATE tasks SET state=?,turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=?",
                                 (state, turn_id, time.time(), task_id))
                 self.db.execute("UPDATE outbox SET state='superseded' WHERE task_id=? AND state='pending' AND kind IN ('accepted','progress')", (task_id,))
-                chunks = split_text(text) if deliver else []
+                chunks = display_segments(text) if deliver else []
                 for index, chunk in enumerate(chunks, 1):
-                    prefix = f"〔{index}/{len(chunks)}〕{task_id}\n" if len(chunks) > 1 else ""
-                    self._queue_reply(f"{task_id}-final-{index}", prefix + chunk, 1, task_id, "final")
+                    prefix = f"〔{index}/{len(chunks)}〕{task_id}{LINE_BREAK}" if len(chunks) > 1 else ""
+                    self._queue_reply(f"{task_id}-final-{index}", display_text(prefix + chunk), 1, task_id, "final")
                 self.db.execute("COMMIT")
                 return True
             except BaseException:

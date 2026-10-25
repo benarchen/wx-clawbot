@@ -14,7 +14,7 @@ from .controller import target_record
 from .interactions import APPROVAL, QUESTION, InteractionBroker
 from .routing import Target
 from .sessions import SessionUnbound
-from .output import native_output, split_text
+from .output import native_output, display_segments
 
 
 TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
@@ -308,7 +308,7 @@ class Execution:
                 key = hashlib.sha256((thread_id + turn["id"]).encode()).hexdigest()
                 text = f"观察：{observer.project_alias}｜{status}\n" + (output or "原生任务已结束，没有文本结果。")
                 # Observation output uses the same bounded transport segmentation.
-                chunks = split_text(text)
+                chunks = display_segments(text)
                 for index, chunk in enumerate(chunks, 1):
                     prefix = f"〔观察：{observer.project_alias} {index}/{len(chunks)}〕\n" if len(chunks) > 1 else ""
                     await self.state.queue_reply(f"observe-{key}-{index - 1}", prefix + chunk, priority=2)
@@ -390,7 +390,7 @@ class Execution:
             if task and task["state"] not in TERMINAL:
                 await self.state.task_update(task["id"], "waiting_interaction")
             if method == APPROVAL:
-                text = (f"审批：{target.project_alias}｜{record.public_id}\n{params['command']}\n"
+                text = (f"审批：{target.project_alias}｜{record.public_id}\n\n```sh\n{params['command']}\n```\n\n"
                         f"/approve {record.public_id}\n/deny {record.public_id}")
             else:
                 lines = []
@@ -399,6 +399,13 @@ class Execution:
                     lines.append(f"{question['id']}：{question.get('question', '')}\n{labels}")
                 text = f"追问：{target.project_alias}｜{record.public_id}\n" + "\n".join(lines)
                 text += f"\n/answer {record.public_id} <单题回答，或多题 JSON 对象>"
+            if len(text) > 7000:
+                record.state = "stale"
+                await broker.sync(record)
+                await self.release_interaction(thread_id, record)
+                await self.state.queue_reply(record.public_id + "-native-only",
+                    f"交互内容超过微信完整展示上限：{record.public_id}。请在原终端查看并处理；微信不提供截断后的审批或答复。", priority=0)
+                return
             await self.state.queue_reply(record.public_id + "-prompt", text, priority=0)
         elif method == "serverRequest/resolved":
             broker = self.brokers.get(thread_id)

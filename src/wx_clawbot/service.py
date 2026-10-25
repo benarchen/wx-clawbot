@@ -44,7 +44,7 @@ async def poll(controller, api, *, emit=None):
                 try:
                     work = controller.prepare(message)
                 except (CommandError, RouteError) as exc:
-                    await controller.reply(message, str(exc))
+                    await controller.reply(message, str(exc), priority=0)
                     await state.handled(message.message_id)
                 else:
                     jobs.add(asyncio.create_task(work))

@@ -4,6 +4,7 @@ import re
 
 
 RESULT_LIMIT = 480000
+LINE_BREAK = "\u2028"
 
 
 def split_text(text, limit=7000):
@@ -29,6 +30,68 @@ def bounded(text, limit):
     return text[:available // 2] + notice + text[-(available - available // 2):]
 
 
+def display_text(text):
+    """WeChat soft LF collapses; prose uses a verified hard line separator.
+
+    Fenced code retains its literal LF and gets Markdown paragraph boundaries.
+    This function never receives task inputs or changes native protocol fields.
+    """
+    result, prose, fence, after_code = [], [], None, False
+
+    def flush():
+        if prose:
+            result.append("".join(prose).replace("\n", LINE_BREAK))
+            prose.clear()
+
+    for line in text.splitlines(keepends=True):
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        if fence:
+            result.append(line)
+            if re.fullmatch(r" {0,3}" + re.escape(fence[0]) + "{" + str(fence[1]) + r",}[ \t]*(?:\r?\n)?", line):
+                fence = None
+                # A real LF blank paragraph keeps the closing code fence structural.
+                if not line.endswith("\n"):
+                    result.append("\n")
+                result.append("\n")
+                after_code = True
+            continue
+        if marker:
+            flush()
+            prefix = "".join(result).rstrip("\n" + LINE_BREAK)
+            result = [prefix + "\n\n"] if prefix else []
+            fence = (marker[1][0], len(marker[1]))
+            result.append(line)
+        else:
+            if after_code and not line.strip("\r\n" + LINE_BREAK):
+                continue
+            after_code = False
+            # Existing verified hard separators survive repeated rendering.
+            prose.append(line)
+    flush()
+    return "".join(result).rstrip(LINE_BREAK)
+
+
+def display_segments(text):
+    chunks = split_text(display_text(text), 6800)
+    result, fence = [], None
+    for chunk in chunks:
+        prefix = fence[2] if fence else ""
+        for line in chunk.splitlines(keepends=True):
+            marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+            if not marker:
+                continue
+            if fence is None:
+                fence = (marker[1][0], len(marker[1]), line.rstrip("\r\n") + "\n")
+            elif re.fullmatch(r" {0,3}" + re.escape(fence[0]) + "{" + str(fence[1]) + r",}[ \t]*(?:\r?\n)?", line):
+                fence = None
+        suffix = ("\n" if not chunk.endswith("\n") else "") + fence[0] * fence[1] + "\n" if fence else ""
+        if len(prefix) + len(chunk) + len(suffix) > 7600:
+            notice = "〔代码围栏超过分段展示上限，以下保留原文片段；完整排版请在原终端查看。〕" + LINE_BREAK
+            return [notice + raw for raw in split_text(text, 6800)]
+        result.append(prefix + chunk + suffix)
+    return result
+
+
 def format_prose(text):
     """Normalize identifiable prose while keeping code, quoted strings and tokens literal."""
     lines, fence = [], None
@@ -39,8 +102,8 @@ def format_prose(text):
         marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
         if marker:
             if fence is None:
-                fence = marker[1][0]
-            elif marker[1][0] == fence:
+                fence = (marker[1][0], len(marker[1]))
+            elif re.fullmatch(r" {0,3}" + re.escape(fence[0]) + "{" + str(fence[1]) + r",}[ \t]*(?:\r?\n)?", line):
                 fence = None
             lines.append(line)
             continue

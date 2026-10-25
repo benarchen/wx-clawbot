@@ -639,3 +639,30 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         task = (await self.state.tasks())[0]
         self.assertEqual((task["turn_id"], task["target"]["source"]), ("already-running", "external"))
         self.queue.add.assert_not_awaited()
+
+    async def test_oversized_native_approval_cannot_be_approved_from_truncated_text(self):
+        await self.select()
+        await self.command("/attach 1")
+        await self.engine.event({"id": "large-request", "method": APPROVAL, "params": {
+            "threadId": "thread-one", "turnId": "large-turn", "itemId": "large-item", "command": "x" * 8000}})
+        record = next(iter(self.engine.brokers["thread-one"].records.values()))
+        self.assertEqual(record.state, "stale")
+        await self.command("/approve " + record.public_id)
+        self.agent.rpc.respond.assert_not_awaited()
+        reply = await self.state.claim_reply()
+        self.assertIn("原终端", reply["text"])
+
+    async def test_display_line_breaks_cannot_change_task_input_or_code_result_bytes(self):
+        await self.select()
+        raw = '保持这些行：\nvalue = "A B"\nprint(value)'
+        await self.command(raw)
+        self.assertEqual(self.queue.add.await_args.args[0], raw)
+        task = (await self.state.tasks())[0]
+        self.assertEqual(task["input"], raw)
+        code = 'value = "A B"\nprint(value)\n'
+        await self.engine.complete("thread-two", {"id": "code-turn", "status": "completed", "items": [
+            {"type": "userMessage", "clientId": task["client_id"]},
+            {"type": "agentMessage", "text": "说明。\n\n```python\n" + code + "```"}]})
+        reply = await self.state.claim_reply()
+        self.assertIn(code, reply["text"])
+        self.assertIn("\u2028", reply["text"])

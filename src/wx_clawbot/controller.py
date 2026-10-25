@@ -12,7 +12,7 @@ from .hosts.visible import LaunchPending, reconcile_launch
 from .routing import RouteError, Routes, Target
 from .sessions import SessionUnbound
 from .subscriptions import Subscriptions
-from .output import split_text
+from .output import display_segments
 
 
 HELP = ("/projects：项目列表\n/cd <别名或目录>：选择或创建受管会话\n"
@@ -73,7 +73,7 @@ class Controller:
 
     async def reply(self, message, text, *, priority=2):
         key = hashlib.sha256(message.message_id.encode()).hexdigest()[:32]
-        chunks = split_text(text)
+        chunks = display_segments(text)
         for index, chunk in enumerate(chunks, 1):
             prefix = f"〔命令回执 {index}/{len(chunks)}〕\n" if len(chunks) > 1 else ""
             await self.state.queue_reply(f"command-{key}-{index - 1}", prefix + chunk, priority=priority,
@@ -115,12 +115,12 @@ class Controller:
         except RouteCommitFailed:
             raise  # No new input may use an uncommitted selection.
         except (CommandError, RouteError) as exc:
-            await self.reply(message, str(exc))
+            await self.reply(message, str(exc), priority=0)
         except (SessionUnbound, LaunchPending):
-            await self.reply(message, "会话身份或启动就绪尚未确认，请检查终端后用 /sessions 刷新；不会重复创建或执行。")
+            await self.reply(message, "会话身份或启动就绪尚未确认，请检查终端后用 /sessions 刷新；不会重复创建或执行。", priority=0)
         except Exception as exc:
             # Never put native error bodies, credentials or full task content in transport errors.
-            await self.reply(message, f"操作未确认（{type(exc).__name__}）；请查询状态，不要盲目重发任务。")
+            await self.reply(message, f"操作未确认（{type(exc).__name__}）；请查询状态，不要盲目重发任务。", priority=0)
         finally:
             if command.name in SELECTIONS:
                 self.selection_pending -= 1

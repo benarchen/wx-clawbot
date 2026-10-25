@@ -82,8 +82,8 @@ class RuntimeTests(RuntimeFixture):
         parts = []
         for index in range(3):
             reply = await self.state.claim_reply()
-            self.assertTrue(reply["text"].startswith(f"〔{index+1}/3〕{task['id']}\n"))
-            parts.append(reply["text"].split("\n", 1)[1])
+            self.assertTrue(reply["text"].startswith(f"〔{index+1}/3〕{task['id']}\u2028"))
+            parts.append(reply["text"].split("\u2028", 1)[1])
             await self.state.finish_reply(reply["id"], "accepted", index + 1)
         self.assertEqual("".join(parts), text)
         self.assertIsNone(await self.state.claim_reply())

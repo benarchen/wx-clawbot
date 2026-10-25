@@ -1,6 +1,6 @@
 import unittest
 
-from wx_clawbot.output import RESULT_LIMIT, bounded, format_prose, native_output, split_text
+from wx_clawbot.output import RESULT_LIMIT, bounded, display_text, display_segments, format_prose, native_output, split_text
 
 
 class OutputTests(unittest.TestCase):
@@ -20,7 +20,7 @@ class OutputTests(unittest.TestCase):
                    "$ codex queue --message '中文x,y'\n", "路径 `/fixture/a b.py`，命令 `/focus 1`。\n",
                    "https://example.invalid/path?q=原文,x\n", "/fixture/目录/a.py\n",
                    '{"answer":"中文x,y"}\n', '显示 "中文x,y"。\n', "print(中文x,y)\n", "echo 中文x,y\n",
-                   "内容 ``中文x,y`` 测试。\n"]
+                   "内容 ``中文x,y`` 测试。\n", "````markdown\n```text\n中文x,y\n```\n中文x,y\n````\n"]
         for sample in samples:
             self.assertEqual(format_prose(sample), sample)
 
@@ -38,3 +38,28 @@ class OutputTests(unittest.TestCase):
         self.assertEqual(len(text), 8000)
         self.assertTrue(text.startswith("ERROR_START"))
         self.assertTrue(text.endswith("ERROR_END"))
+
+    def test_display_hard_breaks_leave_code_bytes_literal_and_rendering_is_idempotent(self):
+        code = 'value = "A B"\nprint(value)\n'
+        text = "项目：fixture-one\n状态：仅展示\n\n```python\n" + code + "```\n\n结束。"
+        result = display_text(text)
+        self.assertIn("fixture-one\u2028状态", result)
+        self.assertIn("\n\n```python\n" + code + "```\n\n结束。", result)
+        self.assertEqual(display_text(result), result)
+
+    def test_long_code_segments_are_individually_fenced_without_losing_any_code_lines(self):
+        lines = [f"value_{index} = {index}\n" for index in range(3000)]
+        chunks = display_segments("说明。\n\n```python\n" + "".join(lines) + "```\n\n结束。")
+        actual = []
+        for chunk in chunks:
+            self.assertLess(len(chunk), 8000)
+            self.assertEqual(chunk.count("```"), 2)
+            actual.extend(line for line in chunk.splitlines(keepends=True) if line.startswith("value_"))
+        self.assertEqual(actual, lines)
+
+    def test_excessive_code_fence_cannot_overflow_transport_or_silently_lose_original_result(self):
+        text = "`" * 10000 + "text\noriginal result\n" + "`" * 10000
+        chunks = display_segments(text)
+        self.assertTrue(all(len(chunk) < 8000 for chunk in chunks))
+        self.assertTrue(all("原文片段" in chunk for chunk in chunks))
+        self.assertEqual("".join(chunk.split("\u2028", 1)[1] for chunk in chunks), text)
