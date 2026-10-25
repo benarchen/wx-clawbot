@@ -2,8 +2,10 @@
 
 import ctypes
 import os
+import subprocess
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -61,3 +63,24 @@ def read_process(pid: int) -> ProcessIdentity | None:
         return None
     return ProcessIdentity(pid, (after.start_sec, after.start_usec),
                            os.fsdecode(path.value), after.tty_device)
+
+
+def read_process_directory(identity: ProcessIdentity) -> Path | None:
+    """Read only the cwd descriptor of the same process generation, never argv/env."""
+    if read_process(identity.pid) != identity:
+        return None
+    try:
+        result = subprocess.run(["/usr/sbin/lsof", "-a", "-p", str(identity.pid), "-d", "cwd", "-F0n"],
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=2)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode or len(result.stdout) > 65536 or read_process(identity.pid) != identity:
+        return None
+    paths = [os.fsdecode(part[1:]) for part in result.stdout.split(b"\0") if part.startswith(b"n/")]
+    if len(paths) != 1:
+        return None
+    try:
+        path = Path(paths[0]).resolve(strict=True)
+        return path if path.is_dir() else None
+    except (OSError, ValueError):
+        return None

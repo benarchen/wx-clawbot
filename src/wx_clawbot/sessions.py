@@ -25,6 +25,9 @@ async def verify_binding(binding: SessionBinding, directory, agent) -> dict:
         raise SessionUnbound("Native identity proof is incomplete")
     if not await directory.validate(binding.endpoint):
         raise SessionUnbound("Original terminal or process identity is no longer valid")
+    visible_identity = getattr(directory, "current_thread_id", None)
+    if visible_identity is None or await visible_identity(binding.endpoint) != binding.thread_id:
+        raise SessionUnbound("Current terminal thread cannot be verified; refresh its displayed session ID")
     if agent.runtime_identity != binding.runtime_identity:
         raise SessionUnbound("Native runtime generation changed")
     thread = await agent.inspect(binding.thread_id)

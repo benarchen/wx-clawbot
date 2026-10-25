@@ -5,7 +5,7 @@ import shlex
 from pathlib import Path
 
 
-def native_tui_command(executable: Path, codex_home: Path, project: Path) -> str:
+def native_tui_command(executable: Path, codex_home: Path, project: Path, *, path: str | None = None) -> str:
     executable = executable.resolve(strict=True)
     codex_home = codex_home.resolve(strict=True)
     project = project.resolve(strict=True)
@@ -22,6 +22,6 @@ def native_tui_command(executable: Path, codex_home: Path, project: Path) -> str
     # Runtime membership must still be checked after launch (fallback is possible).
     return shlex.join([
         "/usr/bin/env", "CODEX_HOME=" + str(codex_home),
-        "PATH=" + os.environ.get("PATH", os.defpath), str(executable),
+        "PATH=" + (os.environ.get("PATH", os.defpath) if path is None else path), str(executable),
         "--cd", str(project),
     ])

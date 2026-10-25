@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 
-from .process import ProcessIdentity, read_process
+from .process import ProcessIdentity, read_process, read_process_directory
 
 
 @dataclass(frozen=True)
@@ -66,3 +66,20 @@ class ItermDirectory:
         # Recheck stable terminal ID, PID, process start and TTY before any routing.
         return any(current == endpoint and current.classification == "codex_candidate"
                    for current in await self.discover())
+
+    async def current_thread_id(self, endpoint: TerminalEndpoint) -> str | None:
+        import iterm2
+        from .identity import footer_thread_id
+
+        app = await iterm2.async_get_app(self.connection)
+        session = app.get_session_by_id(endpoint.terminal_id)
+        if session is None or await inspect_terminal(session) != endpoint:
+            return None
+        screen = await session.async_get_screen_contents()
+        identity = footer_thread_id(screen)
+        return identity if await inspect_terminal(session) == endpoint else None
+
+    async def cwd(self, endpoint: TerminalEndpoint) -> Path | None:
+        if endpoint.process is None or endpoint.classification != "codex_candidate":
+            return None
+        return await asyncio.to_thread(read_process_directory, endpoint.process)
