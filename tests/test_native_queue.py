@@ -109,3 +109,13 @@ class NativeQueueTests(unittest.IsolatedAsyncioTestCase):
             self.connection.rpc.request.return_value = result
             with self.assertRaises(ValueError):
                 await self.queue.list()
+
+    async def test_error_state_admits_new_request_only_if_original_thread_still_loaded(self):
+        self.connection.inspect.return_value.update(id="thread-a", status={"type": "systemError"}, canAcceptDirectInput=True)
+        self.connection.is_loaded.return_value = False
+        with self.assertRaises(ValueError):
+            await self.queue.add("new task after failure", "new-id")
+        self.connection.rpc.request.assert_not_awaited()
+        self.connection.is_loaded.return_value = True
+        receipt = await self.queue.add("new task after failure", "new-id")
+        self.assertEqual(receipt["clientUserMessageId"], "new-id")

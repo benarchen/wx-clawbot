@@ -54,3 +54,14 @@ class BindingTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(SessionUnbound):
             await verify_binding(self.binding, self.directory, self.agent)
         self.agent.inspect.assert_not_called()
+
+    async def test_system_error_requires_positive_native_membership_and_direct_input(self):
+        self.thread.update(status={"type": "systemError"}, canAcceptDirectInput=True)
+        self.agent.is_loaded = AsyncMock(return_value=False)
+        with self.assertRaises(SessionUnbound):
+            await verify_binding(self.binding, self.directory, self.agent)
+        self.agent.is_loaded.return_value = True
+        self.assertEqual(await verify_binding(self.binding, self.directory, self.agent), self.thread)
+        self.thread["canAcceptDirectInput"] = False
+        with self.assertRaises(SessionUnbound):
+            await verify_binding(self.binding, self.directory, self.agent)

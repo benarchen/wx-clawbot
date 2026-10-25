@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .hosts.discovery import TerminalEndpoint
+from .agents.base import thread_is_loaded
 
 
 class SessionUnbound(ValueError):
@@ -35,6 +36,6 @@ async def verify_binding(binding: SessionBinding, directory, agent) -> dict:
         raise SessionUnbound("Native session generation changed")
     if Path(thread["cwd"]).resolve() != binding.project.resolve(strict=True):
         raise SessionUnbound("Native project identity changed")
-    if thread.get("status", {}).get("type") not in {"idle", "active"}:
+    if not await thread_is_loaded(agent, thread):
         raise SessionUnbound("Original native thread is not loaded")
     return thread

@@ -115,3 +115,5 @@ Socket 优先沿用被核验的原生运行时地址，不猜测固定路径。�
 本机新 TUI 使用已核对的原生可执行文件、既有 CODEX_HOME 和本机共享 daemon 模式；桥接器用原生 Unix WebSocket 连接同一运行时。`--remote` 即使指向本机 Unix socket 也采用远端目录信任判定，不能假定与本机仓库根信任继承相同。一般 `-c` 参数会使已核对的客户端放弃共享 daemon，不能通过临时关闭更新检查规避启动界面；专用测试使用非空初始握手输入，并先核对就绪及共享运行时身份。相关实际证据和边界见 W02／W03 验收。
 
 实施核对：`app-server proxy` 仅透传原始字节，不能直接写 JSONL。Unix 控制 socket 使用 WebSocket；桥接直连该 socket，不新建运行时。见 [官方固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/stdio-to-uds/src/lib.rs)。
+
+可恢复错误状态：额度失败可使原 thread 显示 `systemError`，同时仍在原终端和运行时内存中。不能只按 idle／active 白名单将其当作未加载。对 systemError 额外要求原生 `thread/loaded/list` 包含准确 thread ID，且 `canAcceptDirectInput` 为 true；继续核验原进程、页脚 ID、运行时、sessionId 与 cwd。缺少任一证据即拒绝，不恢复存档副本。依据为固定 CLI schema、实际失败现场及[官方状态／已加载列表说明](https://learn.chatgpt.com/docs/app-server)。原失败任务保持 failed，只有用户新的请求进入原生队列。

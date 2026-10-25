@@ -47,7 +47,7 @@ class SessionCatalog:
                 if page.get("nextCursor"):
                     raise ValueError("Project session list exceeds supported bound")
                 pages[cwd] = {t["id"]: t for t in page["data"]
-                              if t.get("status", {}).get("type") in {"idle", "active"}}
+                              if t.get("status", {}).get("type") in {"idle", "active", "systemError"}}
             visible_id = await self.directory.current_thread_id(endpoint)
             thread = pages[cwd].get(visible_id)
             if thread is None:

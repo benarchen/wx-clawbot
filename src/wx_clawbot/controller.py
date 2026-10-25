@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import os
 from dataclasses import asdict
 from pathlib import Path
 
@@ -76,7 +77,12 @@ class Controller:
             if name in {"status", "stop", "approve", "deny", "answer"}:
                 text = await self.engine.control(command)
             elif name == "projects":
-                text = "已注册项目：\n" + "\n".join(f"{p.alias}：{p.root}" for p in self.routes.projects.values())
+                rows = []
+                for project in self.routes.projects.values():
+                    available = (project.root.is_dir() and project.root.resolve() == project.root
+                                 and os.access(project.root, os.R_OK | os.X_OK))
+                    rows.append(f"{project.alias}：{'可用' if available else '不可访问'}\n{project.root}")
+                text = "已注册项目：\n" + "\n".join(rows)
             elif name == "help":
                 text = HELP
             else:
@@ -86,13 +92,15 @@ class Controller:
         except (CommandError, RouteError) as exc:
             await self.reply(message, str(exc))
         except (SessionUnbound, LaunchPending):
-            await self.reply(message, "会话身份或启动就绪尚未确认，请检查专用终端后刷新；不会重复创建或执行。")
+            await self.reply(message, "会话身份或启动就绪尚未确认，请检查终端后用 /sessions 刷新；不会重复创建或执行。")
         except Exception as exc:
             # Never put native error bodies, credentials or full task content in transport errors.
             await self.reply(message, f"操作未确认（{type(exc).__name__}）；请查询状态，不要盲目重发任务。")
         finally:
             if command.name in {"cd", "new"}:
                 self.selection_pending -= 1
+                launch_id = hashlib.sha256((self.state.credentials.bot_id + "\0" + message.message_id).encode()).hexdigest()[:32]
+                await self.state.supersede_reply(launch_id + "-starting")
             await self.state.handled(message.message_id)
 
     async def _refresh(self, keyword=""):
@@ -105,7 +113,7 @@ class Controller:
             if project is None or record.get("project_root") != str(project.root):
                 continue
             self.routes.validate_target(Target("launch-" + filename.stem, project.alias, Path(record["cwd"]), "managed"))
-            if record["phase"] == "ready":
+            if record["phase"] in {"starting", "handshaking", "unknown", "ready"}:
                 try:
                     binding = await reconcile_launch(registry, filename.stem, self.catalog.directory, self.catalog.agent)
                 except (SessionUnbound, LaunchPending):
@@ -123,6 +131,8 @@ class Controller:
                 self.routes.managed(target, expected=expected)
             else:
                 self.routes.focus(target, expected=expected)
+            if target.origin == "managed":
+                self.last_managed[(target.project_alias, target.cwd)] = target
         except BaseException:
             if previous != target:
                 await self.subscriptions.release(target, "route")
@@ -137,7 +147,7 @@ class Controller:
             if previous:
                 await self.subscriptions.release(previous, "route")
             snapshot = routes.snapshot(tuple(s.target for s in sessions))
-            rows = [f"{i}．{s.target.project_alias}｜{s.title}｜{s.target.origin}\n{s.target.cwd}"
+            rows = [f"{i}．{s.target.project_alias}｜{s.title}｜{'受管会话' if s.target.origin == 'managed' else '原终端'}\n会话：{s.target.session_id}\n目录：{s.target.cwd}"
                     for i, s in enumerate(sessions, 1)]
             missing = len(self.catalog.unverified)
             return ("会话列表（10 分钟有效；已退出输入聚焦）：\n" + ("\n".join(rows) or "暂无已核验会话。")
@@ -145,7 +155,7 @@ class Controller:
                     + f"\n列表：{snapshot.list_id}")
         if name == "focus":
             await self._set_focus(target, revision)
-            return f"执行目标：{target.project_alias}｜{target.session_id}。"
+            return f"执行目标：{target.project_alias}｜{target.session_id}\n目录：{target.cwd}"
         if name == "unfocus":
             previous = routes.target
             if previous:
@@ -163,6 +173,9 @@ class Controller:
                 if previous != target:
                     await self.subscriptions.release(target, "observer")
                 raise
+            if previous and previous != target:
+                return (f"观察订阅已从 {previous.project_alias}｜{previous.session_id} 替换为 "
+                        f"{target.project_alias}｜{target.session_id}；执行目标未改变。")
             return f"观察订阅：{target.project_alias}｜{target.session_id}；执行目标未改变。"
         if name == "detach":
             previous = routes.observer
@@ -182,11 +195,13 @@ class Controller:
                 if matches and (len(matches) == 1 or matches[0].target == preferred):
                     chosen = matches[0].target
                     await self._set_focus(chosen, revision, managed=True)
-                    return f"执行目标：{project.alias}｜{chosen.session_id}（复用受管会话）。"
+                    return f"执行目标：{project.alias}｜{chosen.session_id}（复用受管会话）\n目录：{cwd}"
                 if matches:
                     raise RouteError("该目录有多个受管会话，请用 /sessions 和 /focus 明确选择。")
             # Stable source native ID maps one launch request to at most one visible terminal.
             launch_id = hashlib.sha256((self.state.credentials.bot_id + "\0" + message_id).encode()).hexdigest()[:32]
+            await self.state.queue_reply(launch_id + "-starting",
+                f"已接收可见启动请求：{project.alias}。正在核验启动，尚未就绪。", priority=2)
             await self.starter.start(launch_id, project, cwd, self.executable, self.codex_home, command.argument if name == "new" else "")
             deadline = asyncio.get_running_loop().time() + self.launch_timeout
             while True:
@@ -205,5 +220,6 @@ class Controller:
             chosen = matches[0].target
             await self._set_focus(chosen, revision, managed=True)
             self.last_managed[(project.alias, cwd)] = chosen
-            return f"可见会话已就绪，执行目标：{project.alias}｜{chosen.session_id}。"
+            await self.state.supersede_reply(launch_id + "-starting")
+            return f"可见会话已就绪，执行目标：{project.alias}｜{chosen.session_id}\n目录：{cwd}"
         raise CommandError("未知命令，请使用 /help。")

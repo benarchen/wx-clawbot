@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 
 from .codex import CodexConnection
+from .base import thread_is_loaded
 
 
 class NativeQueue:
@@ -14,7 +15,7 @@ class NativeQueue:
 
     async def _validate(self) -> dict:
         thread = await self.connection.inspect(self.thread_id)
-        if Path(thread["cwd"]).resolve() != self.project or thread.get("status", {}).get("type") not in {"idle", "active"}:
+        if Path(thread["cwd"]).resolve() != self.project or not await thread_is_loaded(self.connection, thread):
             raise ValueError("Queue target is not the loaded native project thread")
         return thread
 

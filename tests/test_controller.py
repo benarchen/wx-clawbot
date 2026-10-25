@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 from wx_clawbot.agents.base import Capabilities
 from wx_clawbot.agents.rpc import OutcomeUnknown
 from wx_clawbot.channels.wechat import Credentials
+from wx_clawbot.channels.private import write_json
 from wx_clawbot.commands import parse_command
 from wx_clawbot.config import Project
 from wx_clawbot.controller import Controller
@@ -270,3 +271,59 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         counts = await self.state.delivery_counts()
         # sessions + focus + terminal reply; no stale acceptance or error reply.
         self.assertEqual(counts, {"pending": 3})
+
+    async def test_session_list_displays_stable_ids_and_current_directory(self):
+        await self.command("/sessions")
+        reply = await self.state.claim_reply()
+        for session in self.sessions:
+            self.assertIn(session.target.session_id, reply["text"])
+            self.assertIn(str(session.target.cwd), reply["text"])
+        self.assertIn("受管会话", reply["text"])
+
+    async def test_projects_reports_disappeared_directory_without_routing_or_native_actions(self):
+        self.sessions[0].target.cwd.rename(self.root / "moved-one")
+        await self.command("/projects")
+        reply = await self.state.claim_reply()
+        self.assertIn("one：不可访问", reply["text"])
+        self.assertIn("two：可用", reply["text"])
+        self.assertIsNone(self.controller.routes.target)
+        self.catalog.require.assert_not_awaited()
+
+    async def test_cd_reuses_explicitly_focused_managed_session_among_multiple_candidates(self):
+        original = self.sessions[0]
+        extra_target = Target("session-one-extra", "one", original.target.cwd, "managed")
+        extra = SimpleNamespace(target=extra_target, title="extra", binding=SimpleNamespace(thread_id="thread-extra"))
+        self.catalog.sessions[extra_target.session_id] = extra
+        self.catalog.discover.return_value = (*self.sessions, extra)
+        await self.command("/sessions")
+        await self.command("/focus 3")
+        await self.command("/cd one")
+        self.assertEqual(self.controller.routes.target, extra_target)
+        self.assertEqual(self.controller.routes.mode, "managed")
+        self.controller.starter.start.assert_not_awaited()
+
+    async def test_refresh_reconciles_unknown_launch_without_restarting_and_skips_other_projects(self):
+        registry = self.controller.starter.registry
+        record = {"version": 1, "launch_id": "a" * 32, "phase": "unknown", "project_alias": "one",
+                  "project_root": str(self.sessions[0].target.cwd), "cwd": str(self.sessions[0].target.cwd)}
+        write_json(registry.root / (record["launch_id"] + ".json"), record)
+        other = {**record, "launch_id": "b" * 32, "project_alias": "unregistered"}
+        write_json(registry.root / (other["launch_id"] + ".json"), other)
+        with patch("wx_clawbot.controller.reconcile_launch", new=AsyncMock(return_value=SimpleNamespace(thread_id="thread-recovered"))) as reconcile:
+            await self.controller._refresh()
+        self.assertEqual(reconcile.await_count, 1)
+        self.assertEqual(reconcile.await_args.args[1], record["launch_id"])
+        self.assertIn("thread-recovered", self.catalog.managed_threads)
+        self.controller.starter.start.assert_not_awaited()
+
+    async def test_native_failure_cause_is_preserved_in_final_reply(self):
+        await self.select()
+        await self.command("task")
+        task = (await self.state.tasks())[0]
+        await self.engine.complete("thread-two", {"id": "failed-turn", "status": "failed",
+            "error": {"message": "Fixture usage limit reached"},
+            "items": [{"type": "userMessage", "clientId": task["client_id"]}]})
+        reply = await self.state.claim_reply()
+        self.assertIn("Fixture usage limit reached", reply["text"])
+        self.assertIn("failed", reply["text"])
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "failed")

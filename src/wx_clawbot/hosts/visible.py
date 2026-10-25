@@ -164,7 +164,7 @@ async def reconcile_launch(registry, launch_id, directory, native):
         marker = "WX-LAUNCH-" + launch_id
         threads = [thread for thread in page["data"] if thread["id"] == visible_id
                    and thread.get("preview", "").startswith(marker)
-                   and thread.get("status", {}).get("type") in {"idle", "active"}
+                   and thread.get("status", {}).get("type") in {"idle", "active", "systemError"}
                    and thread.get("forkedFromId") is None]
         if len(threads) != 1:
             raise LaunchPending("Visible thread has no matching original launch handshake")

@@ -29,6 +29,7 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.resume_changes = {}
         self.resume_error = None
         self.list_rows = [self.thread]
+        self.loaded_page = {"data": ["fixture-thread"], "nextCursor": None}
 
         async def peer(websocket):
             async for raw in websocket:
@@ -48,6 +49,8 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
                     result = {"thread": {**self.thread, **self.resume_changes}}
                 elif message["method"] == "thread/list":
                     result = {"data": self.list_rows, "nextCursor": None}
+                elif message["method"] == "thread/loaded/list":
+                    result = self.loaded_page
                 elif message["method"] == "turn/start":
                     result = {"turn": {"id": "fixture-turn", "status": "inProgress"}}
                 else:
@@ -154,5 +157,36 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(RpcError) as raised:
                 await connection.observe_loaded("fixture-thread", Path(self.temp.name))
             self.assertEqual(raised.exception.code, -32003)
+        finally:
+            await connection.close()
+
+    async def test_failed_but_loaded_original_can_be_observed_without_hydrating_a_copy(self):
+        self.thread["status"] = {"type": "systemError"}
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            self.assertEqual(await connection.observe_loaded("fixture-thread", Path(self.temp.name)), self.thread)
+        finally:
+            await connection.close()
+        self.assertEqual(self.methods.count("thread/loaded/list"), 2)
+        self.assertNotIn("thread/start", self.methods)
+
+    async def test_system_error_without_live_membership_is_not_resumed(self):
+        self.thread["status"] = {"type": "systemError"}
+        self.loaded_page = {"data": ["other-thread"], "nextCursor": None}
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            with self.assertRaisesRegex(ValueError, "not loaded"):
+                await connection.observe_loaded("fixture-thread", Path(self.temp.name))
+        finally:
+            await connection.close()
+        self.assertNotIn("thread/resume", self.methods)
+
+    async def test_loaded_membership_rejects_invalid_pages_and_cursor_loops(self):
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            for page in ({"data": [None]}, {"data": [] , "nextCursor": 7}, {"data": [], "nextCursor": "repeated"}):
+                self.loaded_page = page
+                with self.assertRaises(ValueError):
+                    await connection.is_loaded("fixture-thread")
         finally:
             await connection.close()

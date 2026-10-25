@@ -115,6 +115,9 @@ class Execution:
         if status not in {"completed", "failed", "interrupted"}:
             return
         output = "\n".join(item.get("text", "") for item in turn.get("items", []) if item.get("type") == "agentMessage")
+        error = turn.get("error")
+        if status == "failed" and isinstance(error, dict) and isinstance(error.get("message"), str) and error["message"].strip():
+            output = (output + "\n\n原生错误：" + error["message"]).strip()
         if task:
             text = f"{task['target']['project_alias']}｜{task['id']}｜{status}\n" + (output or "原生任务已结束，没有文本结果。")
             await self.state.task_finish(task["id"], status, text, turn_id=turn["id"])

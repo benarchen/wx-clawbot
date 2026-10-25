@@ -7,7 +7,7 @@ from pathlib import Path
 from websockets.asyncio.client import unix_connect
 
 from .rpc import JsonRpc
-from .base import Capabilities, SubmissionReceipt
+from .base import Capabilities, SubmissionReceipt, thread_is_loaded
 
 
 class CodexConnection:
@@ -76,18 +76,42 @@ class CodexConnection:
                 raise ValueError("Native thread escaped requested project scope")
         return result
 
+    async def is_loaded(self, thread_id: str) -> bool:
+        if not isinstance(thread_id, str) or not thread_id:
+            raise ValueError("Exact native thread identity required")
+        cursor, seen = None, set()
+        for _ in range(10):
+            params = {"limit": 100}
+            if cursor:
+                params["cursor"] = cursor
+            result = await self.rpc.request("thread/loaded/list", params)
+            rows = result.get("data") if isinstance(result, dict) else None
+            if not isinstance(rows, list) or len(rows) > 100 or any(not isinstance(v, str) or not v for v in rows):
+                raise ValueError("Invalid native loaded-thread page")
+            if thread_id in rows:
+                return True
+            cursor = result.get("nextCursor")
+            if cursor is None:
+                return False
+            if not isinstance(cursor, str) or not cursor or cursor in seen:
+                raise ValueError("Invalid native loaded-thread cursor")
+            seen.add(cursor)
+        raise ValueError("Native loaded-thread list exceeds supported bound")
+
     async def observe_loaded(self, thread_id: str, project: Path) -> dict:
         """Subscribe to a loaded thread; never hydrate a stored or forked copy."""
         before = await self.inspect(thread_id)
         if Path(before["cwd"]).resolve() != project.resolve(strict=True):
             raise ValueError("Native project identity mismatch")
-        if before.get("status", {}).get("type") not in {"idle", "active"}:
+        if not await thread_is_loaded(self, before):
             raise ValueError("Thread is not loaded in the target native runtime")
         result = await self.rpc.request("thread/resume", {"threadId": thread_id, "excludeTurns": True})
         after = result.get("thread", {})
         for field in ("id", "cwd", "sessionId", "model", "modelProvider"):
             if after.get(field) != before.get(field):
                 raise ValueError("Native identity or model changed during subscription")
+        if not await thread_is_loaded(self, after):
+            raise ValueError("Original thread unloaded during subscription")
         return after
 
     async def read_turns(self, thread_id: str, *, cursor: str | None = None) -> dict:

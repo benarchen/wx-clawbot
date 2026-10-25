@@ -20,10 +20,22 @@ class SubmissionReceipt:
     turn_id: str
 
 
+async def thread_is_loaded(agent, thread: dict) -> bool:
+    status = thread.get("status", {}).get("type")
+    if status in {"idle", "active"}:
+        return True
+    if status != "systemError" or thread.get("canAcceptDirectInput") is not True:
+        return False
+    checker = getattr(agent, "is_loaded", None)
+    return checker is not None and (await checker(thread["id"])) is True
+
+
 class AgentAdapter(Protocol):
     capabilities: Capabilities
 
     async def inspect(self, thread_id: str) -> dict: ...
+
+    async def is_loaded(self, thread_id: str) -> bool: ...
 
     async def observe_loaded(self, thread_id: str, project: Path) -> dict: ...
 
