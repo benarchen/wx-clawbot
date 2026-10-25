@@ -120,8 +120,10 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(DeliveryUnknown):
                 await self.api.send_text(self.account, peer="fixture-owner", text="hello",
                                          context_token="context", client_id="invalid-id-ack")
-        for response, error in (({"message_id": 1, "ret": -2}, BusinessError),
-                                ({"message_id": 1, "errcode": -14}, SessionExpired),
+        for response, error in (({"message_id": 1, "ret": -2}, DeliveryUnknown),
+                                ({"message_id": 1, "errcode": -14}, DeliveryUnknown),
+                                ({"ret": -2}, BusinessError),
+                                ({"errcode": -14}, SessionExpired),
                                 ({"message_id": 1, "ret": "0"}, DeliveryUnknown)):
             self.http.request.return_value = response
             with self.assertRaises(error):

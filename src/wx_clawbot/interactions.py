@@ -29,11 +29,12 @@ class Interaction:
 
 class InteractionBroker:
     def __init__(self, rpc: JsonRpc, thread_id: str, *, ttl: float = 600,
-                 clock: Callable[[], float] = time.monotonic):
+                 clock: Callable[[], float] = time.monotonic, generation=None, persist=None):
         if not thread_id or not math.isfinite(ttl) or ttl <= 0:
             raise ValueError("Thread identity and positive finite lifetime required")
         self.rpc, self.thread_id, self.ttl, self.clock = rpc, thread_id, ttl, clock
-        self.generation = uuid.uuid4().hex
+        self.generation = generation or uuid.uuid4().hex
+        self.persist = persist
         self.records: dict[str, Interaction] = {}
         self.native: dict[tuple[type, int | str], str] = {}
         self.connected = True
@@ -82,7 +83,7 @@ class InteractionBroker:
         # Retain a bounded recent history, without evicting an unanswered request.
         if len(self.records) >= 256:
             for public_id, record in list(self.records.items()):
-                if record.state == "resolved":
+                if record.state in {"resolved", "stale"}:
                     del self.records[public_id]
                     self.native.pop(JsonRpc.key(record.native_id), None)
                     break
@@ -143,17 +144,35 @@ class InteractionBroker:
                 raise ValueError("Interaction is unavailable or already handled")
             if self.clock() >= record.deadline:
                 record.state = "stale"
+                await self.sync(record)
                 raise ValueError("Interaction has expired; refresh native state")
             result = self._result(record, answer)
             record.state = "sending"
             try:
+                await self.sync(record)  # Durable send intent must precede the wire response.
+                if record.state != "sending" or not self.connected:
+                    raise ValueError("Interaction was handled while persisting the response")
+                if self.clock() >= record.deadline:
+                    record.state = "stale"
+                    await self.sync(record)
+                    raise ValueError("Interaction expired while persisting the response")
                 await self.rpc.respond(record.native_id, result)
             except BaseException:
-                record.state = "unknown"
+                if record.state == "sending":
+                    record.state = "unknown"
+                    await self.sync(record)
                 raise  # Sending may have succeeded; never send an opposite decision.
             if record.state == "sending":
                 record.state = "awaiting_native"
+            await self.sync(record)
             return record
+
+    async def sync(self, record):
+        if self.persist:
+            state = await self.persist(record)
+            # A native resolution may have arrived during the database await.
+            if record.state != "resolved":
+                record.state = state
 
     def disconnect(self) -> None:
         self.connected = False

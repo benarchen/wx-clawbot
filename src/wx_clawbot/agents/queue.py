@@ -7,6 +7,10 @@ from .codex import CodexConnection
 from .base import thread_is_loaded
 
 
+class QueueFull(ValueError):
+    """Admission refused before thread/queue/add was sent."""
+
+
 class NativeQueue:
     def __init__(self, connection: CodexConnection, thread_id: str, project: Path):
         self.connection, self.thread_id = connection, thread_id
@@ -48,7 +52,7 @@ class NativeQueue:
             if any(item["clientUserMessageId"] == client_id for item in items):
                 raise ValueError("Submission already queued; reconcile instead of resubmitting")
             if len(items) >= 10:
-                raise ValueError("Native queue is full for bridge admission")
+                raise QueueFull("Native queue is full for bridge admission")
             result = await self.connection.rpc.request("thread/queue/add", {
                 "threadId": self.thread_id, "clientUserMessageId": client_id,
                 "input": [{"type": "text", "text": text}],

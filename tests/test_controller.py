@@ -7,11 +7,12 @@ from unittest.mock import AsyncMock, patch
 
 from wx_clawbot.agents.base import Capabilities
 from wx_clawbot.agents.rpc import OutcomeUnknown
+from wx_clawbot.agents.queue import QueueFull
 from wx_clawbot.channels.wechat import Credentials
 from wx_clawbot.channels.private import write_json
 from wx_clawbot.commands import parse_command
 from wx_clawbot.config import Project
-from wx_clawbot.controller import Controller
+from wx_clawbot.controller import Controller, RouteCommitFailed
 from wx_clawbot.execution import Execution
 from wx_clawbot.hosts.visible import LaunchPending, LaunchRegistry
 from wx_clawbot.interactions import APPROVAL, QUESTION
@@ -36,8 +37,9 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
             target = Target("session-" + alias, alias, cwd, "managed")
             self.sessions.append(SimpleNamespace(target=target, title=alias,
                                   binding=SimpleNamespace(thread_id="thread-" + alias)))
-        self.agent = SimpleNamespace(capabilities=Capabilities(observe=True),
+        self.agent = SimpleNamespace(capabilities=Capabilities(observe=True, queue=True, interrupt=True, shared_interactions=True),
                                      observe_loaded=AsyncMock(), unsubscribe=AsyncMock(),
+                                     inspect=AsyncMock(return_value={"status": {"type": "idle"}}),
                                      rpc=SimpleNamespace(request=AsyncMock(), respond=AsyncMock()))
         self.catalog = SimpleNamespace(agent=self.agent, sessions={s.target.session_id: s for s in self.sessions},
                                        managed_threads=set(), unverified=[], directory=None,
@@ -51,8 +53,15 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         starter = SimpleNamespace(registry=LaunchRegistry(self.root / "launches"), start=AsyncMock())
         self.controller = Controller(tuple(projects), self.catalog, self.state, starter, Path("/fixture/codex"), Path("/fixture/home"))
         self.engine = Execution(self.controller)
+        key_patch = patch("wx_clawbot.execution.repository_key", new=AsyncMock(side_effect=lambda cwd, root: "directory:" + str(root)))
+        key_patch.start()
+        self.addCleanup(key_patch.stop)
+        conflict_key = patch("wx_clawbot.admission.repository_key", new=AsyncMock(side_effect=lambda cwd, root: "directory:" + str(root)))
+        conflict_key.start()
+        self.addCleanup(conflict_key.stop)
         self.queue = SimpleNamespace(add=AsyncMock(return_value={"id": "fixture-queue"}),
-                                     delete=AsyncMock(return_value=False), request_interrupt=AsyncMock(return_value={}))
+                                     delete=AsyncMock(return_value=False), request_interrupt=AsyncMock(return_value={}),
+                                     list=AsyncMock(return_value=[]))
         self.engine.queue = lambda *_: self.queue
         self.counter = 0
 
@@ -327,3 +336,220 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Fixture usage limit reached", reply["text"])
         self.assertIn("failed", reply["text"])
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "failed")
+
+    async def test_restart_restores_independent_verified_targets_but_not_numeric_list(self):
+        await self.select()
+        await self.command("/attach 1")
+        original = self.controller
+        restored = Controller(tuple(original.routes.projects.values()), self.catalog, self.state,
+                              original.starter, original.executable, original.codex_home)
+        await restored.restore()
+        self.assertEqual(restored.routes.target, self.sessions[1].target)
+        self.assertEqual(restored.routes.observer, self.sessions[0].target)
+        self.assertIsNone(restored.routes.list)
+        with self.assertRaises(RouteError):
+            restored.prepare(await self.incoming("/send 1 obsolete index"))
+        self.queue.add.assert_not_awaited()
+
+    async def test_changed_endpoint_cannot_restore_old_target_or_submit(self):
+        await self.select()
+        original = self.controller
+        self.catalog.sessions.pop(self.sessions[1].target.session_id)
+        restored = Controller(tuple(original.routes.projects.values()), self.catalog, self.state,
+                              original.starter, original.executable, original.codex_home)
+        await restored.restore()
+        self.assertIsNone(restored.routes.target)
+        self.assertIsNone((await self.state.load_routes())["target"])
+        with self.assertRaises(RouteError):
+            restored.prepare(await self.incoming("never replay"))
+        self.queue.add.assert_not_awaited()
+
+    async def test_failed_route_commit_restores_previous_leases_and_never_acknowledges_change(self):
+        await self.select()
+        await self.command("/attach 1")
+        snapshot = await self.state.load_routes()
+        counts = await self.state.delivery_counts()
+        with patch.object(self.state, "save_routes", new=AsyncMock(side_effect=OSError("disk full"))):
+            with self.assertRaises(RouteCommitFailed):
+                await self.command("/focus 1")
+        self.assertEqual(self.controller.routes.target, self.sessions[1].target)
+        self.assertTrue(self.controller.subscriptions.has(self.sessions[1].target, "route"))
+        self.assertFalse(self.controller.subscriptions.has(self.sessions[0].target, "route"))
+        self.assertTrue(self.controller.subscriptions.has(self.sessions[0].target, "observer"))
+        self.assertEqual(await self.state.load_routes(), snapshot)
+        self.assertEqual(await self.state.delivery_counts(), counts)
+
+    async def test_pending_focus_commit_does_not_expose_uncommitted_target(self):
+        await self.select()
+        entered, release = asyncio.Event(), asyncio.Event()
+        save = self.state.save_routes
+        async def delayed(snapshot):
+            entered.set()
+            await release.wait()
+            await save(snapshot)
+        with patch.object(self.state, "save_routes", side_effect=delayed):
+            work = asyncio.create_task(self.controller.prepare(await self.incoming("/focus 1")))
+            await entered.wait()
+            self.assertEqual(self.controller.routes.target, self.sessions[1].target)
+            with self.assertRaises(RouteError):
+                self.controller.prepare(await self.incoming("not yet selected"))
+            await asyncio.wait_for(self.command("/status"), .5)
+            release.set()
+            await work
+        self.assertEqual(self.controller.routes.target, self.sessions[0].target)
+        self.queue.add.assert_not_awaited()
+
+    async def test_frontend_persists_interaction_before_prompt_and_wire_answer(self):
+        broker, record = await self.approval()
+        row = (await self.state.interaction_rows())[0]
+        self.assertEqual((row["state"], row["generation"]), ("pending", self.engine.generation))
+        async def check_intent(*args):
+            self.assertEqual((await self.state.interaction_rows())[0]["state"], "sending")
+        self.agent.rpc.respond.side_effect = check_intent
+        await self.command("/approve " + record.public_id)
+        self.assertEqual((await self.state.interaction_rows())[0]["state"], "awaiting_native")
+        await self.engine.event({"method": "serverRequest/resolved", "params": {
+            "threadId": "thread-one", "requestId": "native-request"}})
+        self.assertEqual((await self.state.interaction_rows())[0]["state"], "resolved")
+
+    async def test_expiry_stales_durable_request_and_releases_detached_subscription(self):
+        broker, record = await self.approval()
+        await self.command("/detach")
+        broker.clock = lambda: record.deadline
+        await self.engine.expire_interactions()
+        self.assertEqual((await self.state.interaction_rows())[0]["state"], "stale")
+        self.assertFalse(self.controller.subscriptions.has(self.sessions[0].target, "interaction-" + record.public_id))
+        await self.command("/approve " + record.public_id)
+        self.agent.rpc.respond.assert_not_awaited()
+
+    async def test_failed_request_persistence_cannot_publish_a_false_actionable_prompt(self):
+        await self.select()
+        await self.command("/attach 1")
+        before = await self.state.delivery_counts()
+        with patch.object(self.state, "record_interaction", new=AsyncMock(side_effect=OSError("disk full"))):
+            with self.assertRaises(OSError):
+                await self.engine.event({"id": 9, "method": APPROVAL, "params": {
+                    "threadId": "thread-one", "turnId": "turn-a", "itemId": "item-a", "command": "fixture"}})
+        self.assertEqual(await self.state.delivery_counts(), before)
+        self.agent.rpc.respond.assert_not_awaited()
+
+    async def test_full_queue_is_a_known_unsubmitted_failure_instead_of_unknown(self):
+        await self.select()
+        self.queue.add.side_effect = QueueFull("ten native entries")
+        await self.command("cannot enter full queue")
+        task = (await self.state.tasks())[0]
+        self.assertEqual(task["state"], "failed")
+        self.assertFalse(self.controller.subscriptions.has(self.sessions[1].target, "task-" + task["id"]))
+
+    async def test_recovery_reads_exact_original_completion_without_submitting_again(self):
+        await self.select()
+        self.queue.add.side_effect = OutcomeUnknown("lost queue receipt")
+        await self.command("one native execution")
+        task = (await self.state.tasks())[0]
+        self.agent.rpc.request.return_value = {"data": [{"id": "recovered-turn", "status": "completed", "items": [
+            {"type": "userMessage", "clientId": task["client_id"]}, {"type": "agentMessage", "text": "recovered result"}]}], "nextCursor": None}
+        await self.engine.reconcile()
+        await self.engine.reconcile()
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "completed")
+        self.assertEqual(self.queue.add.await_count, 1)
+        self.assertEqual(self.agent.rpc.request.await_args.args[0], "thread/turns/list")
+
+    async def test_recovery_absence_is_unknown_and_duplicate_native_input_is_not_success(self):
+        await self.select()
+        self.queue.add.side_effect = OutcomeUnknown("lost receipt")
+        await self.command("uncertain task")
+        task = (await self.state.tasks())[0]
+        self.agent.rpc.request.return_value = {"data": [], "nextCursor": None}
+        await self.engine.reconcile()
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
+        self.agent.rpc.request.return_value = {"data": [{"id": "merged", "status": "completed", "items": [
+            {"type": "userMessage", "clientId": task["client_id"]}, {"type": "userMessage", "clientId": "desktop"}]}], "nextCursor": None}
+        await self.engine.reconcile()
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
+        self.assertEqual(self.queue.add.await_count, 1)
+
+    async def test_recovery_queue_identity_restores_state_without_add(self):
+        await self.select()
+        self.queue.add.side_effect = OutcomeUnknown("lost receipt")
+        await self.command("queued on native side")
+        task = (await self.state.tasks())[0]
+        self.queue.list.return_value = [{"id": "recovered-queue", "clientUserMessageId": task["client_id"]}]
+        self.agent.rpc.request.return_value = {"data": [], "nextCursor": None}
+        await self.engine.reconcile()
+        recovered = await self.state.tasks(task_id=task["id"])
+        self.assertEqual((recovered["state"], recovered["queue_id"]), ("queued", "recovered-queue"))
+        self.assertEqual(self.queue.add.await_count, 1)
+
+    async def test_unsupported_agent_refuses_before_durable_task_admission(self):
+        await self.select()
+        self.agent.capabilities = Capabilities(observe=True)
+        await self.command("not supported")
+        self.assertEqual(await self.state.tasks(), [])
+        self.queue.add.assert_not_awaited()
+
+    async def blocked_task(self):
+        await self.select()
+        original = self.sessions[1]
+        other = Target("second-terminal-same-project", "two", original.target.cwd, "managed")
+        session = SimpleNamespace(target=other, title="other", binding=SimpleNamespace(thread_id="thread-other"))
+        self.catalog.sessions[other.session_id] = session
+        await self.command("first holds repository")
+        # Select a verified second terminal in the same project, while first remains queued.
+        self.controller.routes.snapshot((other,))
+        await self.command("/focus 1")
+        await self.command("wait for repository")
+        tasks = await self.state.tasks(active_only=True)
+        return next(t for t in tasks if t["state"] == "queued"), next(t for t in tasks if t["state"] == "received")
+
+    async def test_cross_session_project_conflict_waits_then_dispatches_once_after_drain(self):
+        first, waiting = await self.blocked_task()
+        self.assertEqual(self.queue.add.await_count, 1)
+        await self.engine.drain_admission()
+        self.assertEqual(self.queue.add.await_count, 1)
+        await self.engine.complete("thread-two", {"id": "first-turn", "status": "completed", "items": [
+            {"type": "userMessage", "clientId": first["client_id"]}, {"type": "agentMessage", "text": "done"}]})
+        await self.engine.drain_admission()
+        await self.engine.drain_admission()
+        self.assertEqual(self.queue.add.await_count, 2)
+        self.assertEqual((await self.state.tasks(task_id=waiting["id"]))["state"], "queued")
+
+    async def test_cancel_received_does_not_claim_native_deletion_or_wait_for_admission_lock(self):
+        _, waiting = await self.blocked_task()
+        async with self.engine.admission_gate:
+            await asyncio.wait_for(self.command("/stop " + waiting["id"]), .5)
+        self.assertEqual((await self.state.tasks(task_id=waiting["id"]))["state"], "cancelled")
+        await self.engine.drain_admission()
+        self.assertEqual(self.queue.add.await_count, 1)
+        self.queue.delete.assert_not_awaited()
+        self.queue.request_interrupt.assert_not_awaited()
+
+    async def test_other_desktop_activity_blocks_admission_until_it_becomes_idle(self):
+        await self.select()
+        original = self.sessions[1]
+        other = Target("desktop-same-project", "two", original.target.cwd, "original")
+        self.catalog.sessions[other.session_id] = SimpleNamespace(target=other, binding=SimpleNamespace(thread_id="desktop-thread"))
+        self.agent.inspect.return_value = {"status": {"type": "active"}}
+        await self.command("wait for desktop")
+        self.assertEqual((await self.state.tasks())[0]["state"], "received")
+        self.queue.add.assert_not_awaited()
+        self.agent.inspect.return_value = {"status": {"type": "idle"}}
+        await self.engine.drain_admission()
+        self.queue.add.assert_awaited_once()
+
+    async def test_different_project_aliases_sharing_repository_are_not_independent(self):
+        await self.select()
+        with patch("wx_clawbot.execution.repository_key", new=AsyncMock(return_value="git:fixture-common")), \
+             patch("wx_clawbot.admission.repository_key", new=AsyncMock(return_value="git:fixture-common")):
+            await self.command("project two takes lease")
+            await self.command("/focus 1")
+            await self.command("project one must wait")
+        tasks = await self.state.tasks(active_only=True)
+        self.assertEqual({t["state"] for t in tasks}, {"queued", "received"})
+        self.assertEqual(self.queue.add.await_count, 1)
+
+    async def test_same_native_session_accepts_ten_queued_then_rejects_eleventh(self):
+        await self.select()
+        for index in range(11):
+            await self.command(f"task {index}")
+        self.assertEqual(len(await self.state.tasks(active_only=True)), 10)
+        self.assertEqual(self.queue.add.await_count, 10)

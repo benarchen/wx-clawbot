@@ -3,13 +3,17 @@
 import asyncio
 import hashlib
 import json
+import time
+import uuid
 from pathlib import Path
 
-from .agents.queue import NativeQueue
+from .agents.queue import NativeQueue, QueueFull
+from .admission import conflict, repository_key
 from .commands import CommandError
 from .controller import target_record
 from .interactions import APPROVAL, QUESTION, InteractionBroker
 from .routing import Target
+from .sessions import SessionUnbound
 
 
 TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
@@ -29,6 +33,30 @@ class Execution:
         self.turn_tasks = {}
         self.brokers = {}
         self.observed_turns = set()
+        self.generation = uuid.uuid4().hex
+        self.interaction_targets = {}
+        self.admission_gate = asyncio.Lock()
+
+    async def persist_interaction(self, record):
+        target, expires_at = self.interaction_targets[record.public_id]
+        return await self.state.record_interaction(record, generation=self.generation,
+                                                   target=target, expires_at=expires_at)
+
+    async def release_interaction(self, thread_id, record):
+        await self.state.supersede_reply(record.public_id + "-prompt")
+        for session in tuple(self.controller.subscriptions.bound.values()):
+            if session.binding.thread_id == thread_id:
+                await self.controller.subscriptions.release(session.target, "interaction-" + record.public_id)
+
+    async def expire_interactions(self):
+        for thread_id, broker in tuple(self.brokers.items()):
+            for record in tuple(broker.records.values()):
+                if record.state not in {"resolved", "stale"} and broker.clock() >= record.deadline:
+                    record.state = "stale"
+                    await broker.sync(record)
+                    await self.release_interaction(thread_id, record)
+                    await self.state.queue_reply(record.public_id + "-expired",
+                        f"交互已过期：{record.public_id}；未发送自动答复，请在原终端核对。", priority=0)
 
     def queue(self, thread_id, cwd):
         key = (thread_id, cwd)
@@ -41,53 +69,163 @@ class Execution:
         # order even if later endpoint verification takes different amounts of time.
         lock = self.admission.setdefault(dispatch.target.session_id, asyncio.Lock())
         async with lock:
-            await self._submit_locked(message_id, dispatch)
+            async with self.admission_gate:
+                await self._submit_locked(message_id, dispatch)
 
     async def _submit_locked(self, message_id, dispatch):
+        if not self.native.capabilities.queue:
+            raise CommandError("当前 Agent 未提供已验证的原生队列能力，任务未接收。")
         session = await self.catalog.require(dispatch.target)
         record = target_record(session)
+        record["repository"] = await repository_key(dispatch.target.cwd,
+                                  self.controller.routes.projects[dispatch.target.project_alias].root)
+        active = await self.state.tasks(active_only=True)
+        if sum(t["target"]["session_id"] == dispatch.target.session_id and t["state"] not in {"running", "stopping"}
+               for t in active) >= 10:
+            raise CommandError("该会话的桥接排队或准入等待已达十条，新任务未接收。")
         task = await self.state.task_intent(message_id, record, dispatch.text)
         if task is None:
             return  # A source native message is never submitted a second time.
+        task = await self.state.tasks(task_id=task["id"])
+        await self.state.task_update(task["id"], "received")
+        try:
+            reason = await conflict(task, active, self.catalog, self.controller.routes.projects)
+        except BaseException:
+            await asyncio.shield(self.state.task_finish(task["id"], "failed",
+                f"仓库或桌面活动核验失败，任务未提交：{task['id']}。"))
+            raise
+        if reason:
+            await self.state.queue_reply(task["id"] + "-waiting",
+                f"任务已接收，等待准入：{task['id']}。{reason}；尚未进入原生队列。",
+                priority=2, task_id=task["id"], kind="progress")
+            return
+        await self.dispatch(task)
+
+    async def dispatch(self, task):
+        target = restore_target(task["target"])
+        record, text = task["target"], task["input"]
         task_id, thread_id = task["id"], record["thread_id"]
         attempted = False
         try:
-            await self.controller.subscriptions.acquire(dispatch.target, "task-" + task_id)
-            await self.catalog.require(dispatch.target)
+            await self.controller.subscriptions.acquire(target, "task-" + task_id)
+            await self.catalog.require(target)
             await self.state.task_update(task_id, "dispatching")
             attempted = True
-            receipt = await self.queue(thread_id, dispatch.target.cwd).add(dispatch.text, task["client_id"])
+            receipt = await self.queue(thread_id, target.cwd).add(text, task["client_id"])
             current = await self.state.tasks(task_id=task_id)
             if current["state"] not in TERMINAL:
                 await self.state.task_update(task_id, "queued", queue_id=receipt["id"])
             await self.state.queue_reply(task_id + "-accepted",
-                f"已进入原生队列：{dispatch.target.project_alias}｜{task_id}。",
+                f"已进入原生队列：{target.project_alias}｜{task_id}。",
                 priority=4, task_id=task_id, kind="accepted")
+        except QueueFull:
+            await self.state.task_finish(task_id, "failed", f"原生队列已满，任务未提交：{task_id}；请等待队列空位。")
+            await self.controller.subscriptions.release(target, "task-" + task_id)
         except BaseException:
             current = await self.state.tasks(task_id=task_id)
+            if current["state"] == "cancelled" and not attempted:
+                await self.controller.subscriptions.release(target, "task-" + task_id)
+                return  # A local received-only cancellation won before dispatch.
             if current["state"] not in TERMINAL:
                 if attempted:
                     await asyncio.shield(self.state.task_update(task_id, "unknown"))
                     await self.state.queue_reply(task_id + "-unknown", f"任务状态未知：{task_id}；不会自动重发，请使用 /status 核对。", priority=0)
                 else:
                     await asyncio.shield(self.state.task_finish(task_id, "failed", f"任务未提交，目标核验失败：{task_id}。"))
-                    await self.controller.subscriptions.release(dispatch.target, "task-" + task_id)
+                    await self.controller.subscriptions.release(target, "task-" + task_id)
             raise
 
-    async def read_turn(self, thread_id, turn_id):
-        cursor = None
-        for _ in range(10):
-            params = {"threadId": thread_id, "limit": 20, "itemsView": "full", "sortDirection": "desc"}
+    async def drain_admission(self):
+        async with self.admission_gate:
+            active = await self.state.tasks(active_only=True)
+            for task in active:
+                if task["state"] != "received":
+                    continue
+                target = restore_target(task["target"])
+                try:
+                    await self.catalog.require(target)
+                    current_key = await repository_key(target.cwd,
+                        self.controller.routes.projects[target.project_alias].root)
+                    if current_key != task["target"].get("repository"):
+                        raise SessionUnbound("Repository changed during admission wait")
+                except (SessionUnbound, ValueError):
+                    await self.state.task_finish(task["id"], "failed", f"准入等待期间会话或仓库已变化，未提交任务：{task['id']}。")
+                    continue
+                if await conflict(task, active, self.catalog, self.controller.routes.projects) is None:
+                    await self.state.supersede_reply(task["id"] + "-waiting")
+                    await self.dispatch(task)
+                    active = await self.state.tasks(active_only=True)
+
+    async def turns(self, thread_id):
+        cursor, seen = None, set()
+        for _ in range(200):
+            # One full turn per frame avoids including nineteen unrelated tool outputs.
+            params = {"threadId": thread_id, "limit": 1, "itemsView": "full", "sortDirection": "desc"}
             if cursor:
                 params["cursor"] = cursor
             page = await self.native.rpc.request("thread/turns/list", params)
-            found = [turn for turn in page["data"] if turn.get("id") == turn_id]
-            if len(found) == 1:
-                return found[0]
+            rows = page.get("data") if isinstance(page, dict) else None
+            if not isinstance(rows, list) or len(rows) > 1 or any(
+                not isinstance(t, dict) or not isinstance(t.get("id"), str) or not isinstance(t.get("items"), list)
+                for t in rows
+            ):
+                raise ValueError("Malformed bounded native turn page")
+            for turn in rows:
+                yield turn
             cursor = page.get("nextCursor")
-            if not cursor:
-                break
+            if cursor is None:
+                return
+            if not isinstance(cursor, str) or not cursor or cursor in seen:
+                raise ValueError("Invalid native turn cursor")
+            seen.add(cursor)
+
+    async def read_turn(self, thread_id, turn_id):
+        async for turn in self.turns(thread_id):
+            if turn["id"] == turn_id:
+                return turn
         raise ValueError("Exact native turn is not in the bounded history")
+
+    async def reconcile(self):
+        """Only read the original runtime; this path never adds a native task."""
+        tasks = [t for t in await self.state.tasks(active_only=True) if t["state"] == "unknown"]
+        groups = {}
+        for task in tasks:
+            target = restore_target(task["target"])
+            try:
+                session = await self.catalog.require(target)
+            except SessionUnbound:
+                continue
+            if session.binding.thread_id != task["thread_id"]:
+                raise ValueError("Stored task thread differs from current native identity")
+            await self.controller.subscriptions.acquire(target, "task-" + task["id"])
+            groups.setdefault(task["thread_id"], []).append(task)
+        for thread_id, group in groups.items():
+            queued = await self.queue(thread_id, restore_target(group[0]["target"]).cwd).list()
+            clients = {t["client_id"] for t in group}
+            matches = {c: [] for c in clients}
+            # Keep only identity/status metadata, not hundreds of historical outputs.
+            async for turn in self.turns(thread_id):
+                users = [i for i in turn["items"] if i.get("type") == "userMessage"]
+                for user in users:
+                    client = user.get("clientId")
+                    if client in matches:
+                        matches[client].append((turn["id"], turn.get("status"), len(users)))
+            for task in group:
+                found = matches[task["client_id"]]
+                pending = [q for q in queued if q["clientUserMessageId"] == task["client_id"]]
+                if len(found) > 1 or len(pending) > 1 or found and found[0][2] != 1:
+                    await self.state.queue_reply(task["id"] + "-ambiguous",
+                        f"原生任务关联存在重复或输入合并：{task['id']}；保持未知，请核对原终端。", priority=0)
+                elif found:
+                    turn_id, status, _ = found[0]
+                    if status in {"completed", "failed", "interrupted"}:
+                        await self.complete(thread_id, await self.read_turn(thread_id, turn_id))
+                    elif status == "inProgress":
+                        await self.state.task_update(task["id"], "running", turn_id=turn_id)
+                        self.turn_tasks[(thread_id, turn_id)] = task["id"]
+                elif len(pending) == 1:
+                    await self.state.task_update(task["id"], "queued", queue_id=pending[0]["id"])
+                # Absence within this bounded window is not proof of non-execution.
 
     async def map_turn(self, thread_id, turn):
         users = [item for item in turn.get("items", []) if item.get("type") == "userMessage"]
@@ -132,6 +270,8 @@ class Execution:
                 for index in range(0, len(text), 7000):
                     await self.state.queue_reply(f"observe-{key}-{index // 7000}", text[index:index + 7000], priority=2)
             self.observed_turns.discard((thread_id, turn["id"]))
+        self.turn_tasks.pop((thread_id, turn["id"]), None)
+        self.observed_turns.discard((thread_id, turn["id"]))
 
     def observed(self, thread_id):
         target = self.controller.routes.observer
@@ -176,8 +316,15 @@ class Execution:
                     target = restore_target(task["target"])
             if target is None:
                 return  # No approval is synthesized for an unobserved desktop task.
-            broker = self.brokers.setdefault(thread_id, InteractionBroker(self.native.rpc, thread_id))
+            broker = self.brokers.setdefault(thread_id, InteractionBroker(self.native.rpc, thread_id,
+                                            generation=self.generation, persist=self.persist_interaction))
             record = broker.register(event)
+            if record.public_id not in self.interaction_targets:
+                session = await self.catalog.require(target)
+                self.interaction_targets[record.public_id] = (target_record(session), time.time() + broker.ttl)
+            await broker.sync(record)
+            if record.state != "pending":
+                return
             await self.controller.subscriptions.acquire(target, "interaction-" + record.public_id)
             if method == APPROVAL:
                 text = (f"审批：{target.project_alias}｜{record.public_id}\n{params['command']}\n"
@@ -194,11 +341,9 @@ class Execution:
             broker = self.brokers.get(thread_id)
             record = broker.resolved(event) if broker else None
             if record:
-                await self.state.supersede_reply(record.public_id + "-prompt")
+                await broker.sync(record)
+                await self.release_interaction(thread_id, record)
                 await self.state.queue_reply(record.public_id + "-resolved", f"交互已由原生会话处理：{record.public_id}；迟到答复不再接受。", priority=0)
-                for session in tuple(self.controller.subscriptions.bound.values()):
-                    if session.binding.thread_id == thread_id:
-                        await self.controller.subscriptions.release(session.target, "interaction-" + record.public_id)
 
     async def run(self):
         try:
@@ -211,10 +356,19 @@ class Execution:
         finally:
             for broker in self.brokers.values():
                 broker.disconnect()
+            await asyncio.shield(self.state.stale_interactions(self.generation))
+
+    async def maintain(self):
+        while True:
+            await self.expire_interactions()
+            await self.drain_admission()
+            await asyncio.sleep(1)
 
     async def control(self, command):
         name = command.name
         if name in {"approve", "deny", "answer"}:
+            if not self.native.capabilities.shared_interactions:
+                raise CommandError("当前 Agent 不支持共享交互，未发送答复。")
             candidates = [(b, b.records[command.argument]) for b in self.brokers.values() if command.argument in b.records]
             if len(candidates) != 1:
                 raise CommandError("请求不存在、已断连或不属于本次连接。")
@@ -240,7 +394,7 @@ class Execution:
         if name == "status" and not command.argument:
             routes = self.controller.routes
             describe = lambda t: f"{t.project_alias}｜{t.session_id}" if t else "未选择"
-            tasks = await self.state.tasks()
+            tasks = await self.state.tasks(active_only=True)
             active = [f"{t['id']}：{t['state']}" for t in tasks if t["state"] not in TERMINAL]
             interactions = [f"待处理交互：{r.public_id}（剩余 {max(0, int(r.deadline-b.clock()))} 秒）"
                             for b in self.brokers.values() for r in b.records.values()
@@ -265,6 +419,15 @@ class Execution:
             return f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。"
         if task["state"] in TERMINAL:
             return f"任务已结束：{task['id']}｜{task['state']}。"
+        if task["state"] == "received":
+            if await self.state.task_finish(task["id"], "cancelled",
+                    f"已撤销尚未提交的准入等待：{task['id']}。", only_if={"received"}):
+                return f"已撤销尚未提交的准入等待：{task['id']}；没有发送原生任务。"
+            task = await self.state.tasks(task_id=task["id"])
+            if task["state"] in TERMINAL:
+                return f"任务已结束：{task['id']}｜{task['state']}。"
+        if not self.native.capabilities.interrupt:
+            raise CommandError("当前 Agent 不支持已验证的原生停止操作，未发送中断。")
         target = restore_target(task["target"])
         await self.catalog.require(target)
         queue = self.queue(task["thread_id"], target.cwd)

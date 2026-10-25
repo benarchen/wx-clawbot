@@ -13,7 +13,7 @@ from wx_clawbot.runtime_state import RuntimeState
 from test_wechat_state import message
 
 
-class RuntimeTests(unittest.IsolatedAsyncioTestCase):
+class RuntimeFixture(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         parent = Path(__file__).resolve().parents[1] / ".tmp" / "runtime-tests"
         parent.mkdir(parents=True, exist_ok=True)
@@ -33,6 +33,8 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.state = await RuntimeState.open(self.root / "runtime.sqlite3", self.credentials)
         self.addAsyncCleanup(self.state.close)
 
+
+class RuntimeTests(RuntimeFixture):
     async def test_only_fresh_owner_message_can_be_admitted_and_identity_cannot_be_retargeted(self):
         with self.assertRaises(ProtocolError):
             await self.state.task_intent("1", {"thread_id": "fixture-thread"}, "task")
@@ -124,3 +126,14 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(await self.state.claim_reply())
         await self.state.accept_batch({"ret": 0, "msgs": [message(context="fresh")]}, phase="runtime")
         self.assertEqual((await self.state.claim_reply())["context"], "fresh")
+
+    async def test_pruned_body_keeps_message_deduplication_and_conflict_detection(self):
+        await self.state.accept_batch({"ret": 0, "msgs": [message()]}, phase="runtime")
+        await self.state._call(lambda: self.state.db.execute("UPDATE inbox SET text='' WHERE message_id='1'"))
+        replay = await self.state.accept_batch({"ret": 0, "msgs": [message()]}, phase="runtime")
+        self.assertEqual(replay["duplicates"], 1)
+        self.assertEqual(replay["conflicts"], 0)
+        self.assertFalse(replay["accepted"])
+        changed = await self.state.accept_batch({"ret": 0, "msgs": [message(text="changed")]}, phase="runtime")
+        self.assertEqual(changed["conflicts"], 1)
+        self.assertFalse(changed["accepted"])

@@ -11,7 +11,8 @@ from .base import Capabilities, SubmissionReceipt, thread_is_loaded
 
 
 class CodexConnection:
-    capabilities = Capabilities(observe=True, submit_idle=True)
+    capabilities = Capabilities(observe=True, submit_idle=True, queue=True,
+                                interrupt=True, shared_interactions=True)
     def __init__(self, transport):
         self.rpc = JsonRpc(transport)
 

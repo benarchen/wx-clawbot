@@ -85,6 +85,10 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--iterm2", action="store_true", help="显式测试 iTerm2 API，可能触发脚本授权")
     native = commands.add_parser("native-probe", help="只读测试既有 Codex Unix WebSocket 握手")
     native.add_argument("--socket", required=True, type=Path)
+    migration = commands.add_parser("migrate-state", help="默认只读检查本项目账本升级计划")
+    migration.add_argument("--state-dir", type=Path,
+                            default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
+    migration.add_argument("--apply", action="store_true", help="显式执行已授权升级；先验证备份，要求前台已停止")
     run = commands.add_parser("serve", help="前台运行本人微信与已注册项目桥接")
     run.add_argument("--config", required=True, type=Path)
     run.add_argument("--socket", required=True, type=Path)
@@ -110,8 +114,20 @@ def main(argv: list[str] | None = None) -> int:
         action.add_argument("--state-dir", type=Path,
                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     args = parser.parse_args(argv)
+    if args.command == "migrate-state":
+        from . import schema
+        from .channels.private import load_credentials
+        try:
+            credentials = load_credentials(args.state_dir / "credentials.json")
+            report = schema.upgrade(args.state_dir, credentials) if args.apply else schema.inspect(args.state_dir, credentials)
+        except Exception as exc:
+            print(json.dumps({"status": "failed", "error_type": type(exc).__name__}, ensure_ascii=False))
+            return 1
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
     if args.command == "serve":
         from .service import serve
+        from .schema import UpgradeRequired
 
         def emit(value):
             print(json.dumps(value, ensure_ascii=False), flush=True)
@@ -122,6 +138,9 @@ def main(argv: list[str] | None = None) -> int:
         except KeyboardInterrupt:
             emit({"status": "stopped", "native_terminals_preserved": True})
             return 130
+        except UpgradeRequired:
+            emit({"status": "upgrade_required", "message": "请先运行 migrate-state 只读查看计划；已有账本不会自动升级。"})
+            return 2
         except Exception as exc:
             emit({"status": "failed", "error_type": type(exc).__name__,
                   "message": "前台桥接已停止；原生任务可能仍在执行，未知任务不会自动重放。"})

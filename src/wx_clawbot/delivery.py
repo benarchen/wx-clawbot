@@ -19,10 +19,10 @@ class Sender:
                                               text=reply["text"], context_token=reply["context"],
                                               client_id=reply["client_id"])
         except DeliveryUnknown:
-            await self.state.finish_reply(reply["id"], "unknown")
+            await self.state.finish_reply(reply["id"], "unknown", error_code="delivery_unknown")
             status = "delivery_unknown"
         except BusinessError as exc:
-            await self.state.finish_reply(reply["id"], "rejected")
+            await self.state.finish_reply(reply["id"], "rejected", error_code=exc.code)
             if isinstance(exc, SessionExpired):
                 raise
             status = "delivery_rejected"
@@ -34,7 +34,7 @@ class Sender:
             await self.state.finish_reply(reply["id"], "accepted", result.get("message_id"))
             status = "send_accepted"
         if self.emit:
-            self.emit({"status": status})
+            self.emit({"status": status, "delivery_id": reply["id"], "attempt": reply["attempt"]})
         return True
 
     async def run(self):

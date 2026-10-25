@@ -120,3 +120,45 @@ class InteractionTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises((ValueError, ConnectionError)):
                 self.broker.register(event)
         self.assertFalse(self.broker.records)
+
+    async def test_failed_durable_send_intent_cannot_reach_native_response(self):
+        record = self.broker.register(approval())
+        self.broker.persist = AsyncMock(side_effect=OSError("disk unavailable"))
+        with self.assertRaises(OSError):
+            await self.answer(record, "accept")
+        self.rpc.respond.assert_not_awaited()
+        self.assertEqual(record.state, "unknown")
+
+    async def test_desktop_resolution_during_durable_intent_prevents_wire_answer(self):
+        record = self.broker.register(approval())
+        async def persist(value):
+            self.broker.resolved({"method": "serverRequest/resolved", "params": {
+                "threadId": "thread-a", "requestId": 1}})
+            return "sending"
+        self.broker.persist = persist
+        with self.assertRaises(ValueError):
+            await self.answer(record, "accept")
+        self.assertEqual(record.state, "resolved")
+        self.rpc.respond.assert_not_awaited()
+
+    async def test_expiry_while_durable_intent_waits_prevents_wire_answer(self):
+        record = self.broker.register(approval())
+        async def persist(value):
+            self.now = record.deadline
+            return value.state
+        self.broker.persist = persist
+        with self.assertRaises(ValueError):
+            await self.answer(record, "accept")
+        self.assertEqual(record.state, "stale")
+        self.rpc.respond.assert_not_awaited()
+
+    async def test_send_error_after_native_resolution_keeps_resolved(self):
+        record = self.broker.register(approval())
+        async def respond(*args):
+            self.broker.resolved({"method": "serverRequest/resolved", "params": {
+                "threadId": "thread-a", "requestId": 1}})
+            raise ConnectionError("late transport error")
+        self.rpc.respond.side_effect = respond
+        with self.assertRaises(ConnectionError):
+            await self.answer(record, "accept")
+        self.assertEqual(record.state, "resolved")

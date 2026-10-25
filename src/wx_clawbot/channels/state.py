@@ -114,16 +114,14 @@ class ChannelState:
                 if message is None:
                     rejected[reason] = rejected.get(reason, 0) + 1
                     continue
-                prior = self.db.execute("SELECT text FROM inbox WHERE message_id=?", (message.message_id,)).fetchone()
-                if prior:
+                matches = self._prior_matches(message)
+                if matches is not None:
                     duplicates += 1
-                    if prior[0] != message.text:
+                    if not matches:
                         conflicts += 1
                         self.db.execute("UPDATE inbox SET conflict=1 WHERE message_id=?", (message.message_id,))
                     continue
-                self.db.execute("INSERT INTO inbox(message_id,text,context,created_ms,seq,received_at,phase) VALUES(?,?,?,?,?,?,?)",
-                                (message.message_id, message.text, message.context_token, message.created_ms,
-                                 message.sequence, time.time(), phase))
+                self._insert_message(message, phase)
                 accepted.append(message)
                 if message.context_token:
                     self.db.execute("""INSERT INTO reply_context VALUES(1,?,?,?) ON CONFLICT(id) DO UPDATE SET
@@ -137,6 +135,15 @@ class ChannelState:
             self.db.execute("ROLLBACK")
             raise
         return {"accepted": accepted, "rejected": rejected, "duplicates": duplicates, "conflicts": conflicts}
+
+    def _prior_matches(self, message):
+        prior = self.db.execute("SELECT text FROM inbox WHERE message_id=?", (message.message_id,)).fetchone()
+        return None if prior is None else prior[0] == message.text
+
+    def _insert_message(self, message, phase):
+        self.db.execute("INSERT INTO inbox(message_id,text,context,created_ms,seq,received_at,phase) VALUES(?,?,?,?,?,?,?)",
+                        (message.message_id, message.text, message.context_token, message.created_ms,
+                         message.sequence, time.time(), phase))
 
     async def latest_context(self):
         def read():

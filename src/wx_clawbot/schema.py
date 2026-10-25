@@ -1,0 +1,158 @@
+"""Explicit, backed-up upgrade of this application's ledger; never auto-migrate data."""
+
+import hashlib
+import os
+import sqlite3
+import time
+import uuid
+from contextlib import closing
+from pathlib import Path
+
+from .channels.http import ProtocolError
+from .channels.private import private_directory, private_file, private_lease
+
+
+APPLICATION_ID = 0x57585254
+VERSION = 2
+V1_COLUMNS = {
+    "channel": {"id", "bot", "owner", "cursor"},
+    "inbox": {"message_id", "text", "context", "created_ms", "seq", "received_at", "phase", "conflict"},
+    "reply_context": {"id", "token", "created_ms", "seq"},
+    "tasks": {"id", "source_message_id", "client_id", "target", "thread_id", "input", "state", "queue_id", "turn_id", "created_at", "updated_at"},
+    "outbox": {"id", "text", "priority", "state", "context", "server_id", "task_id", "kind", "created_at"},
+}
+UPGRADE = (
+    "ALTER TABLE inbox ADD COLUMN body_sha256 TEXT",
+    "ALTER TABLE outbox ADD COLUMN body_sha256 TEXT",
+    """CREATE TABLE routes (id INTEGER PRIMARY KEY CHECK(id=1),snapshot TEXT NOT NULL,
+        updated_at REAL NOT NULL,FOREIGN KEY(id) REFERENCES channel(id))""",
+    """CREATE TABLE interactions (public_id TEXT PRIMARY KEY,native_key TEXT NOT NULL,
+        generation TEXT NOT NULL,thread_id TEXT NOT NULL,turn_id TEXT NOT NULL,method TEXT NOT NULL,
+        params TEXT NOT NULL,target TEXT NOT NULL,deadline REAL NOT NULL,state TEXT NOT NULL,created_at REAL NOT NULL,
+        updated_at REAL NOT NULL,UNIQUE(generation,native_key))""",
+    """CREATE TABLE delivery_attempts (outbox_id TEXT NOT NULL,number INTEGER NOT NULL,
+        client_id TEXT NOT NULL,context TEXT NOT NULL,state TEXT NOT NULL,server_id TEXT,
+        started_at REAL,finished_at REAL,error_code TEXT,authorization TEXT,
+        provenance TEXT NOT NULL CHECK(provenance IN ('legacy-v1','runtime-v2')),
+        PRIMARY KEY(outbox_id,number),FOREIGN KEY(outbox_id) REFERENCES outbox(id) ON DELETE CASCADE)""",
+    "CREATE UNIQUE INDEX delivery_active ON delivery_attempts(outbox_id) WHERE state='sending'",
+    "CREATE INDEX task_native_client ON tasks(thread_id,client_id)",
+    "CREATE INDEX delivery_pending ON outbox(state,priority)",
+)
+V2_COLUMNS = {
+    "routes": {"id", "snapshot", "updated_at"},
+    "interactions": {"public_id", "native_key", "generation", "thread_id", "turn_id", "method", "params", "target", "deadline", "state", "created_at", "updated_at"},
+    "delivery_attempts": {"outbox_id", "number", "client_id", "context", "state", "server_id", "started_at", "finished_at", "error_code", "authorization", "provenance"},
+}
+
+
+class UpgradeRequired(ProtocolError):
+    pass
+
+
+def validate(db, credentials, *, versions=(1, VERSION)):
+    if db.execute("PRAGMA application_id").fetchone()[0] != APPLICATION_ID:
+        raise ProtocolError("Database is not this application's runtime ledger")
+    version = db.execute("PRAGMA user_version").fetchone()[0]
+    if version not in versions:
+        raise ProtocolError("Unsupported runtime schema version")
+    tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+    expected = set(V1_COLUMNS) | ({"routes", "interactions", "delivery_attempts"} if version == VERSION else set())
+    if tables != expected:
+        raise ProtocolError("Runtime tables differ from the verified schema")
+    columns_by_table = V1_COLUMNS | (V2_COLUMNS if version == VERSION else {})
+    for table, columns in columns_by_table.items():
+        actual = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+        required = columns | ({"body_sha256"} if table in {"inbox", "outbox"} and version == VERSION else set())
+        if actual != required:
+            raise ProtocolError("Runtime columns differ from the verified schema")
+    if db.execute("SELECT bot,owner FROM channel WHERE id=1").fetchone() != (credentials.bot_id, credentials.owner_id):
+        raise ProtocolError("Runtime ledger belongs to another binding")
+    if version == VERSION:
+        for table in ("inbox", "outbox"):
+            if db.execute(f"SELECT 1 FROM {table} WHERE body_sha256 IS NULL OR length(body_sha256)<>64 LIMIT 1").fetchone():
+                raise ProtocolError("Runtime message digest is missing")
+    return version
+
+
+def apply_steps(db, credentials):
+    """Caller owns the transaction and has either a new file or a verified backup."""
+    if validate(db, credentials) != 1 or not db.in_transaction:
+        raise ProtocolError("Schema 1 and an explicit transaction required")
+    for statement in UPGRADE:
+        db.execute(statement)
+    for table, key in (("inbox", "message_id"), ("outbox", "id")):
+        for identity, text in db.execute(f"SELECT {key},text FROM {table}"):
+            db.execute(f"UPDATE {table} SET body_sha256=? WHERE {key}=?", (hashlib.sha256(text.encode()).hexdigest(), identity))
+    # Preserve the old observation as a legacy attempt. Exact HTTP start/end times
+    # were not recorded in v1 and must not be reconstructed from creation time.
+    for event_id, context, state, server_id in db.execute(
+        "SELECT id,context,state,server_id FROM outbox WHERE state IN ('sending','accepted','unknown','rejected')"
+    ):
+        if not context:
+            raise ProtocolError("Legacy send has no recorded context")
+        client_id = "wx-reply-" + uuid.uuid5(uuid.NAMESPACE_URL, credentials.bot_id + "\0" + event_id).hex
+        db.execute("""INSERT INTO delivery_attempts(outbox_id,number,client_id,context,state,server_id,provenance)
+            VALUES(?,0,?,?,?,?, 'legacy-v1')""", (event_id, client_id, context, state, server_id))
+    db.execute(f"PRAGMA user_version={VERSION}")
+    validate(db, credentials, versions=(VERSION,))
+
+
+def _root(root):
+    if not root.is_dir():
+        raise ProtocolError("Existing private state directory required")
+    root = private_directory(root)
+    private_file(root / "runtime.sqlite3")
+    return root
+
+
+def inspect(root: Path, credentials):
+    root = _root(root)
+    with closing(sqlite3.connect((root / "runtime.sqlite3").as_uri() + "?mode=ro", uri=True)) as db:
+        version = validate(db, credentials)
+        counts = {name: db.execute(f"SELECT count(*) FROM {name}").fetchone()[0] for name in V1_COLUMNS}
+    return {"status": "current" if version == VERSION else "upgrade_available", "from_version": version,
+            "to_version": VERSION, "row_counts": counts, "requires_stopped_consumer": True,
+            "add_tables": ["routes", "interactions", "delivery_attempts"] if version == 1 else [],
+            "add_columns": ["inbox.body_sha256", "outbox.body_sha256"] if version == 1 else [], "data_deleted": False}
+
+
+def upgrade(root: Path, credentials):
+    root = _root(root)
+    with private_lease(root / "channel-consumer.lock"), closing(sqlite3.connect(root / "runtime.sqlite3", isolation_level=None, timeout=1)) as db:
+        db.execute("PRAGMA foreign_keys=ON")
+        if validate(db, credentials) == VERSION:
+            return {"status": "current", "version": VERSION, "data_deleted": False}
+        db.execute("BEGIN IMMEDIATE")
+        backup = None
+        try:
+            validate(db, credentials, versions=(1,))
+            if db.execute("PRAGMA quick_check").fetchall() != [("ok",)]:
+                raise ProtocolError("Runtime integrity check failed before upgrade")
+            folder = private_directory(root / "backups")
+            backup = folder / ("runtime-v1-" + uuid.uuid4().hex + ".sqlite3")
+            fd = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            os.close(fd)
+            deadline = time.monotonic() + 10
+            def progress(*_):
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("Backup did not complete within its bound")
+            # A separate reader sees the committed v1 snapshot while this writer
+            # prevents another schema/data writer from changing it during backup.
+            with closing(sqlite3.connect((root / "runtime.sqlite3").as_uri() + "?mode=ro", uri=True)) as source, closing(sqlite3.connect(backup)) as target:
+                source.backup(target, pages=100, progress=progress, sleep=.01)
+                if target.execute("PRAGMA quick_check").fetchall() != [("ok",)]:
+                    raise ProtocolError("Backup integrity check failed")
+                validate(target, credentials, versions=(1,))
+                for name in V1_COLUMNS:
+                    if target.execute(f"SELECT count(*) FROM {name}").fetchone() != db.execute(f"SELECT count(*) FROM {name}").fetchone():
+                        raise ProtocolError("Backup row count differs from frozen source")
+            private_file(backup)
+            apply_steps(db, credentials)
+            db.execute("COMMIT")
+        except BaseException:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
+        return {"status": "upgraded", "from_version": 1, "to_version": VERSION,
+                "backup": str(backup.relative_to(root)), "backup_verified": True, "data_deleted": False}

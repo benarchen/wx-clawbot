@@ -77,6 +77,10 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
         state = await RuntimeState.open(root / "runtime.sqlite3", credentials)
         controller = Controller(projects, catalog, state, starter, executable, codex_home)
         engine = Execution(controller)
+        await controller.restore()
+        if not catalog.sessions:
+            await controller._refresh()
+        await engine.reconcile()
         http = WeixinHttp()
         api = WechatApi(http)
         if emit:
@@ -86,6 +90,7 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
             tasks.create_task(poll(controller, api, emit=emit))
             tasks.create_task(Sender(state, api, emit=emit).run())
             tasks.create_task(engine.run())
+            tasks.create_task(engine.maintain())
     finally:
         if http:
             await http.close()

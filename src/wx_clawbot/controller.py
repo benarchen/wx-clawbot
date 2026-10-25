@@ -1,6 +1,7 @@
 """Owner commands compose verified sessions; asynchronous work keeps frozen targets."""
 
 import asyncio
+import copy
 import hashlib
 import os
 from dataclasses import asdict
@@ -20,6 +21,12 @@ HELP = ("/projects：项目列表\n/cd <别名或目录>：选择或创建受管
         "/attach <序号>：独立观察桌面任务\n/detach：只取消观察\n"
         "/status [任务 ID]：状态\n/stop [任务 ID]：取消或请求中断\n"
         "/approve <请求 ID>、/deny <请求 ID>：一次性审批\n/answer <请求 ID> <回答>：追问答复")
+
+SELECTIONS = {"cd", "new", "sessions", "focus", "unfocus"}
+
+
+class RouteCommitFailed(RuntimeError):
+    """Stop foreground processing when a durable route cannot be committed."""
 
 
 def target_record(session):
@@ -59,14 +66,15 @@ class Controller:
             if self.routes.project is None or self.routes.cwd is None:
                 raise RouteError("请先通过 /cd 选择项目和目录。")
             destination = (self.routes.project, self.routes.cwd)
-        if command.name in {"cd", "new"}:
+        if command.name in SELECTIONS:
             self.selection_pending += 1
         return self.execute(message, command, revision, target, dispatch, destination)
 
-    async def reply(self, message, text):
+    async def reply(self, message, text, *, priority=2):
         key = hashlib.sha256(message.message_id.encode()).hexdigest()[:32]
         for index in range(0, len(text), 7000):
-            await self.state.queue_reply(f"command-{key}-{index // 7000}", text[index:index + 7000], priority=1)
+            await self.state.queue_reply(f"command-{key}-{index // 7000}", text[index:index + 7000], priority=priority,
+                                         kind="control" if priority == 0 else "reply")
 
     async def execute(self, message, command, revision, target, dispatch, destination):
         try:
@@ -87,8 +95,22 @@ class Controller:
                 text = HELP
             else:
                 async with self.changes:
-                    text = await self._change(command, revision, target, destination, message.message_id)
-            await self.reply(message, text)
+                    old, managed = self.routes, self.last_managed.copy()
+                    candidate = copy.copy(old)
+                    try:
+                        text = await self._change(command, revision, target, destination, message.message_id, candidate)
+                        try:
+                            await self.state.save_routes(self._snapshot(candidate))
+                        except BaseException as exc:
+                            raise RouteCommitFailed("Route persistence failed; restart and revalidate") from exc
+                    except BaseException:
+                        self.last_managed = managed
+                        await self._restore_roles(old)
+                        raise
+                    self.routes = candidate
+            await self.reply(message, text, priority=0 if name in {"status", "stop", "approve", "deny", "answer"} else 2)
+        except RouteCommitFailed:
+            raise  # No new input may use an uncommitted selection.
         except (CommandError, RouteError) as exc:
             await self.reply(message, str(exc))
         except (SessionUnbound, LaunchPending):
@@ -97,8 +119,9 @@ class Controller:
             # Never put native error bodies, credentials or full task content in transport errors.
             await self.reply(message, f"操作未确认（{type(exc).__name__}）；请查询状态，不要盲目重发任务。")
         finally:
-            if command.name in {"cd", "new"}:
+            if command.name in SELECTIONS:
                 self.selection_pending -= 1
+            if command.name in {"cd", "new"}:
                 launch_id = hashlib.sha256((self.state.credentials.bot_id + "\0" + message.message_id).encode()).hexdigest()[:32]
                 await self.state.supersede_reply(launch_id + "-starting")
             await self.state.handled(message.message_id)
@@ -121,25 +144,118 @@ class Controller:
                 self.catalog.managed_threads.add(binding.thread_id)
         return await self.catalog.discover(keyword)
 
-    async def _set_focus(self, target, expected, *, managed=False):
-        previous = self.routes.target
+    def _snapshot(self, routes):
+        def encode(target):
+            if target is None:
+                return None
+            session = self.catalog.sessions.get(target.session_id) or self.subscriptions.bound.get(target.session_id)
+            if session is None or session.target != target:
+                raise RouteCommitFailed("Durable selection has no verified identity record")
+            return target_record(session)
+        return {"version": 1, "revision": routes.revision, "mode": routes.mode,
+                "project": routes.project.alias if routes.project else None,
+                "cwd": str(routes.cwd) if routes.cwd else None,
+                "target": encode(routes.target), "observer": encode(routes.observer),
+                "last_managed": [encode(t) for t in self.last_managed.values()
+                                 if t.session_id in self.catalog.sessions][-100:]}
+
+    async def _restore_roles(self, routes):
+        # Restore only selection leases; task/interaction leases can change concurrently.
+        try:
+            for role, target in (("route", routes.target), ("observer", routes.observer)):
+                if target and not self.subscriptions.has(target, role):
+                    await self.subscriptions.acquire(target, role)
+                for session in tuple(self.subscriptions.bound.values()):
+                    if session.target != target:
+                        await self.subscriptions.release(session.target, role)
+        except BaseException as exc:
+            raise RouteCommitFailed("Selection subscription rollback could not be confirmed") from exc
+
+    async def restore(self):
+        snapshot = await self.state.load_routes()
+        if snapshot is None:
+            return
+        if snapshot.get("version") != 1 or type(snapshot.get("revision")) is not int or snapshot["revision"] < 0:
+            raise RouteCommitFailed("Invalid durable route version or revision")
+        await self._refresh()
+        routes = Routes(tuple(self.routes.projects.values()))
+        routes.revision = snapshot["revision"] + 1
+        stale = False
+
+        async def verified(record):
+            nonlocal stale
+            if record is None:
+                return None
+            if not isinstance(record, dict):
+                raise RouteCommitFailed("Invalid durable route target")
+            session = self.catalog.sessions.get(record.get("session_id"))
+            if session is None or target_record(session) != record:
+                stale = True
+                return None
+            try:
+                routes.validate_target(session.target)
+                await self.catalog.require(session.target)
+            except (SessionUnbound, RouteError):
+                stale = True
+                return None
+            return session.target
+
+        project = routes.projects.get(snapshot.get("project"))
+        if project and isinstance(snapshot.get("cwd"), str):
+            try:
+                chosen_project, cwd = routes.resolve_cd(snapshot["cwd"])
+                if chosen_project == project:
+                    routes.project, routes.cwd = project, cwd
+            except RouteError:
+                stale = True
+        target = await verified(snapshot.get("target"))
+        observer = await verified(snapshot.get("observer"))
+        mode = snapshot.get("mode")
+        if mode not in {"focused", "managed", "unbound"} or (mode == "managed" and target and target.origin != "managed"):
+            raise RouteCommitFailed("Invalid durable route mode")
+        if target and mode != "unbound":
+            await self.subscriptions.acquire(target, "route")
+            routes.target, routes.mode = target, mode
+            routes.project, routes.cwd = routes.projects[target.project_alias], target.cwd
+        if observer:
+            await self.subscriptions.acquire(observer, "observer")
+            routes.observer = observer
+        history = snapshot.get("last_managed", [])
+        if not isinstance(history, list) or len(history) > 100:
+            raise RouteCommitFailed("Invalid managed route history")
+        for record in history:
+            target = await verified(record)
+            if target and target.origin == "managed":
+                self.last_managed[(target.project_alias, target.cwd)] = target
+        # Old numeric lists never survive a restart, even when targets remain valid.
+        await self.state.save_routes(self._snapshot(routes))
+        self.routes = routes
+        if stale:
+            await self.state.queue_reply(f"route-recovery-{routes.revision}",
+                "部分旧会话已无法核验，未恢复对应选择；请用 /sessions 刷新。未知任务不会重放。", priority=0)
+
+    async def _set_focus(self, target, expected, routes, *, managed=False):
+        previous = routes.target
         await self.subscriptions.acquire(target, "route")
         try:
             if previous is not None and previous != target:
                 await self.subscriptions.release(previous, "route")
             if managed:
-                self.routes.managed(target, expected=expected)
+                routes.managed(target, expected=expected)
             else:
-                self.routes.focus(target, expected=expected)
+                routes.focus(target, expected=expected)
             if target.origin == "managed":
+                self.last_managed.pop((target.project_alias, target.cwd), None)
                 self.last_managed[(target.project_alias, target.cwd)] = target
+                if len(self.last_managed) > 100:
+                    self.last_managed.pop(next(iter(self.last_managed)))
         except BaseException:
             if previous != target:
                 await self.subscriptions.release(target, "route")
             raise
 
-    async def _change(self, command, revision, target, destination, message_id):
-        name, routes = command.name, self.routes
+    async def _change(self, command, revision, target, destination, message_id, routes):
+        name = command.name
         routes._check_revision(revision)
         if name == "sessions":
             sessions = await self._refresh(command.argument)
@@ -154,7 +270,7 @@ class Controller:
                     + (f"\n另有 {missing} 个端点未通过当前会话 ID 核验。" if missing else "")
                     + f"\n列表：{snapshot.list_id}")
         if name == "focus":
-            await self._set_focus(target, revision)
+            await self._set_focus(target, revision, routes)
             return f"执行目标：{target.project_alias}｜{target.session_id}\n目录：{target.cwd}"
         if name == "unfocus":
             previous = routes.target
@@ -194,7 +310,7 @@ class Controller:
                     matches = sorted(matches, key=lambda s: s.target != preferred)
                 if matches and (len(matches) == 1 or matches[0].target == preferred):
                     chosen = matches[0].target
-                    await self._set_focus(chosen, revision, managed=True)
+                    await self._set_focus(chosen, revision, routes, managed=True)
                     return f"执行目标：{project.alias}｜{chosen.session_id}（复用受管会话）\n目录：{cwd}"
                 if matches:
                     raise RouteError("该目录有多个受管会话，请用 /sessions 和 /focus 明确选择。")
@@ -218,7 +334,7 @@ class Controller:
             if len(matches) != 1:
                 raise SessionUnbound("Ready launch is not uniquely discoverable")
             chosen = matches[0].target
-            await self._set_focus(chosen, revision, managed=True)
+            await self._set_focus(chosen, revision, routes, managed=True)
             self.last_managed[(project.alias, cwd)] = chosen
             await self.state.supersede_reply(launch_id + "-starting")
             return f"可见会话已就绪，执行目标：{project.alias}｜{chosen.session_id}\n目录：{cwd}"

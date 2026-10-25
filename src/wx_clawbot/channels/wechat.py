@@ -152,6 +152,10 @@ class WechatApi:
             business(response)
         except ProtocolError as exc:
             raise DeliveryUnknown("Send acknowledgement is malformed; do not automatically resend") from exc
+        except BusinessError as exc:
+            if normalize_message_id(response.get("message_id")) is not None:
+                raise DeliveryUnknown("Send acknowledgement contradicts its native message identity") from exc
+            raise
         if response.get("ret") != 0 and normalize_message_id(response.get("message_id")) is None:
             raise DeliveryUnknown("Send response has no explicit success acknowledgement")
         return response
