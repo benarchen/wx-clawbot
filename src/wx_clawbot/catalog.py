@@ -61,7 +61,8 @@ class SessionCatalog:
                 unverified.append({"terminal_id": endpoint.terminal_id, "project_alias": project.alias,
                                    "reason": "identity_changed"})
                 continue
-            material = repr((endpoint.terminal_id, endpoint.process, binding.runtime_identity, binding.thread_id))
+            material = repr((endpoint.terminal_id, endpoint.process, binding.runtime_identity,
+                             binding.thread_id, binding.native_session_id))
             identity = "s-" + uuid.uuid5(uuid.NAMESPACE_URL, material).hex
             origin = "managed" if thread["id"] in self.managed_threads else "original"
             target = Target(identity, project.alias, cwd, origin)

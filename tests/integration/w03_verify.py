@@ -81,14 +81,31 @@ def config_baseline(primary, comparison):
     require(original == comparison["expected_config_sha256"], "Original configuration baselines differ")
     approved = primary.get("confirmed_config_baseline")
     require(approved == comparison.get("confirmed_config_baseline"), "Configuration approval records differ")
-    if approved is None:
-        return original
-    require(isinstance(approved, dict) and approved.get("previous_sha256") == original
-            and isinstance(approved.get("sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", approved["sha256"])
-            and isinstance(approved.get("confirmed_at"), str) and bool(approved["confirmed_at"])
-            and approved.get("reason") == "user_accepted_external_desktop_configuration_sync",
-            "Invalid explicit configuration baseline record")
-    return approved["sha256"]
+    baseline = original
+    if approved is not None:
+        require(isinstance(approved, dict) and approved.get("previous_sha256") == original
+                and isinstance(approved.get("sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", approved["sha256"])
+                and isinstance(approved.get("confirmed_at"), str) and bool(approved["confirmed_at"])
+                and approved.get("reason") == "user_accepted_external_desktop_configuration_sync",
+                "Invalid explicit configuration baseline record")
+        baseline = approved["sha256"]
+    updates = primary.get("authorized_config_updates", [])
+    require(updates == comparison.get("authorized_config_updates", [])
+            and isinstance(updates, list) and len(updates) <= 16, "Configuration update records differ")
+    for update in updates:
+        require(isinstance(update, dict), "Invalid configuration update")
+        old = update.get("old_value")
+        require(update.get("previous_sha256") == baseline and isinstance(update.get("sha256"), str)
+                and re.fullmatch(r"[0-9a-f]{64}", update["sha256"]) and update["sha256"] != baseline
+                and isinstance(update.get("confirmed_at"), str) and bool(update["confirmed_at"])
+                and update.get("reason") == "user_authorized_statusline_session_id"
+                and update.get("field") == "tui.status_line"
+                and isinstance(old, list) and len(old) == 5 and all(isinstance(value, str) for value in old)
+                and "session-id" not in old and update.get("new_value") == ["session-id", *old]
+                and all(update.get(key) is True for key in ("other_fields_equal", "insertion_only", "mode_preserved")),
+                "Invalid authorized status-line configuration delta")
+        baseline = update["sha256"]
+    return baseline
 
 
 def distinct_fifo(turns, first_client_id, first_marker, second_marker):

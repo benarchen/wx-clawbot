@@ -6,6 +6,7 @@ import re
 import shlex
 import sys
 import time
+from dataclasses import asdict
 from pathlib import Path
 
 from ..channels.private import private_directory, private_lease, read_json, write_json
@@ -14,6 +15,10 @@ from .launch import native_tui_command
 
 
 class LaunchError(ValueError):
+    pass
+
+
+class LaunchPending(LaunchError):
     pass
 
 
@@ -122,3 +127,69 @@ class ItermWindowStarter:
             raise LaunchError("No visible terminal endpoint returned")
         return {"window_id": window.window_id, "tab_id": tab.tab_id,
                 "terminal_id": tab.current_session.session_id}
+
+
+async def reconcile_launch(registry, launch_id, directory, native):
+    """Read-only host/native reconciliation followed by a proven ready record."""
+    from ..sessions import SessionBinding, verify_binding
+
+    check_launch_id(launch_id)
+    with private_lease(registry.root / (launch_id + ".lock")):
+        record = registry.load(launch_id)
+        if record["phase"] not in {"starting", "unknown", "handshaking", "ready"}:
+            raise LaunchPending("Launch has no visible host operation to reconcile")
+        boot_file = registry.root / (launch_id + ".boot.json")
+        if not boot_file.exists():
+            raise LaunchPending("Visible launcher has not acknowledged its process")
+        boot = read_json(boot_file)
+        if boot.get("launch_id") != launch_id:
+            raise LaunchError("Launcher receipt identity mismatch")
+        candidates = [endpoint for endpoint in await directory.discover()
+                      if endpoint.classification == "codex_candidate" and endpoint.process is not None
+                      and endpoint.process.pid == boot.get("pid")
+                      and list(endpoint.process.started) == boot.get("started")
+                      and endpoint.process.tty_device == boot.get("tty_device")]
+        if len(candidates) != 1:
+            raise LaunchPending("No unique live Codex process matches the launcher receipt")
+        endpoint = candidates[0]
+        if (record.get("terminal_id") not in {None, endpoint.terminal_id}
+                or Path(endpoint.process.executable).resolve() != Path(record["executable"])):
+            raise LaunchError("Visible terminal or executable identity changed")
+        visible_id = await directory.current_thread_id(endpoint)
+        if visible_id is None:
+            raise LaunchPending("Current native thread ID is not displayed by the terminal")
+        page = await native.list_project_threads(Path(record["cwd"]))
+        if page.get("nextCursor"):
+            raise LaunchError("Launch reconciliation exceeds native page bound")
+        marker = "WX-LAUNCH-" + launch_id
+        threads = [thread for thread in page["data"] if thread["id"] == visible_id
+                   and thread.get("preview", "").startswith(marker)
+                   and thread.get("status", {}).get("type") in {"idle", "active"}
+                   and thread.get("forkedFromId") is None]
+        if len(threads) != 1:
+            raise LaunchPending("Visible thread has no matching original launch handshake")
+        thread = await native.inspect(visible_id)
+        if (record.get("thread_id") not in {None, thread["id"]}
+                or record.get("native_session_id") not in {None, thread["sessionId"]}
+                or record.get("runtime_identity") is not None
+                and tuple(record["runtime_identity"]) != native.runtime_identity):
+            raise LaunchError("Previously bound runtime or thread changed")
+        binding = SessionBinding(endpoint, Path(record["cwd"]), native.runtime_identity,
+                                 thread["id"], thread["sessionId"])
+        await verify_binding(binding, directory, native)
+        turns = (await native.read_turns(thread["id"]))["data"]
+        if not turns or turns[0].get("status") != "completed":
+            raise LaunchPending("Original visible handshake has not completed")
+        user = [part.get("text", "") for item in turns[0].get("items", []) if item.get("type") == "userMessage"
+                for part in item.get("content", [])]
+        output = [item.get("text", "") for item in turns[0].get("items", []) if item.get("type") == "agentMessage"]
+        if not any(text.startswith(marker) for text in user) or not any(marker in text for text in output):
+            raise LaunchError("Native turn does not prove the launch handshake")
+        if record["phase"] != "ready" and record["title"]:
+            await native.rpc.request("thread/name/set", {"threadId": thread["id"], "name": record["title"]})
+        record.update(phase="ready", terminal_id=endpoint.terminal_id, thread_id=thread["id"],
+                      native_session_id=thread["sessionId"], runtime_identity=native.runtime_identity,
+                      process=asdict(endpoint.process), model=thread.get("model"),
+                      model_provider=thread.get("modelProvider"))
+        registry.save(record)
+        return binding

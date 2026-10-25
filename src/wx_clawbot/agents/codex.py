@@ -96,6 +96,15 @@ class CodexConnection:
             params["cursor"] = cursor
         return await self.rpc.request("thread/turns/list", params)
 
+    async def unsubscribe(self, thread_id: str) -> str:
+        if not isinstance(thread_id, str) or not thread_id:
+            raise ValueError("Exact native thread identity required")
+        result = await self.rpc.request("thread/unsubscribe", {"threadId": thread_id})
+        status = result.get("status") if isinstance(result, dict) else None
+        if status not in {"unsubscribed", "notSubscribed", "notLoaded"}:
+            raise ValueError("Native unsubscribe acknowledgement is missing")
+        return status
+
     async def submit_idle(self, thread_id: str, project: Path, text: str,
                           client_submission_id: str) -> SubmissionReceipt:
         """Submit once to a verified idle native thread; never queue or replay here."""

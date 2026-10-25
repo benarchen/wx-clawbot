@@ -9,7 +9,10 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from wx_clawbot.config import Project
-from wx_clawbot.hosts.visible import ItermWindowStarter, LaunchError, LaunchRegistry, VisibleStarter
+from wx_clawbot.hosts.visible import ItermWindowStarter, LaunchError, LaunchPending, LaunchRegistry, VisibleStarter, reconcile_launch
+from wx_clawbot.channels.private import write_json
+from wx_clawbot.hosts.discovery import TerminalEndpoint
+from wx_clawbot.hosts.process import ProcessIdentity
 from wx_clawbot.launcher import launch_argv
 
 
@@ -117,3 +120,60 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
             await starter("second command")
         self.assertEqual(create.await_count, 1)
         window.async_create_tab.assert_awaited_once_with(command="second command")
+
+    async def handshake_fixture(self):
+        callback = AsyncMock(return_value=self.endpoint)
+        await self.start(callback)
+        process = ProcessIdentity(123, (1, 2), str(self.executable), 101)
+        endpoint = TerminalEndpoint("fixture-terminal", process, "codex_candidate")
+        write_json(self.registry.root / (self.identity + ".boot.json"),
+                   {"launch_id": self.identity, "pid": 123, "started": [1, 2], "tty_device": 101})
+        directory = SimpleNamespace(discover=AsyncMock(return_value=[endpoint]), validate=AsyncMock(return_value=True),
+                                    current_thread_id=AsyncMock(return_value="fixture-thread"))
+        thread = {"id": "fixture-thread", "sessionId": "fixture-session", "cwd": str(self.project.root),
+                  "preview": "WX-LAUNCH-" + self.identity, "status": {"type": "idle"}, "model": "fixture-model"}
+        turn = {"status": "completed", "items": [
+            {"type": "userMessage", "content": [{"type": "text", "text": "WX-LAUNCH-" + self.identity + "\nbootstrap"}]},
+            {"type": "agentMessage", "text": "WX-LAUNCH-" + self.identity}]}
+        native = SimpleNamespace(runtime_identity=(1, 2), list_project_threads=AsyncMock(return_value={"data": [thread]}),
+                                 inspect=AsyncMock(return_value=thread), read_turns=AsyncMock(return_value={"data": [turn]}))
+        return directory, native, turn
+
+    async def test_ready_requires_process_footer_and_completed_native_handshake(self):
+        directory, native, _ = await self.handshake_fixture()
+        binding = await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(binding.thread_id, "fixture-thread")
+        self.assertEqual(self.registry.load(self.identity)["phase"], "ready")
+
+    async def test_visible_switch_cannot_rebind_launch_to_another_thread(self):
+        directory, native, _ = await self.handshake_fixture()
+        directory.current_thread_id.return_value = "another-desktop-thread"
+        with self.assertRaises(LaunchPending):
+            await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(self.registry.load(self.identity)["phase"], "handshaking")
+        native.inspect.assert_not_called()
+
+    async def test_in_progress_or_missing_bootstrap_reply_is_not_ready(self):
+        directory, native, turn = await self.handshake_fixture()
+        turn["status"] = "inProgress"
+        with self.assertRaises(LaunchPending):
+            await reconcile_launch(self.registry, self.identity, directory, native)
+        turn["status"] = "completed"
+        turn["items"][-1]["text"] = "unrelated output"
+        with self.assertRaises(LaunchError):
+            await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(self.registry.load(self.identity)["phase"], "handshaking")
+
+    async def test_reconcile_invalid_id_does_not_create_a_lock_outside_registry(self):
+        with self.assertRaises(LaunchError):
+            await reconcile_launch(self.registry, "../outside", object(), object())
+        self.assertFalse((self.root / "outside.lock").exists())
+
+    async def test_registered_path_replaced_with_symlink_is_not_retargeted(self):
+        record = self.registry.prepare(self.identity, self.project, self.project.root, self.executable, self.home)
+        self.project.root.rename(self.root / "original-project")
+        outside = self.root / "outside"
+        outside.mkdir()
+        self.project.root.symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(LaunchError):
+            launch_argv(record)

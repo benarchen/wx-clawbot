@@ -13,7 +13,11 @@ from .hosts.visible import LaunchError, LaunchRegistry
 
 
 def launch_argv(record):
-    project = Project(record["project_alias"], Path(record["project_root"]).resolve(strict=True))
+    for field in ("project_root", "cwd", "executable", "codex_home"):
+        path = Path(record[field])
+        if not path.is_absolute() or path.resolve(strict=True) != path:
+            raise LaunchError("Registered launch path identity changed")
+    project = Project(record["project_alias"], Path(record["project_root"]))
     cwd = resolve_directory(project, record["cwd"])
     command = native_tui_command(Path(record["executable"]), Path(record["codex_home"]), cwd,
                                  path=record["path"])

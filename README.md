@@ -39,6 +39,8 @@ python3 -m venv .venv
 
 当前绑定复验还要求 Codex 状态栏显示 Session ID，用于识别同一进程内的会话切换。未显示、被截断或与目标不匹配时拒绝派发；原型不会自动编辑 Codex 全局配置开启该项。[W05 现场证据](docs/validation/w05.md) 说明原因与验证范围。
 
+已有终端可在原会话中运行 `/statusline`，启用 Session ID 并置于首位。此原生设置会保存到 Codex 的 `tui.status_line`；无需关闭原会话。新终端读取已保存设置，已有终端需要在各自 TUI 中应用。
+
 ## 桌面普通任务排队
 
 电脑忙碌时，在另一个普通 Shell 使用 Codex 自带的排队命令，向已核验的原会话提交任务：

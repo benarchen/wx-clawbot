@@ -3,6 +3,7 @@
 import subprocess
 import sys
 import unittest
+import copy
 from pathlib import Path
 
 from integration.w03_verify import EvidenceFailure, V03_CHECKS, V04_CHECKS, config_baseline, desktop_receipt, distinct_fifo, verdict
@@ -99,6 +100,30 @@ class EvidenceTests(unittest.TestCase):
     def test_only_all_required_true_checks_pass(self):
         checks = dict.fromkeys((*V03_CHECKS, *V04_CHECKS), True)
         self.assertTrue(verdict(checks)["passed"])
+
+    def test_authorized_statusline_delta_preserves_the_original_baseline_chain(self):
+        primary = {"expected_config_sha256": "a" * 64,
+                   "confirmed_config_baseline": {"previous_sha256": "a" * 64, "sha256": "b" * 64,
+                    "confirmed_at": "2026-10-25 00:00", "reason": "user_accepted_external_desktop_configuration_sync"}}
+        update = {"previous_sha256": "b" * 64, "sha256": "c" * 64, "confirmed_at": "2026-10-25 09:00",
+                  "reason": "user_authorized_statusline_session_id", "field": "tui.status_line",
+                  "old_value": ["project-name", "model-name", "context-remaining", "five-hour-limit", "weekly-limit"],
+                  "other_fields_equal": True, "insertion_only": True, "mode_preserved": True}
+        update["new_value"] = ["session-id", *update["old_value"]]
+        primary["authorized_config_updates"] = [update]
+        comparison = copy.deepcopy(primary)
+        self.assertEqual(config_baseline(primary, comparison), "c" * 64)
+        self.assertEqual(primary["confirmed_config_baseline"]["sha256"], "b" * 64)
+        for key, value in (("previous_sha256", "a" * 64), ("field", "model"),
+                           ("other_fields_equal", False), ("new_value", list(reversed(update["new_value"]))),
+                           ("confirmed_at", ""), ("reason", "unconfirmed")):
+            invalid = copy.deepcopy(primary)
+            invalid["authorized_config_updates"][0][key] = value
+            with self.assertRaises(EvidenceFailure):
+                config_baseline(invalid, copy.deepcopy(invalid))
+        comparison["authorized_config_updates"] = []
+        with self.assertRaises(EvidenceFailure):
+            config_baseline(primary, comparison)
 
     def test_cli_rejects_contract_override_before_accessing_a_record_or_runtime(self):
         script = Path(__file__).parent / "integration" / "w03_verify.py"
