@@ -6,6 +6,8 @@
 
 微信侧提供独立二维码登录、本人绑定和指定口令文本回显，可与本人微信真实往返；该诊断入口不执行 Codex 任务。操作见[微信联调说明](docs/wechat-protocol.md)。
 
+`serve` 提供前台命令桥接入口，组合项目／会话路由、原生队列、独立观察订阅和可见启动。任务意图与回复分别记录在本项目私有运行账本；重启后的未知任务不会自动执行。原生组件的实际检查范围见 [W05 证据](docs/validation/w05.md)。
+
 ## 安装与使用
 
 使用 Python 3.14，在仓库根目录执行：
@@ -40,6 +42,21 @@ python3 -m venv .venv
 当前绑定复验还要求 Codex 状态栏显示 Session ID，用于识别同一进程内的会话切换。未显示、被截断或与目标不匹配时拒绝派发；原型不会自动编辑 Codex 全局配置开启该项。[W05 现场证据](docs/validation/w05.md) 说明原因与验证范围。
 
 已有终端可在原会话中运行 `/statusline`，启用 Session ID 并置于首位。此原生设置会保存到 Codex 的 `tui.status_line`；无需关闭原会话。新终端读取已保存设置，已有终端需要在各自 TUI 中应用。
+
+完成本人绑定后，可显式启动前台桥接：
+
+```sh
+.venv/bin/wx-clawbot serve \
+  --config /absolute/path/to/private/config.json \
+  --socket /absolute/path/to/native-control.sock \
+  --codex-executable /absolute/path/to/native/codex
+```
+
+`--codex-executable` 必须是已核验的原生可执行文件，不能使用依赖 GUI 环境中 `node` 的包装脚本。默认沿用当前用户的 Codex home；可用 `--codex-home` 明确指定同一既有运行时的目录。桥接不自动更换模型或修改全局配置。
+
+微信中发送 `/projects` 查看注册项目，`/sessions` 获取会话编号，`/focus 1` 选择后续普通消息目标，或 `/send 1 指令` 单次派发。`/cd 项目别名` 复用受管会话，没有时可见创建；`/new 标题` 在当前目录新建。`/help` 返回命令说明，`/status` 查看目标与任务。独立 `/attach`／`/detach` 语义见[命令契约](docs/command-contract-proposal.md)。
+
+前台运行使用独立 `runtime.sqlite3`，首次只从本项目旧诊断库读取游标和回复上下文，不导入诊断消息为任务，不修改旧库 schema。初始化运行账本后，指定口令 `wechat echo` 不再使用旧诊断游标；微信通道同时只允许一个本项目消费者。退出前台进程会保留原生终端和其中可能仍在执行的任务；重启不自动恢复上次输入焦点，须重新选择目标。
 
 ## 桌面普通任务排队
 

@@ -50,9 +50,9 @@ class ChannelState:
         future.add_done_callback(done)
         return await asyncio.shield(future)
 
-    def _open(self):
+    def _open_database(self):
         private_directory(self.path.parent)
-        lock_path = self.path.with_name(self.path.name + ".lock")
+        lock_path = self.path.parent / "channel-consumer.lock"
         self.lock_fd = os.open(lock_path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
         private_file(lock_path)
         try:
@@ -65,6 +65,10 @@ class ChannelState:
             os.close(fd)
         private_file(self.path)
         self.db = sqlite3.connect(self.path, timeout=1, isolation_level=None)
+        return new
+
+    def _open(self):
+        new = self._open_database()
         if new:
             self.db.executescript(f"""
                 PRAGMA application_id={self.APPLICATION_ID};

@@ -6,7 +6,7 @@ import re
 import time
 from pathlib import Path
 
-from .http import TransportError, WeixinHttp
+from .http import ProtocolError, TransportError, WeixinHttp
 from .private import load_credentials, private_directory
 from .state import ChannelState
 from .wechat import BusinessError, DeliveryUnknown, WechatApi
@@ -16,6 +16,8 @@ async def echo(root: Path, *, challenge: str, count: int = 2, timeout: float = 1
     if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", challenge) or not 1 <= count <= 10 or not 1 <= timeout <= 600:
         raise ValueError("Bounded explicit challenge, count and timeout required")
     root = private_directory(root)
+    if (root / "runtime.sqlite3").exists():
+        raise ProtocolError("Runtime channel has been initialized; diagnostic cursor cannot be reused")
     credentials = load_credentials(root / "credentials.json")
     state = await ChannelState.open(root / "state.sqlite3", credentials)
     http = WeixinHttp()

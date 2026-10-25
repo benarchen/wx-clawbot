@@ -107,6 +107,7 @@ class StateTests(unittest.IsolatedAsyncioTestCase):
             await ChannelState.open(self.path, self.account)
 
     async def test_unrelated_sqlite_database_is_not_migrated_or_cleared(self):
+        await self.state.close()
         path = self.root / "foreign.sqlite3"
         db = sqlite3.connect(path);db.execute("CREATE TABLE personal(value TEXT)");db.commit();db.close();path.chmod(0o600)
         with self.assertRaises(ProtocolError):

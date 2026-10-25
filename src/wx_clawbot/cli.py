@@ -1,4 +1,4 @@
-"""Read-only diagnostics and explicit owner-only WeChat login/text diagnostics."""
+"""Read-only diagnostics, explicit binding and an owner-only foreground bridge."""
 
 import argparse
 import asyncio
@@ -85,6 +85,13 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--iterm2", action="store_true", help="显式测试 iTerm2 API，可能触发脚本授权")
     native = commands.add_parser("native-probe", help="只读测试既有 Codex Unix WebSocket 握手")
     native.add_argument("--socket", required=True, type=Path)
+    run = commands.add_parser("serve", help="前台运行本人微信与已注册项目桥接")
+    run.add_argument("--config", required=True, type=Path)
+    run.add_argument("--socket", required=True, type=Path)
+    run.add_argument("--codex-executable", required=True, type=Path, help="已核验的原生 Codex 可执行文件")
+    run.add_argument("--codex-home", type=Path, default=Path.home() / ".codex")
+    run.add_argument("--state-dir", type=Path,
+                     default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     wechat = commands.add_parser("wechat", help="独立微信登录与本人文本联调")
     actions = wechat.add_subparsers(dest="wechat_action", required=True)
     login = actions.add_parser("login", help="生成本项目二维码并前台等待，不发送消息")
@@ -103,6 +110,23 @@ def main(argv: list[str] | None = None) -> int:
         action.add_argument("--state-dir", type=Path,
                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     args = parser.parse_args(argv)
+    if args.command == "serve":
+        from .service import serve
+
+        def emit(value):
+            print(json.dumps(value, ensure_ascii=False), flush=True)
+
+        try:
+            asyncio.run(serve(load_projects(args.config), args.state_dir, args.socket,
+                              args.codex_executable, args.codex_home, emit=emit))
+        except KeyboardInterrupt:
+            emit({"status": "stopped", "native_terminals_preserved": True})
+            return 130
+        except Exception as exc:
+            emit({"status": "failed", "error_type": type(exc).__name__,
+                  "message": "前台桥接已停止；原生任务可能仍在执行，未知任务不会自动重放。"})
+            return 1
+        return 0
     if args.command == "wechat":
         return wechat_command(args)
     if args.command == "native-probe":

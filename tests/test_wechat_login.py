@@ -2,6 +2,7 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -114,5 +115,5 @@ class LoginTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(report["status"], "delivery_unknown")
         self.assertEqual(report["sent_accepted"], 0)
         self.assertEqual(http.request.await_count, 2)  # One poll and one send, without a retry.
-        with sqlite3.connect(self.root / "state.sqlite3") as db:
+        with closing(sqlite3.connect(self.root / "state.sqlite3")) as db:
             self.assertEqual(db.execute("SELECT state FROM channel_outgoing").fetchall(), [("unknown",)])
