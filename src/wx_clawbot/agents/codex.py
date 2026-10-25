@@ -9,6 +9,8 @@ from websockets.asyncio.client import unix_connect
 from .rpc import JsonRpc
 from .base import Capabilities, SubmissionReceipt, thread_is_loaded
 
+SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0"})
+
 
 class CodexConnection:
     capabilities = Capabilities(observe=True, submit_idle=True, queue=True,
@@ -43,7 +45,7 @@ class CodexConnection:
                 raise ValueError("Unsupported native server identity")
             version_parts = user_agent.split("/", 1)[1].split()
             server_version = version_parts[0] if version_parts else ""
-            if server_version not in {"0.163.0", "0.164.0"}:
+            if server_version not in SUPPORTED_SERVER_VERSIONS:
                 raise ValueError("Native version has no verified schema baseline")
             connection.server_version = server_version
             connection.server_info = result

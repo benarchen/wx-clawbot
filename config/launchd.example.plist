@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.wx-clawbot</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/absolute/path/to/wx-clawbot/.venv/bin/python</string>
+    <string>-m</string><string>wx_clawbot</string><string>serve</string>
+    <string>--config</string><string>/absolute/path/to/private/config.json</string>
+    <string>--socket</string><string>/absolute/path/to/native-control.sock</string>
+    <string>--codex-executable</string><string>/absolute/path/to/native/codex</string>
+    <string>--codex-home</string><string>/absolute/path/to/codex-home</string>
+    <string>--state-dir</string><string>/absolute/path/to/private/wx-clawbot</string>
+  </array>
+  <key>WorkingDirectory</key><string>/absolute/path/to/wx-clawbot</string>
+  <key>RunAtLoad</key><false/>
+  <key>KeepAlive</key><false/>
+  <key>ProcessType</key><string>Interactive</string>
+  <key>StandardOutPath</key><string>/dev/null</string>
+  <key>StandardErrorPath</key><string>/dev/null</string>
+</dict>
+</plist>

@@ -48,6 +48,12 @@ python3 -m venv .venv
 完成本人绑定后，可显式启动前台桥接：
 
 ```sh
+.venv/bin/wx-clawbot serve --config /absolute/path/to/private/config.json
+```
+
+该命令通过本机 Codex CLI 只读发现既有 daemon。需要明确指定时：
+
+```sh
 .venv/bin/wx-clawbot serve \
   --config /absolute/path/to/private/config.json \
   --socket /absolute/path/to/native-control.sock \
@@ -63,6 +69,8 @@ python3 -m venv .venv
 已有旧版账本时，先用 `.venv/bin/wx-clawbot migrate-state` 只读检查升级计划；`serve` 不会自动升级已有运行数据。字段、备份、拒绝条件与显式执行方法见[账本升级说明](docs/state-schema.md)。
 
 `.venv/bin/wx-clawbot maintain-state` 默认只读查看已结记录的保留期计划；实际清理需要显式操作并停止前台，具体范围见同一账本说明。
+
+另一个普通 Shell 可运行 `.venv/bin/wx-clawbot status` 只读查看计数和待核对回执 ID，或用 `.venv/bin/wx-clawbot stop` 请求当前桥接自行退出；原生 Codex 会话继续运行。只重试回执的 `retry-reply`、分组件故障处理、私有权限及待部署模板见[前台运维说明](docs/operations.md)。
 
 会话列表同时显示编号、稳定会话 ID、原终端／受管类型和目录。启动未确认时，可用 `/sessions` 核对已经出现的原会话，不必再次新建。失败任务会保留原生错误；额度恢复后可提交新请求，原失败任务不会自动重跑。仍在原终端和原生已加载列表中的错误状态会话，经完整身份复验后可以继续使用。
 

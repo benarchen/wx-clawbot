@@ -410,31 +410,7 @@ class RuntimeState(ChannelState):
 
     async def retry_reply(self, event_id, *, confirm_unknown=False):
         """Operator-only action; never called automatically by the sender."""
-        if type(confirm_unknown) is not bool:
-            raise ValueError("Explicit unknown-delivery decision required")
-        def prepare():
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
-                row = self.db.execute("SELECT state FROM outbox WHERE id=?", (event_id,)).fetchone()
-                if row is None or row[0] not in {"rejected", "unknown"}:
-                    raise ProtocolError("Only a recorded rejected or uncertain delivery can be retried")
-                if row[0] == "unknown" and not confirm_unknown:
-                    raise ProtocolError("Unknown delivery may already be on the phone; explicit confirmation required")
-                last = self.db.execute("SELECT number FROM delivery_attempts WHERE outbox_id=? ORDER BY number DESC LIMIT 1", (event_id,)).fetchone()
-                if last is None or last[0] >= 2:
-                    raise ProtocolError("Delivery attempt bound reached or previous attempt is missing")
-                number = last[0] + 1
-                base = "wx-reply-" + uuid.uuid5(uuid.NAMESPACE_URL, self.credentials.bot_id + "\0" + event_id).hex
-                authorization = "operator_confirmed_possible_duplicate" if row[0] == "unknown" else "operator_retry_rejected"
-                self.db.execute("""INSERT INTO delivery_attempts(outbox_id,number,client_id,context,state,authorization,provenance)
-                    VALUES(?,?,?,'','prepared',?,'runtime-v2')""", (event_id, number, base + "-" + str(number), authorization))
-                self.db.execute("UPDATE outbox SET state='pending' WHERE id=?", (event_id,))
-                self.db.execute("COMMIT")
-                return number
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
-        return await self._call(prepare)
+        return await self._call(prepare_reply_retry, self.db, self.credentials, event_id, confirm_unknown)
 
     async def delivery_attempts(self, event_id):
         def read():
@@ -448,3 +424,32 @@ class RuntimeState(ChannelState):
 
     async def supersede_reply(self, event_id):
         await self._call(lambda: self.db.execute("UPDATE outbox SET state='superseded' WHERE id=? AND state='pending'", (event_id,)))
+
+
+def prepare_reply_retry(db, credentials, event_id, confirm_unknown=False):
+    """One shared transaction for foreground tests and stopped operator maintenance."""
+    if type(confirm_unknown) is not bool:
+        raise ValueError("Explicit unknown-delivery decision required")
+    def prepare():
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            row = db.execute("SELECT state FROM outbox WHERE id=?", (event_id,)).fetchone()
+            if row is None or row[0] not in {"rejected", "unknown"}:
+                raise ProtocolError("Only a recorded rejected or uncertain delivery can be retried")
+            if row[0] == "unknown" and not confirm_unknown:
+                raise ProtocolError("Unknown delivery may already be on the phone; explicit confirmation required")
+            last = db.execute("SELECT number FROM delivery_attempts WHERE outbox_id=? ORDER BY number DESC LIMIT 1", (event_id,)).fetchone()
+            if last is None or last[0] >= 2:
+                raise ProtocolError("Delivery attempt bound reached or previous attempt is missing")
+            number = last[0] + 1
+            base = "wx-reply-" + uuid.uuid5(uuid.NAMESPACE_URL, credentials.bot_id + "\0" + event_id).hex
+            authorization = "operator_confirmed_possible_duplicate" if row[0] == "unknown" else "operator_retry_rejected"
+            db.execute("""INSERT INTO delivery_attempts(outbox_id,number,client_id,context,state,authorization,provenance)
+                VALUES(?,?,?,'','prepared',?,'runtime-v2')""", (event_id, number, base + "-" + str(number), authorization))
+            db.execute("UPDATE outbox SET state='pending' WHERE id=?", (event_id,))
+            db.execute("COMMIT")
+            return number
+        except BaseException:
+            db.execute("ROLLBACK")
+            raise
+    return prepare()

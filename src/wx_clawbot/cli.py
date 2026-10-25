@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -35,7 +36,7 @@ def doctor(config: Path | None = None, *, iterm: bool = False) -> tuple[dict, bo
     if codex:
         try:
             result = subprocess.run([codex, "--version"], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0 and result.stdout.strip().startswith("codex-cli "):
+            if result.returncode == 0 and re.fullmatch(r"codex-cli [0-9]+\.[0-9]+\.[0-9]+", result.stdout.strip()):
                 version = result.stdout.strip().splitlines()[0]
         except (OSError, subprocess.TimeoutExpired):
             pass
@@ -50,14 +51,23 @@ def doctor(config: Path | None = None, *, iterm: bool = False) -> tuple[dict, bo
             dependencies[name] = None
             ok = False
     report["dependencies"] = dependencies
+    git = shutil.which("git")
+    report["git"] = "available" if git else "unavailable"
+    ok = ok and git is not None
     if codex:
         try:
             result = subprocess.run([codex, "app-server", "daemon", "version"],
                                     capture_output=True, text=True, timeout=5)
             runtime = json.loads(result.stdout) if result.returncode == 0 else {}
-            report["runtime"] = {key: runtime.get(key) for key in
-                                 ("status", "cliVersion", "appServerVersion")}
-            if runtime.get("status") != "running":
+            if not isinstance(runtime, dict):
+                raise ValueError("Invalid daemon status")
+            from .agents.codex import SUPPORTED_SERVER_VERSIONS
+            report["runtime"] = {"status": "running" if runtime.get("status") == "running" else "unavailable"}
+            for key in ("cliVersion", "appServerVersion"):
+                value = runtime.get(key)
+                report["runtime"][key] = value if isinstance(value, str) and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", value) else None
+            report["runtime"]["verified_schema"] = runtime.get("appServerVersion") in SUPPORTED_SERVER_VERSIONS if isinstance(runtime.get("appServerVersion"), str) else False
+            if runtime.get("status") != "running" or not report["runtime"]["verified_schema"]:
                 ok = False
         except (OSError, ValueError, subprocess.TimeoutExpired):
             report["runtime"] = {"status": "unavailable"}
@@ -83,6 +93,16 @@ def main(argv: list[str] | None = None) -> int:
     check = commands.add_parser("doctor", help="只读核对本机版本与项目配置")
     check.add_argument("--config", type=Path)
     check.add_argument("--iterm2", action="store_true", help="显式测试 iTerm2 API，可能触发脚本授权")
+    check.add_argument("--state-dir", type=Path, help="只读检查本项目运行目录和账本权限")
+    local_status = commands.add_parser("status", help="只读查看本项目实例、任务与回执计数，不显示正文或身份")
+    stop = commands.add_parser("stop", help="请求已核验的桥接自行退出，保留所有原生终端")
+    retry = commands.add_parser("retry-reply", help="默认只读检查单条回执；显式准备投递重试，不执行任务")
+    retry.add_argument("event_id")
+    retry.add_argument("--apply", action="store_true", help="前台停止后，显式准备所选回执的下一次投递")
+    retry.add_argument("--confirm-possible-duplicate", action="store_true", help="明确接受 unknown 回执可能已送达造成重复")
+    for action in (local_status, stop, retry):
+        action.add_argument("--state-dir", type=Path,
+                            default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     native = commands.add_parser("native-probe", help="只读测试既有 Codex Unix WebSocket 握手")
     native.add_argument("--socket", required=True, type=Path)
     migration = commands.add_parser("migrate-state", help="默认只读检查本项目账本升级计划")
@@ -95,8 +115,8 @@ def main(argv: list[str] | None = None) -> int:
     maintenance.add_argument("--apply", action="store_true", help="显式授权清理七天正文／三十天已结摘要，要求前台停止")
     run = commands.add_parser("serve", help="前台运行本人微信与已注册项目桥接")
     run.add_argument("--config", required=True, type=Path)
-    run.add_argument("--socket", required=True, type=Path)
-    run.add_argument("--codex-executable", required=True, type=Path, help="已核验的原生 Codex 可执行文件")
+    run.add_argument("--socket", type=Path, help="省略时只读发现既有 daemon，不自动启动")
+    run.add_argument("--codex-executable", type=Path, help="省略时发现既有 daemon 的原生可执行文件")
     run.add_argument("--codex-home", type=Path, default=Path.home() / ".codex")
     run.add_argument("--state-dir", type=Path,
                      default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
@@ -118,6 +138,22 @@ def main(argv: list[str] | None = None) -> int:
         action.add_argument("--state-dir", type=Path,
                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     args = parser.parse_args(argv)
+    if args.command in {"status", "stop", "retry-reply"}:
+        from .operations import status, request_stop, retry_delivery
+        try:
+            if args.command == "status":
+                report = status(args.state_dir)
+            elif args.command == "stop":
+                report = request_stop(args.state_dir)
+            else:
+                report = retry_delivery(args.state_dir, args.event_id, apply=args.apply,
+                                        confirm_unknown=args.confirm_possible_duplicate)
+        except Exception as exc:
+            print(json.dumps({"status": "failed", "component": "state", "error_type": type(exc).__name__,
+                              "message": "请核对私有目录权限、本人绑定、账本版本及前台是否已停止。"}, ensure_ascii=False))
+            return 1
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 1 if report["status"] == "no_verified_foreground" else 0
     if args.command in {"migrate-state", "maintain-state"}:
         from . import schema
         from .channels.private import load_credentials
@@ -134,15 +170,25 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     if args.command == "serve":
-        from .service import serve
+        from .service import serve, failure_report
         from .schema import UpgradeRequired
 
         def emit(value):
             print(json.dumps(value, ensure_ascii=False), flush=True)
 
         try:
-            asyncio.run(serve(load_projects(args.config), args.state_dir, args.socket,
-                              args.codex_executable, args.codex_home, emit=emit))
+            projects = load_projects(args.config)
+            if args.socket is None or args.codex_executable is None:
+                from .runtime_discovery import discover_runtime
+                try:
+                    socket, executable = discover_runtime(args.codex_home)
+                except Exception as exc:
+                    from .service import ComponentError
+                    raise ComponentError("agent_discovery", exc) from None
+            else:
+                socket, executable = args.socket, args.codex_executable
+            asyncio.run(serve(projects, args.state_dir, args.socket or socket,
+                              args.codex_executable or executable, args.codex_home, emit=emit))
         except KeyboardInterrupt:
             emit({"status": "stopped", "native_terminals_preserved": True})
             return 130
@@ -150,9 +196,10 @@ def main(argv: list[str] | None = None) -> int:
             emit({"status": "upgrade_required", "message": "请先运行 migrate-state 只读查看计划；已有账本不会自动升级。"})
             return 2
         except Exception as exc:
-            emit({"status": "failed", "error_type": type(exc).__name__,
+            emit({"status": "failed", "failures": failure_report(exc),
                   "message": "前台桥接已停止；原生任务可能仍在执行，未知任务不会自动重放。"})
             return 1
+        emit({"status": "stopped", "native_terminals_preserved": True})
         return 0
     if args.command == "wechat":
         return wechat_command(args)
@@ -175,6 +222,13 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if ok else 1
     report, ok = doctor(args.config, iterm=args.iterm2)
+    if args.state_dir is not None:
+        from .operations import status
+        try:
+            report["state"] = status(args.state_dir)
+        except Exception as exc:
+            report["state"] = {"status": "invalid", "error_type": type(exc).__name__}
+            ok = False
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if ok else 1
 
