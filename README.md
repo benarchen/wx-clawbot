@@ -12,7 +12,7 @@ Python 模块另提供目录校验、环境诊断、显式绑定复核，以及�
 
 ## 安装与使用
 
-使用 Python 3.14，在仓库根目录执行：
+使用 Python 3.14，并准备可用的 Git、iTerm2 与已登录的 Codex 原生 daemon。Git 用于核对同仓库与 worktree 的准入冲突；在仓库根目录执行：
 
 ```sh
 python3 -m venv .venv

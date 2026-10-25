@@ -79,6 +79,7 @@ class Execution:
             raise CommandError("当前 Agent 未提供已验证的原生队列能力，任务未接收。")
         if not (await self.state.admission_budget())["allowed"]:
             raise CommandError("待核对回执已达容量上限，新任务未接收；请先恢复通道并处理未知投递。")
+        await self.catalog.discover()  # Include newly opened desktop sessions before repository admission.
         session = await self.catalog.require(dispatch.target)
         record = target_record(session)
         record["repository"] = await repository_key(dispatch.target.cwd,
@@ -142,6 +143,8 @@ class Execution:
     async def drain_admission(self):
         async with self.admission_gate:
             active = await self.state.tasks(active_only=True)
+            if any(task["state"] == "received" for task in active):
+                await self.catalog.discover()
             for task in active:
                 if task["state"] != "received":
                     continue
@@ -546,8 +549,23 @@ class Execution:
             await self.state.task_finish(task["id"], "cancelled", f"原生队列已确认取消：{task['id']}。")
             await self.controller.subscriptions.release(target, "task-" + task["id"])
             return f"原生队列已确认取消：{task['id']}。"
+        task = await self.state.tasks(task_id=task["id"])
+        if task["state"] in TERMINAL:
+            return f"原生任务已结束：{task['id']}｜{task['state']}。"
         if not task["turn_id"]:
             raise CommandError("尚无运行 turn 的准确关联，停止未确认；不会中断其他任务。")
-        await queue.request_interrupt(task["turn_id"])
         await self.state.task_update(task["id"], "stopping")
+        current = await self.state.tasks(task_id=task["id"])
+        if current["state"] in TERMINAL:
+            return f"原生任务已结束：{task['id']}｜{current['state']}。"
+        try:
+            await queue.request_interrupt(task["turn_id"])
+        except Exception:
+            current = await self.state.tasks(task_id=task["id"])
+            if current["state"] in TERMINAL:
+                return f"原生任务已结束：{task['id']}｜{current['state']}。"
+            raise
+        current = await self.state.tasks(task_id=task["id"])
+        if current["state"] in TERMINAL:
+            return f"原生任务已结束：{task['id']}｜{current['state']}。"
         return f"已请求中断：{task['id']}；等待原生 interrupted 确认。"

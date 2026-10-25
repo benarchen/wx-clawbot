@@ -666,3 +666,55 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         reply = await self.state.claim_reply()
         self.assertIn(code, reply["text"])
         self.assertIn("\u2028", reply["text"])
+
+    async def test_newly_visible_desktop_session_is_discovered_before_repository_admission(self):
+        await self.select()
+        other = Target("new-desktop-terminal", "two", self.sessions[1].target.cwd, "original")
+        session = SimpleNamespace(target=other, binding=SimpleNamespace(thread_id="new-desktop-thread"))
+        async def refresh(*_):
+            self.catalog.sessions[other.session_id] = session
+            return tuple(self.catalog.sessions.values())
+        self.catalog.discover.side_effect = refresh
+        self.agent.inspect.side_effect = lambda thread: {"status": {"type": "active" if thread == "new-desktop-thread" else "idle"}}
+        await self.command("must wait for newly opened desktop")
+        self.assertEqual((await self.state.tasks())[0]["state"], "received")
+        self.queue.add.assert_not_awaited()
+
+    async def test_native_interrupt_completion_before_rpc_return_keeps_terminal_truth(self):
+        task = await self.desktop_start()
+        async def complete_before_return(turn_id):
+            self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "stopping")
+            await self.engine.complete("thread-two", {"id": turn_id, "status": "interrupted", "items": [
+                {"type": "userMessage", "clientId": "desktop-native-client"}]})
+            return {}
+        self.queue.request_interrupt.side_effect = complete_before_return
+        await self.command("/stop " + task["id"])
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "interrupted")
+        command_reply = await self.state.claim_reply()
+        self.assertIn("interrupted", command_reply["text"])
+        self.assertNotIn("操作未确认", command_reply["text"])
+
+    async def test_queue_cancel_race_uses_fresh_running_turn_instead_of_stale_queued_snapshot(self):
+        await self.select()
+        await self.command("queued then running")
+        task = (await self.state.tasks())[0]
+        async def already_running(queue_id):
+            await self.state.task_update(task["id"], "running", turn_id="newly-running-turn")
+            return False
+        self.queue.delete.side_effect = already_running
+        await self.command("/stop " + task["id"])
+        self.queue.request_interrupt.assert_awaited_once_with("newly-running-turn")
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "stopping")
+
+    async def test_lost_interrupt_ack_cannot_overwrite_already_observed_native_terminal(self):
+        task = await self.desktop_start()
+        async def complete_then_lose_ack(turn_id):
+            await self.engine.complete("thread-two", {"id": turn_id, "status": "interrupted", "items": [
+                {"type": "userMessage", "clientId": "desktop-native-client"}]})
+            raise OutcomeUnknown("interrupt receipt lost after native completion")
+        self.queue.request_interrupt.side_effect = complete_then_lose_ack
+        await self.command("/stop " + task["id"])
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "interrupted")
+        reply = await self.state.claim_reply()
+        self.assertIn("interrupted", reply["text"])
+        self.assertNotIn("操作未确认", reply["text"])

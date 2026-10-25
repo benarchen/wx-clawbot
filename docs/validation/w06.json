@@ -1,0 +1,373 @@
+{
+  "native_tasks_completed": 20,
+  "queue_limits_verified": [
+    10,
+    10
+  ],
+  "eleventh_not_submitted": true,
+  "control_samples": 1893,
+  "control_p95_ms": 5.453,
+  "control_max_ms": 12.542,
+  "control_scope": "normalized receive through inbox and control Outbox commit; excludes model, public network and send",
+  "status_samples_only": true,
+  "queued_stop_native_confirmed": true,
+  "queued_stop_local_ms": 63.952,
+  "native_fifo_and_each_client_once": true,
+  "native_event_counts": {
+    "thread/goal/cleared": 2,
+    "thread/status/changed": 44,
+    "turn/started": 22,
+    "hook/started": 70,
+    "hook/completed": 70,
+    "item/started": 51,
+    "item/completed": 51,
+    "item/agentMessage/delta": 4922,
+    "turn/moderationMetadata": 32,
+    "thread/tokenUsage/updated": 32,
+    "thread/queue/changed": 56,
+    "item/commandExecution/terminalInteraction": 2,
+    "thread/readState/changed": 22,
+    "turn/completed": 22
+  },
+  "event_queue_high_water": 31,
+  "event_queue_limit": 256,
+  "python_memory_samples": [
+    {
+      "seconds": 5.619,
+      "phase": "two_native_gates_running",
+      "python_current_bytes": 190039,
+      "python_peak_bytes": 749428,
+      "process_rss_kib": 48784
+    },
+    {
+      "seconds": 10.341,
+      "phase": "two_queues_full",
+      "python_current_bytes": 385244,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 49344
+    },
+    {
+      "seconds": 15.517,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 422511,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 49424
+    },
+    {
+      "seconds": 20.696,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 416191,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 49552
+    },
+    {
+      "seconds": 25.867,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 432514,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 49664
+    },
+    {
+      "seconds": 31.049,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 433541,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 49760
+    },
+    {
+      "seconds": 36.214,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 433597,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 49888
+    },
+    {
+      "seconds": 41.396,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 434583,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50000
+    },
+    {
+      "seconds": 46.557,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 431495,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50096
+    },
+    {
+      "seconds": 51.725,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 433706,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50224
+    },
+    {
+      "seconds": 56.907,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 432618,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50336
+    },
+    {
+      "seconds": 62.075,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 434032,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50432
+    },
+    {
+      "seconds": 67.247,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 450002,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50544
+    },
+    {
+      "seconds": 72.429,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 449541,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50640
+    },
+    {
+      "seconds": 77.583,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 450676,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50752
+    },
+    {
+      "seconds": 82.752,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 450167,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50864
+    },
+    {
+      "seconds": 87.939,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 452010,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 50976
+    },
+    {
+      "seconds": 93.104,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 451629,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 38256
+    },
+    {
+      "seconds": 98.244,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 449479,
+      "python_peak_bytes": 938891,
+      "process_rss_kib": 38320
+    },
+    {
+      "seconds": 103.4,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 834783,
+      "python_peak_bytes": 1107030,
+      "process_rss_kib": 49168
+    },
+    {
+      "seconds": 108.555,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 840618,
+      "python_peak_bytes": 1133075,
+      "process_rss_kib": 49312
+    },
+    {
+      "seconds": 113.711,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 833531,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 49440
+    },
+    {
+      "seconds": 118.87,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 694308,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 49600
+    },
+    {
+      "seconds": 124.015,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 683156,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35664
+    },
+    {
+      "seconds": 129.155,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 686607,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35760
+    },
+    {
+      "seconds": 134.295,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 693714,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35872
+    },
+    {
+      "seconds": 139.44,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 694335,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 36000
+    },
+    {
+      "seconds": 144.582,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 702464,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 36016
+    },
+    {
+      "seconds": 149.726,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 706503,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 36032
+    },
+    {
+      "seconds": 154.853,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 695151,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 34832
+    },
+    {
+      "seconds": 159.983,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 703567,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 34864
+    },
+    {
+      "seconds": 165.122,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 709861,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 34992
+    },
+    {
+      "seconds": 170.271,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 704099,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 34992
+    },
+    {
+      "seconds": 175.424,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 712958,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35072
+    },
+    {
+      "seconds": 180.566,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 718438,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35072
+    },
+    {
+      "seconds": 185.713,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 720692,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35104
+    },
+    {
+      "seconds": 190.865,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 716591,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35104
+    },
+    {
+      "seconds": 196.02,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 719402,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35152
+    },
+    {
+      "seconds": 201.169,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 729493,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35168
+    },
+    {
+      "seconds": 206.331,
+      "phase": "native_events_and_controls",
+      "python_current_bytes": 729253,
+      "python_peak_bytes": 1155468,
+      "process_rss_kib": 35184
+    },
+    {
+      "seconds": 208.75,
+      "phase": "completed_and_pruned",
+      "python_current_bytes": 571073,
+      "python_peak_bytes": 1190811,
+      "process_rss_kib": 52560
+    }
+  ],
+  "process_peak_rss_native_units": 53821440,
+  "process_peak_rss_unit": "bytes",
+  "native_long_output_characters": 12264,
+  "long_result_segments": 2,
+  "global_config_unchanged": true,
+  "bulk_wechat_sending_simulated": true,
+  "real_poll": {
+    "real_tls_socket_closed": true,
+    "transport_error_observed": true,
+    "cursor_preserved_after_failure": true,
+    "reconnected_response_accepted": true,
+    "new_owner_messages_not_executed": 0,
+    "sole_consumer_lock_held": true
+  },
+  "passed": true,
+  "environment": {
+    "python": "3.14.5",
+    "iterm2_sdk": "2.30",
+    "codex_daemon": "0.164.0",
+    "git": "2.54.0 (Apple Git-157)"
+  },
+  "actual_long_result_delivery": {
+    "segments_server_accepted": 2,
+    "owner_confirmed_order": true,
+    "native_tasks_unchanged": true
+  },
+  "actual_result_retry": {
+    "actual_http_sends": 2,
+    "explicit_result_retries": 1,
+    "native_execution_count_before": 1,
+    "native_execution_count_after": 1,
+    "native_submission_calls_from_retry": 0,
+    "owner_task_rows_unchanged": true,
+    "delivery_attempt_states": [
+      "unknown",
+      "accepted"
+    ]
+  },
+  "fresh_desktop_admission": {
+    "real_native_activity_detected_after_cache_omission": true,
+    "bridge_add_calls_while_conflicted": 0,
+    "waiting_intent_locally_cancelled": true,
+    "new_request_after_foreign_completion_completed": true
+  },
+  "external_desktop_stop": {
+    "no_fabricated_inbox": true,
+    "native_interrupted_confirmed": true,
+    "original_terminal_preserved": true
+  },
+  "unit_tests_passed": 281
+}

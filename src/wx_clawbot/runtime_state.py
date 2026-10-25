@@ -220,15 +220,18 @@ class RuntimeState(ChannelState):
             raise ValueError("Explicit nonterminal native task state required")
         def update():
             previous = self.db.execute("SELECT state FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if previous and previous[0] in {"completed", "failed", "interrupted", "cancelled"}:
+                return False
             if previous and ((state == "queued" and previous[0] in {"running", "waiting_interaction", "stopping"})
                              or (state in {"running", "waiting_interaction"} and previous[0] == "stopping")):
-                return  # A delayed queue ACK must not regress an observed native turn.
+                return False  # A delayed queue ACK must not regress an observed native turn.
             result = self.db.execute("""UPDATE tasks SET state=?,queue_id=COALESCE(?,queue_id),
                 turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=? AND state NOT IN ('completed','failed','interrupted','cancelled')""",
                                      (state, queue_id, turn_id, time.time(), task_id))
             if result.rowcount != 1:
                 raise ProtocolError("Task is missing or already terminal")
-        await self._call(update)
+            return True
+        return await self._call(update)
 
     async def external_task(self, target, turn_id, *, native_client_id=None):
         if not isinstance(target, dict) or not target.get("thread_id") or not isinstance(turn_id, str) or not turn_id:
@@ -298,7 +301,7 @@ class RuntimeState(ChannelState):
             task = self.db.execute("SELECT state FROM tasks WHERE id=?", (task_id,)).fetchone()
             if task is None or task[0] in {"completed", "failed", "interrupted", "cancelled"}:
                 return False
-            if kind == "accepted" and task[0] in {"running", "stopping"}:
+            if task[0] == "stopping" or kind == "accepted" and task[0] in {"running", "waiting_interaction"}:
                 return False
             if kind == "progress":
                 self.db.execute("UPDATE outbox SET state='superseded' WHERE task_id=? AND state='pending' AND kind IN ('accepted','progress')", (task_id,))
