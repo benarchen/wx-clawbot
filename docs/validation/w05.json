@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-10-25T16:53:52+0800",
+  "scope": "W05 temporary projects and confirmed owner WeChat; real project acceptance remains W08",
+  "native_server_version": "0.164.0",
+  "offline_tests_passed": 198,
+  "checks": {
+    "current_original_and_managed_bindings_revalidated": true,
+    "P02_fixture_project_switch_and_context": true,
+    "P03_phone_boundary_and_filesystem_unit_cases": true,
+    "P04_original_session_discovery_and_single_send": true,
+    "P05_focus_unfocus_and_list_reset": true,
+    "P06_phone_visible_launch_and_desktop_continuation": true,
+    "V05_visible_launch_special_path_and_idempotency": true,
+    "controlled_lost_launch_receipt_reconciled": true,
+    "independent_observer_and_detach": true,
+    "explicit_updated_rule_read": true,
+    "global_config_matches_authorized_baseline": true
+  },
+  "deferred_to_later_goals": [
+    "full_crash_and_delivery_recovery",
+    "performance_measurement",
+    "real_guixu_and_wx_clawbot_read_only_acceptance",
+    "natural_reply_context_expiry"
+  ],
+  "limitations": [
+    "client displays stored line breaks as a single paragraph; exact rendering layer unresolved",
+    "preexisting native hook exit code 7 remains unchanged"
+  ]
+}
