@@ -18,6 +18,7 @@ from wx_clawbot.hosts.visible import LaunchPending, LaunchRegistry
 from wx_clawbot.interactions import APPROVAL, QUESTION
 from wx_clawbot.routing import RouteError, Target
 from wx_clawbot.runtime_state import RuntimeState
+from wx_clawbot.sessions import SessionUnbound
 from test_wechat_state import message
 
 
@@ -225,6 +226,33 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(record.state, "resolved")
         self.assertEqual((await self.state.delivery_counts())["superseded"], 1)
         self.assertEqual(self.controller.routes.target, self.sessions[1].target)
+
+    async def test_modal_hidden_footer_preserves_subscribed_events_but_refuses_new_dispatch(self):
+        await self.select()
+        await self.command("/attach 1")
+        self.catalog.require.reset_mock()
+        self.catalog.require.side_effect = SessionUnbound("footer hidden by native modal")
+        await self.engine.event({"method": "turn/started", "params": {
+            "threadId": "thread-one", "turn": {"id": "modal-turn"}}})
+        await self.engine.event({"method": "item/started", "params": {
+            "threadId": "thread-one", "turnId": "modal-turn",
+            "item": {"type": "userMessage", "clientId": "desktop-client"}}})
+        for method, params in ((APPROVAL, {"command": "fixture command"}),
+                               (QUESTION, {"questions": [{"id": "q", "options": [{"label": "one"}]}]})):
+            await self.engine.event({"id": method, "method": method, "params": {
+                "threadId": "thread-one", "turnId": "modal-turn", "itemId": method, **params}})
+        self.catalog.require.assert_not_awaited()
+        records = list(self.engine.brokers["thread-one"].records.values())
+        self.assertEqual(len(records), 2)
+        self.assertTrue(all(r.state == "pending" for r in records))
+        await self.command("/approve " + records[0].public_id)
+        self.agent.rpc.respond.assert_awaited_once_with(APPROVAL, {"decision": "accept"})
+        await self.engine.event({"method": "serverRequest/resolved", "params": {
+            "threadId": "thread-one", "requestId": APPROVAL}})
+        self.assertEqual(records[0].state, "resolved")
+        await self.command("new task must not pass a hidden footer")
+        self.queue.add.assert_not_awaited()
+        self.assertEqual(len(await self.state.tasks()), 1)  # Only the observed native task.
 
     async def test_detach_preserves_pending_interaction_until_native_resolution(self):
         broker, record = await self.approval()

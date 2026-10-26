@@ -271,11 +271,11 @@ class Execution:
         session = self.catalog.sessions.get(target.session_id) if target else None
         return target if session and session.binding.thread_id == thread_id else None
 
-    async def adopt_external(self, target, turn_id, user):
-        session = await self.catalog.require(target)
+    async def adopt_external(self, target, thread_id, turn_id, user):
+        session = self.controller.subscriptions.event_session(target, thread_id)
         task = await self.state.external_task(target_record(session), turn_id,
                                               native_client_id=user.get("clientId"))
-        await self.controller.subscriptions.acquire(target, "task-" + task["id"])
+        await self.controller.subscriptions.retain_event(target, thread_id, "task-" + task["id"])
         self.turn_tasks[(session.binding.thread_id, turn_id)] = task["id"]
         return task
 
@@ -289,7 +289,7 @@ class Execution:
                 return
             users = [i for i in turn["items"] if i.get("type") == "userMessage"]
             if len(users) == 1 and await self.map_turn(thread_id, turn) is None:
-                await self.adopt_external(target, turn["id"], users[0])
+                await self.adopt_external(target, thread_id, turn["id"], users[0])
             return  # Only the latest currently running turn, never historic adoption.
 
     async def complete(self, thread_id, turn):
@@ -338,7 +338,7 @@ class Execution:
         elif method == "item/started" and params.get("item", {}).get("type") == "userMessage":
             task = await self.map_turn(thread_id, {"id": turn_id, "items": [params["item"]]})
             if task is None and (target := self.controlled_target(thread_id)):
-                task = await self.adopt_external(target, turn_id, params["item"])
+                task = await self.adopt_external(target, thread_id, turn_id, params["item"])
                 if self.observed(thread_id):
                     await self.state.queue_reply("observe-start-" + hashlib.sha256((thread_id + turn_id).encode()).hexdigest(),
                         f"观察：{target.project_alias} 的桌面任务已开始。", priority=3)
@@ -382,13 +382,12 @@ class Execution:
                                             generation=self.generation, persist=self.persist_interaction))
             record = broker.register(event)
             if record.public_id not in self.interaction_targets:
-                session = await self.catalog.require(target)
+                session = await self.controller.subscriptions.retain_event(target, thread_id, "interaction-" + record.public_id)
                 self.interaction_targets[record.public_id] = (target_record(session), time.time() + broker.ttl)
                 self.interaction_sizes[record.public_id] = size
             await broker.sync(record)
             if record.state != "pending":
                 return
-            await self.controller.subscriptions.acquire(target, "interaction-" + record.public_id)
             task = await self.state.tasks(native_turn=(thread_id, turn_id))
             if task and task["state"] not in TERMINAL:
                 await self.state.task_update(task["id"], "waiting_interaction")

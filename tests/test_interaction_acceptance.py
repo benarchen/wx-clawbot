@@ -137,6 +137,31 @@ class InteractionAcceptanceTests(RuntimeFixture):
         self.assertEqual([c.args[0] for c in native.rpc.request.await_args_list], ["thread/turns/list"])
         self.assertNotIn("restoration_intent", read_json(args.report_dir / "case.json"))
 
+    async def test_finished_native_turn_without_a_question_stops_without_resubmitting(self):
+        original, args = await self.restoration_case()
+        args.action = "start"
+        case = read_json(args.report_dir / "case.json")
+        case.update(phase="prepared", case="question-phone-first", target=str(self.root/"unused-question.txt"))
+        write_json(args.report_dir / "case.json", case, replace=True)
+        await self.state.save_routes({"observer": {"thread_id": "fixture-thread"}})
+        before = {"id":"fixture-thread", "model":"fixture-model", "status":{"type":"idle"}}
+        resumed = {"thread":before, "approvalPolicy":original["approvalPolicy"],
+            "approvalsReviewer":original["approvalsReviewer"], "sandbox":original["sandboxPolicy"],
+            "collaborationMode":original["collaborationMode"]}
+        native = SimpleNamespace(close=AsyncMock(), inspect=AsyncMock(return_value=before),
+            rpc=SimpleNamespace(request=AsyncMock(side_effect=[resumed, {"turn":{"id":"new-turn"}}]),
+                next_event=AsyncMock(side_effect=[
+                    {"method":"turn/completed", "params":{"threadId":"other-thread", "turn":{"id":"new-turn"}}},
+                    {"method":"turn/completed", "params":{"threadId":"fixture-thread", "turn":{"id":"new-turn", "status":"completed"}}} ])))
+        binding = SimpleNamespace(thread_id="fixture-thread", project=self.root)
+        with patch.object(acceptance, "connect", AsyncMock(return_value=(native, object(), object(), binding))), patch.object(acceptance, "close_connection", AsyncMock()), patch.object(acceptance, "live_instance", return_value=object()), patch.object(acceptance, "NativeQueue", return_value=SimpleNamespace(list=AsyncMock(return_value=[]))):
+            with self.assertRaisesRegex(ValueError, "ended without"):
+                await acceptance.act(args)
+        saved = read_json(args.report_dir / "case.json")
+        self.assertEqual(saved["phase"], "native_terminal_without_interaction")
+        self.assertEqual(saved["turn_id"], "new-turn")
+        self.assertEqual([call.args[0] for call in native.rpc.request.await_args_list], ["thread/resume", "turn/start"])
+
     async def test_uncertain_desktop_input_cannot_be_repeated(self):
         _, args = await self.restoration_case()
         args.action = "desktop-accept"
@@ -151,3 +176,19 @@ class InteractionAcceptanceTests(RuntimeFixture):
                 await acceptance.act(args)
         terminal.async_send_text.assert_not_awaited()
         native.rpc.request.assert_not_awaited()
+
+    async def test_sdk_blank_cells_do_not_hide_an_attested_approval_menu(self):
+        import time
+        _, args = await self.restoration_case()
+        args.action = "desktop-accept"
+        now = time.time()
+        await self.state._call(lambda: self.state.db.execute("INSERT INTO interactions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            ("fixture-request", "int:1", "fixture-generation", "fixture-thread", "fixture-turn",
+             "item/commandExecution/requestApproval", "{}", "{}", now+600, "pending", now, now)))
+        line = SimpleNamespace(string="Would\0you\0like\0to\0run\0the\0following\0command?")
+        screen = SimpleNamespace(number_of_lines=1, line=lambda _: line)
+        terminal = SimpleNamespace(async_get_screen_contents=AsyncMock(return_value=screen), async_send_text=AsyncMock())
+        native = SimpleNamespace(close=AsyncMock())
+        with patch.object(acceptance, "connect", AsyncMock(return_value=(native, object(), terminal, object()))), patch.object(acceptance, "close_connection", AsyncMock()):
+            await acceptance.act(args)
+        terminal.async_send_text.assert_awaited_once_with("\r", suppress_broadcast=True)

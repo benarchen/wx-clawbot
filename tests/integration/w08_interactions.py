@@ -167,7 +167,7 @@ async def act(args):
                 case["expected_command"] = command
             else:
                 question = ("同一个 request_user_input 请求包含两题：id=choice，选项 PHONE_ALPHA 与 PHONE_BETA；"
-                            "id=note，无预设答案，允许自由文本。" if case["case"] == "question-phone-first" else
+                            "id=note，选项 NOTE_BASE 与 NOTE_EXTRA，isOther=true，允许选择其他并自由填写。" if case["case"] == "question-phone-first" else
                             "仅一个问题 id=choice，选项 DESK_ALPHA 与 DESK_BETA。")
                 prompt = ("W08 专用两端追问验收。不读写文件，不调用其他工具。立即用 " + question
                           + " 收到答案后只复述实际答案，不自行回答或重复提问。")
@@ -184,6 +184,12 @@ async def act(args):
             async with asyncio.timeout(300):
                 while True:
                     event = await native.rpc.next_event(timeout=120)
+                    if (event.get("method") == "turn/completed"
+                            and event.get("params", {}).get("threadId") == binding.thread_id
+                            and event.get("params", {}).get("turn", {}).get("id") == case["turn_id"]):
+                        case.update(phase="native_terminal_without_interaction", terminal_event=event)
+                        write_json(path, case, replace=True)
+                        raise ValueError("Native turn ended without the required interaction; inspect without resubmitting")
                     if "id" in event and event.get("params", {}).get("turnId") == case["turn_id"]:
                         break
             case.update(phase="native_request_observed", request=event)
@@ -217,7 +223,7 @@ async def act(args):
             if row != ("pending",):
                 raise ValueError("Interaction is already handled; desktop input refused")
             screen = await terminal.async_get_screen_contents()
-            text = "\n".join(screen.line(i).string for i in range(screen.number_of_lines))
+            text = "\n".join(screen.line(i).string for i in range(screen.number_of_lines)).replace("\0", " ")
             if case["case"].startswith("approval-"):
                 if "Would you like to run the following command?" not in text:
                     raise ValueError("Exact native desktop approval is not visible")

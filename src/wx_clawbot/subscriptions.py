@@ -49,5 +49,26 @@ class Subscriptions:
             del self.bound[target.session_id]
             return True
 
+    def event_session(self, target, thread_id: str):
+        session = self.bound.get(target.session_id)
+        if (not self.roles.get(target.session_id) or session is None or session.target != target
+                or session.binding.thread_id != thread_id):
+            raise SubscriptionUnavailable("Native event has no matching verified subscription")
+        return session
+
+    async def retain_event(self, target, thread_id: str, role: str):
+        """Pin an exact request from an existing stream, without admitting new work.
+
+        Native approval/question modals can hide the TUI identity footer. Only
+        an already verified subscription may supply this passive event binding;
+        acquire() remains the full freshness gate for routing and execution.
+        """
+        if not isinstance(role, str) or not role.startswith(("interaction-r-", "task-")) or len(role) > 128:
+            raise ValueError("Explicit native event retention role required")
+        async with self.lock:
+            session = self.event_session(target, thread_id)
+            self.roles[target.session_id].add(role)
+            return session
+
     def has(self, target, role: str):
         return role in self.roles.get(target.session_id, ())

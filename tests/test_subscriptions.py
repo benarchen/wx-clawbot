@@ -74,3 +74,23 @@ class SubscriptionTests(unittest.IsolatedAsyncioTestCase):
             connection.rpc.request.return_value = response
             with self.assertRaises(ValueError):
                 await connection.unsubscribe("fixture-thread")
+
+    async def test_passive_event_requires_existing_exact_binding_and_cannot_grant_a_route(self):
+        role = "interaction-r-" + "a" * 32
+        with self.assertRaises(SubscriptionUnavailable):
+            await self.pool.retain_event(self.target, "fixture-thread", role)
+        await self.pool.acquire(self.target, "observer")
+        self.catalog.require.reset_mock()
+        self.catalog.require.side_effect = ValueError("modal hides footer")
+        await self.pool.retain_event(self.target, "fixture-thread", role)
+        self.catalog.require.assert_not_awaited()
+        with self.assertRaises(SubscriptionUnavailable):
+            await self.pool.retain_event(self.target, "different-thread", role)
+        with self.assertRaises(ValueError):
+            await self.pool.retain_event(self.target, "fixture-thread", "route")
+        with self.assertRaises(ValueError):
+            await self.pool.acquire(self.target, "task-new-dispatch")
+        await self.pool.release(self.target, "observer")
+        self.agent.unsubscribe.assert_not_awaited()
+        await self.pool.release(self.target, role)
+        self.agent.unsubscribe.assert_awaited_once_with("fixture-thread")
