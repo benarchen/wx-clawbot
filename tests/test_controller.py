@@ -658,6 +658,30 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.state.delivery_counts())["pending"], before["pending"] + 1)
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "completed")
 
+    async def test_modal_catalog_refresh_cannot_erase_live_observation_or_interaction(self):
+        task = await self.desktop_start(observe=True)
+        self.catalog.sessions = {}  # A new input refresh cannot discover a hidden footer.
+        self.catalog.require.side_effect = SessionUnbound("current footer hidden")
+        await self.command("PHONE_ALPHA")
+        self.queue.add.assert_not_awaited()
+        await self.engine.event({"id":"desktop-question", "method":QUESTION, "params": {
+            "threadId":"thread-two", "turnId":"desktop-turn", "itemId":"question-item",
+            "questions":[{"id":"choice", "options":[{"label":"PHONE_BETA"}]}]}})
+        record = next(iter(self.engine.brokers["thread-two"].records.values()))
+        await self.command("/answer " + record.public_id + " PHONE_BETA")
+        self.agent.rpc.respond.assert_awaited_once_with("desktop-question", {"answers":{"choice":{"answers":["PHONE_BETA"]}}})
+        await self.engine.event({"method":"serverRequest/resolved", "params": {
+            "threadId":"thread-two", "requestId":"desktop-question"}})
+        turn = {"id":"desktop-turn", "status":"completed", "items":[
+            {"type":"userMessage", "clientId":"desktop-native-client"},
+            {"type":"agentMessage", "text":"PHONE_BETA"}]}
+        counts = await self.state.delivery_counts()
+        await self.engine.complete("thread-two", turn)
+        self.assertEqual((await self.state.delivery_counts())["pending"], counts["pending"]+1)
+        await self.engine.complete("thread-two", turn)
+        self.assertEqual((await self.state.delivery_counts())["pending"], counts["pending"]+1)
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "completed")
+
     async def test_focus_adopts_already_running_native_turn_without_submitting_or_replaying_history(self):
         await self.command("/sessions")
         self.agent.inspect.return_value = {"status": {"type": "active"}}

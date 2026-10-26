@@ -268,7 +268,7 @@ class Execution:
         if observer:
             return observer
         target = self.controller.routes.target
-        session = self.catalog.sessions.get(target.session_id) if target else None
+        session = self.controller.subscriptions.bound.get(target.session_id) if target else None
         return target if session and session.binding.thread_id == thread_id else None
 
     async def adopt_external(self, target, thread_id, turn_id, user):
@@ -306,7 +306,7 @@ class Execution:
             await self.controller.subscriptions.release(restore_target(task["target"]), "task-" + task["id"])
         if (task is None or task["target"].get("source") == "external") and (thread_id, turn["id"]) in self.observed_turns:
             observer = self.controller.routes.observer
-            session = self.catalog.sessions.get(observer.session_id) if observer else None
+            session = self.controller.subscriptions.bound.get(observer.session_id) if observer else None
             if session and session.binding.thread_id == thread_id:
                 key = hashlib.sha256((thread_id + turn["id"]).encode()).hexdigest()
                 text = f"观察：{observer.project_alias}｜{status}\n" + (output or "原生任务已结束，没有文本结果。")
@@ -321,7 +321,7 @@ class Execution:
 
     def observed(self, thread_id):
         target = self.controller.routes.observer
-        session = self.catalog.sessions.get(target.session_id) if target else None
+        session = self.controller.subscriptions.bound.get(target.session_id) if target else None
         return target if session and session.binding.thread_id == thread_id else None
 
     async def event(self, event):
