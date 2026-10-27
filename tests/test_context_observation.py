@@ -39,6 +39,9 @@ class ContextObservationTests(RuntimeFixture):
         self.assertEqual(record["phase"], "no_rejection_observed_within_schedule")
         self.assertEqual(self.api.send_text.await_count, 3)
         self.assertEqual(len({a["client_id"] for a in record["attempts"]}), 3)
+        self.assertEqual([a["planned_age_hours"] for a in record["attempts"]], [24, 36, 48])
+        self.assertTrue(all(49 <= a["observation_age_hours"] < 49.1 for a in record["attempts"]))
+        self.assertTrue(all("实际源上下文年龄：49." in call.kwargs["text"] for call in self.api.send_text.await_args_list))
         with self.assertRaises(ValueError):
             await self.invoke()
         self.assertEqual(self.api.send_text.await_count, 3)
@@ -81,7 +84,44 @@ class ContextObservationTests(RuntimeFixture):
         write_json(self.report_dir / "case.json", self.record, replace=True)
         result = await self.invoke()
         self.assertEqual(self.api.send_text.await_count, 2)
-        self.assertEqual([r["observation_age_hours"] for r in result["attempts"]], [24, 36, 48])
+        self.assertEqual(result["attempts"][0]["observation_age_hours"], 24)  # Keep historical records intact.
+        self.assertEqual([r["planned_age_hours"] for r in result["attempts"][1:]], [36, 48])
+        self.assertTrue(all(49 <= r["observation_age_hours"] < 49.1 for r in result["attempts"][1:]))
+
+    async def test_fresh_recovery_measures_the_new_source_context_not_the_old_one(self):
+        now = time.time()
+        self.record.update(phase="old_context_rejected", rejected_at=now-120,
+                           attempts=[{"state":"rejected", "source":"old"}])
+        write_json(self.report_dir / "case.json", self.record, replace=True)
+        await self.state._call(lambda: self.state.db.execute("INSERT INTO reply_context VALUES(1,?,?,?)",
+            ("fresh-owner-context", int((now-60)*1000), 1)))
+        self.args.action = "recover"
+        result = await self.invoke()
+        attempt = result["attempts"][-1]
+        self.assertEqual(attempt["source"], "fresh")
+        self.assertIsNone(attempt["planned_age_hours"])
+        self.assertTrue(0.016 <= attempt["observation_age_hours"] < 0.02)
+        self.assertIn("实际源上下文年龄：0.0", self.api.send_text.call_args.kwargs["text"])
+
+    async def test_operator_hold_prevents_late_scheduled_sends(self):
+        self.record["phase"] = "held_pending_owner_account_check"
+        write_json(self.report_dir / "case.json", self.record, replace=True)
+        with self.assertRaises(ValueError):
+            await self.invoke()
+        self.api.send_text.assert_not_awaited()
+
+    async def test_operator_hold_during_wait_stops_before_the_wire(self):
+        self.record["created_ms"] = int(time.time()*1000)
+        write_json(self.report_dir / "case.json", self.record, replace=True)
+        self.args.wait = True
+        async def freeze(_):
+            record = read_json(self.report_dir / "case.json")
+            record["phase"] = "held_pending_owner_account_check"
+            write_json(self.report_dir / "case.json", record, replace=True)
+        with patch.object(observation.asyncio, "sleep", side_effect=freeze):
+            with self.assertRaisesRegex(ValueError, "superseded"):
+                await self.invoke()
+        self.api.send_text.assert_not_awaited()
 
     async def test_future_schedule_does_not_send_or_claim_an_expiry(self):
         self.record["created_ms"] = int(time.time()*1000)

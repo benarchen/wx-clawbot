@@ -264,6 +264,10 @@ class Controller:
         routes._check_revision(revision)
         if name == "sessions":
             sessions = await self._refresh(command.argument)
+            if self.engine:
+                # Startup can skip unknown tasks whose modal hides the footer.
+                # Explicitly revalidated endpoints permit read-only reconciliation.
+                await self.engine.reconcile()
             previous = routes.target
             if previous:
                 await self.subscriptions.release(previous, "route")

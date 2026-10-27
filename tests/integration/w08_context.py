@@ -83,6 +83,7 @@ async def observe(args):
                     if read_json(path)["phase"] != "prepared":
                         raise ValueError("Observation was superseded; do not send")
                 context = record["old_context"]
+                context_created_ms = record["created_ms"]
                 label = "WX-W08-CONTEXT-OLD-" + record["case_id"] + "-" + str(age_hours)
             else:
                 ledger = args.state_dir / "runtime.sqlite3"
@@ -93,20 +94,24 @@ async def observe(args):
                 if not row or row[1] / 1000 <= record["rejected_at"] or row[0] == record["old_context"]:
                     raise ValueError("A distinct, newly received owner context after rejection is required")
                 context = row[0]
+                context_created_ms = row[1]
                 label = "WX-W08-CONTEXT-FRESH-" + record["case_id"]
             if load_credentials(args.state_dir / "credentials.json") != credentials:
                 record["phase"] = "binding_changed_observation_stopped"
                 write_json(path, record, replace=True)
                 print(json.dumps({"status": record["phase"], "native_submission_calls": 0}), flush=True)
                 return
-            attempt = {"label": label, "intent_at": time.time(), "source": "old" if index is not None else "fresh",
-                       "observation_age_hours": age_hours if index is not None else None,
+            intent_at = time.time()
+            observed_age_hours = (intent_at * 1000 - context_created_ms) / 3600000
+            attempt = {"label": label, "intent_at": intent_at, "source": "old" if index is not None else "fresh",
+                       "planned_age_hours": age_hours if index is not None else None,
+                       "observation_age_hours": observed_age_hours,
                        "client_id": "w08-context-" + uuid.uuid4().hex, "state": "sending"}
             record["attempts"].append(attempt)
             record["phase"] = "send_intent"
             write_json(path, record, replace=True)
             try:
-                response = await api.send_text(credentials, peer=credentials.owner_id, text=label + "\u2028本人授权的上下文自然时效观察，仅发送本条，不执行任务。",
+                response = await api.send_text(credentials, peer=credentials.owner_id, text=label + f"\u2028实际源上下文年龄：{observed_age_hours:.3f} 小时。\u2028本人授权的上下文自然时效观察，仅发送本条，不执行任务。",
                                                context_token=context, client_id=attempt["client_id"])
             except SessionExpired as exc:
                 attempt.update(state="rejected", error_code=exc.code)
@@ -130,7 +135,8 @@ async def observe(args):
             attempt["finished_at"] = time.time()
             write_json(path, record, replace=True)
             print(json.dumps({"status": record["phase"], "source": attempt["source"], "send_state": attempt["state"],
-                              "context_age_hours": round((time.time()*1000-record["created_ms"])/3600000, 3),
+                              "planned_age_hours": attempt["planned_age_hours"],
+                              "context_age_hours": round(attempt["observation_age_hours"], 3),
                               "native_submission_calls": 0}), flush=True)
             if record["phase"] != "prepared":
                 return

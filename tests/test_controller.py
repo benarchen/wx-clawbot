@@ -508,6 +508,36 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((recovered["state"], recovered["queue_id"]), ("queued", "recovered-queue"))
         self.assertEqual(self.queue.add.await_count, 1)
 
+    async def test_explicit_refresh_reconciles_previously_unbound_external_terminal_state_without_replay(self):
+        task = await self.desktop_start(observe=True)
+        await self.state.task_update(task["id"], "unknown")
+        self.engine.observed_turns.clear()  # No recovered observation history is replayed.
+        self.engine.turn_tasks.clear()
+        require = self.catalog.require.side_effect
+        self.catalog.require.side_effect = SessionUnbound("modal hid the original footer at startup")
+        await self.engine.reconcile()
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
+        self.catalog.require.side_effect = require
+        self.agent.rpc.request.return_value = {"data":[{"id":"desktop-turn", "status":"interrupted", "items":[
+            {"type":"userMessage", "clientId":"desktop-native-client"}]}], "nextCursor":None}
+        await self.command("/sessions")
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "interrupted")
+        self.queue.add.assert_not_awaited()
+        self.agent.rpc.respond.assert_not_awaited()
+        self.assertTrue(all(call.args[0]=="thread/turns/list" for call in self.agent.rpc.request.await_args_list))
+        self.assertIsNone(self.controller.routes.target)
+        self.assertEqual(self.controller.routes.observer,self.sessions[1].target)
+
+    async def test_explicit_refresh_preserves_unknown_when_binding_is_still_unverified(self):
+        task = await self.desktop_start()
+        await self.state.task_update(task["id"], "unknown")
+        self.catalog.require.side_effect = SessionUnbound("still no current identity")
+        self.agent.rpc.request.reset_mock()
+        await self.command("/sessions")
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
+        self.agent.rpc.request.assert_not_awaited()
+        self.queue.add.assert_not_awaited()
+
     async def test_unsupported_agent_refuses_before_durable_task_admission(self):
         await self.select()
         self.agent.capabilities = Capabilities(observe=True)
