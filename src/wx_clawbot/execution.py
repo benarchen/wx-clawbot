@@ -298,18 +298,18 @@ class Execution:
         if status not in {"completed", "failed", "interrupted"}:
             return
         output = native_output(turn)
+        task_result = task and (task["target"].get("source") != "external" or task["state"] == "stopping")
         if task:
-            external = task["target"].get("source") == "external"
-            text = f"{task['target']['project_alias']}｜{task['id']}｜{status}\n" + (output or "原生任务已结束，没有文本结果。")
+            text = f"{task['target']['project_alias']}｜{task['id']}｜{status}\n" + output
             await self.state.task_finish(task["id"], status, text, turn_id=turn["id"],
-                                         deliver=not external or task["state"] == "stopping")
+                                         deliver=bool(task_result))
             await self.controller.subscriptions.release(restore_target(task["target"]), "task-" + task["id"])
-        if (task is None or task["target"].get("source") == "external") and (thread_id, turn["id"]) in self.observed_turns:
+        if not task_result and (thread_id, turn["id"]) in self.observed_turns:
             observer = self.controller.routes.observer
             session = self.controller.subscriptions.bound.get(observer.session_id) if observer else None
             if session and session.binding.thread_id == thread_id:
                 key = hashlib.sha256((thread_id + turn["id"]).encode()).hexdigest()
-                text = f"观察：{observer.project_alias}｜{status}\n" + (output or "原生任务已结束，没有文本结果。")
+                text = f"观察：{observer.project_alias}｜{status}\n" + output
                 # Observation output uses the same bounded transport segmentation.
                 chunks = display_segments(text)
                 for index, chunk in enumerate(chunks, 1):
@@ -534,8 +534,9 @@ class Execution:
             return f"任务已结束：{task['id']}｜{task['state']}。"
         if task["state"] == "received":
             if await self.state.task_finish(task["id"], "cancelled",
-                    f"已撤销尚未提交的准入等待：{task['id']}。", only_if={"received"}):
-                return f"已撤销尚未提交的准入等待：{task['id']}；没有发送原生任务。"
+                    f"已撤销尚未提交的准入等待：{task['id']}；没有发送原生任务。",
+                    only_if={"received"}, reply_priority=0):
+                return None
             task = await self.state.tasks(task_id=task["id"])
             if task["state"] in TERMINAL:
                 return f"任务已结束：{task['id']}｜{task['state']}。"
@@ -545,9 +546,9 @@ class Execution:
         await self.catalog.require(target)
         queue = self.queue(task["thread_id"], target.cwd)
         if task["queue_id"] and await queue.delete(task["queue_id"]):
-            await self.state.task_finish(task["id"], "cancelled", f"原生队列已确认取消：{task['id']}。")
+            await self.state.task_finish(task["id"], "cancelled", f"原生队列已确认取消：{task['id']}。", reply_priority=0)
             await self.controller.subscriptions.release(target, "task-" + task["id"])
-            return f"原生队列已确认取消：{task['id']}。"
+            return None
         task = await self.state.tasks(task_id=task["id"])
         if task["state"] in TERMINAL:
             return f"原生任务已结束：{task['id']}｜{task['state']}。"

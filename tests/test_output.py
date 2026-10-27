@@ -4,6 +4,20 @@ from wx_clawbot.output import RESULT_LIMIT, bounded, display_text, display_segme
 
 
 class OutputTests(unittest.TestCase):
+    def test_terminal_output_excludes_commentary_but_keeps_final_and_legacy_text(self):
+        turn = {"status": "completed", "items": [
+            {"type": "agentMessage", "phase": "commentary", "text": "still running"},
+            {"type": "agentMessage", "phase": "final_answer", "text": "final result"},
+            {"type": "agentMessage", "text": "legacy result"}]}
+        self.assertEqual(native_output(turn), "final result\nlegacy result")
+
+    def test_interrupted_commentary_is_not_a_final_result_and_failure_error_survives(self):
+        turn = {"status": "interrupted", "items": [
+            {"type": "agentMessage", "phase": "commentary", "text": "still running"}]}
+        self.assertEqual(native_output(turn), "原生任务已结束，没有最终文本结果。")
+        failed = native_output({**turn, "status": "failed", "error": {"message": "EXACT_ERROR"}})
+        self.assertEqual(failed, "原生错误：EXACT_ERROR")
+
     def test_segments_preserve_exact_text_prefer_lines_and_remain_bounded(self):
         text = ("first line\n" * 900) + "甲" * 9000 + "\nlast line"
         chunks = split_text(text)

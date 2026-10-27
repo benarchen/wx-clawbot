@@ -159,9 +159,13 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         await self.command("/stop " + task["id"])
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "queued")
         self.queue.delete.return_value = True
+        before = await self.state._call(lambda: self.state.db.execute("SELECT count(*) FROM outbox").fetchone()[0])
         await self.command("/stop " + task["id"])
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "cancelled")
         self.queue.request_interrupt.assert_not_awaited()
+        rows = await self.state._call(lambda: list(self.state.db.execute(
+            "SELECT id,priority,kind FROM outbox ORDER BY rowid LIMIT -1 OFFSET ?", (before,))))
+        self.assertEqual(rows, [(task["id"] + "-final-1", 0, "final")])
 
     async def test_merged_native_turn_is_unknown_not_independent_success(self):
         await self.select()
@@ -573,6 +577,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_cancel_received_does_not_claim_native_deletion_or_wait_for_admission_lock(self):
         _, waiting = await self.blocked_task()
+        before = await self.state._call(lambda: self.state.db.execute("SELECT count(*) FROM outbox").fetchone()[0])
         async with self.engine.admission_gate:
             await asyncio.wait_for(self.command("/stop " + waiting["id"]), .5)
         self.assertEqual((await self.state.tasks(task_id=waiting["id"]))["state"], "cancelled")
@@ -580,6 +585,11 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.queue.add.await_count, 1)
         self.queue.delete.assert_not_awaited()
         self.queue.request_interrupt.assert_not_awaited()
+        rows = await self.state._call(lambda: list(self.state.db.execute(
+            "SELECT id,priority,kind,text FROM outbox ORDER BY rowid LIMIT -1 OFFSET ?", (before,))))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][:3], (waiting["id"] + "-final-1", 0, "final"))
+        self.assertIn("没有发送原生任务", rows[0][3])
 
     async def test_other_desktop_activity_blocks_admission_until_it_becomes_idle(self):
         await self.select()
@@ -687,6 +697,24 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         await self.engine.complete("thread-two", turn)
         self.assertEqual((await self.state.delivery_counts())["pending"], before["pending"] + 1)
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "completed")
+
+    async def test_stopped_observed_external_turn_has_one_terminal_reply_with_no_stale_progress(self):
+        task = await self.desktop_start(observe=True)
+        await self.command("/stop " + task["id"])
+        before = await self.state._call(lambda: self.state.db.execute("SELECT count(*) FROM outbox").fetchone()[0])
+        turn = {"id": "desktop-turn", "status": "interrupted", "items": [
+            {"type": "userMessage", "clientId": "desktop-native-client"},
+            {"type": "agentMessage", "phase": "commentary", "text": "still running"}]}
+        await self.engine.complete("thread-two", turn)
+        await self.engine.complete("thread-two", turn)
+        rows = await self.state._call(lambda: list(self.state.db.execute(
+            "SELECT id,text FROM outbox ORDER BY rowid LIMIT -1 OFFSET ?", (before,))))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], task["id"] + "-final-1")
+        self.assertIn("interrupted", rows[0][1])
+        self.assertNotIn("still running", rows[0][1])
+        self.assertIn("没有最终文本结果", rows[0][1])
+        self.assertEqual(self.engine.observed_turns, set())
 
     async def test_modal_catalog_refresh_cannot_erase_live_observation_or_interaction(self):
         task = await self.desktop_start(observe=True)

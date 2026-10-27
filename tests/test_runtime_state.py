@@ -75,6 +75,21 @@ class RuntimeTests(RuntimeFixture):
         self.assertEqual((await self.state.claim_reply())["text"], "result")
         self.assertEqual(await self.state.delivery_counts(), {"sending": 1, "superseded": 1})
 
+    async def test_urgent_cancellation_and_reply_remain_atomic_across_storage_failure_and_restart(self):
+        task = await self.admit()
+        await self.state._call(lambda: self.state.db.execute("""CREATE TRIGGER fail_cancel BEFORE INSERT ON outbox
+            BEGIN SELECT RAISE(ABORT,'injected cancellation failure'); END"""))
+        with self.assertRaises(sqlite3.IntegrityError):
+            await self.state.task_finish(task["id"], "cancelled", "cancelled", reply_priority=0)
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "prepared")
+        self.assertEqual(await self.state.delivery_counts(), {})
+        await self.state._call(lambda: self.state.db.execute("DROP TRIGGER fail_cancel"))
+        await self.state.task_finish(task["id"], "cancelled", "cancelled", reply_priority=0)
+        await self.restart()
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "cancelled")
+        self.assertEqual((await self.state.claim_reply())["text"], "cancelled")
+        self.assertIsNone(await self.state.claim_reply())
+
     async def test_long_result_is_preserved_in_order_without_rerunning_task(self):
         task = await self.admit()
         text = "甲" * 8000 + "乙" * 8000

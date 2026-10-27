@@ -111,7 +111,9 @@ class Controller:
                         await self._restore_roles(old)
                         raise
                     self.routes = candidate
-            await self.reply(message, text, priority=0 if name in {"status", "stop", "approve", "deny", "answer"} else 2)
+            # A successful cancellation already commits its sole reply with the task terminal state.
+            if text is not None:
+                await self.reply(message, text, priority=0 if name in {"status", "stop", "approve", "deny", "answer"} else 2)
         except RouteCommitFailed:
             raise  # No new input may use an uncommitted selection.
         except (CommandError, RouteError) as exc:

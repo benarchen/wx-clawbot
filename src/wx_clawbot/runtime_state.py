@@ -322,7 +322,7 @@ class RuntimeState(ChannelState):
                 raise
         return await self._call(queue)
 
-    async def task_finish(self, task_id, state, text, *, turn_id=None, only_if=None, deliver=True):
+    async def task_finish(self, task_id, state, text, *, turn_id=None, only_if=None, deliver=True, reply_priority=1):
         if state not in {"completed", "failed", "interrupted", "cancelled"}:
             raise ValueError("Explicit terminal native task state required")
         if not isinstance(text, str) or not text.strip() or len(text) > 512000:
@@ -343,7 +343,7 @@ class RuntimeState(ChannelState):
                 chunks = display_segments(text) if deliver else []
                 for index, chunk in enumerate(chunks, 1):
                     prefix = f"〔{index}/{len(chunks)}〕{task_id}{LINE_BREAK}" if len(chunks) > 1 else ""
-                    self._queue_reply(f"{task_id}-final-{index}", display_text(prefix + chunk), 1, task_id, "final")
+                    self._queue_reply(f"{task_id}-final-{index}", display_text(prefix + chunk), reply_priority, task_id, "final")
                 self.db.execute("COMMIT")
                 return True
             except BaseException:

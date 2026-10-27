@@ -137,9 +137,10 @@ def format_prose(text):
 
 def native_output(turn):
     body = "\n".join(item.get("text", "") for item in turn.get("items", [])
-                     if item.get("type") == "agentMessage" and isinstance(item.get("text"), str))
+                     if item.get("type") == "agentMessage" and item.get("phase") != "commentary"
+                     and isinstance(item.get("text"), str))
     body = bounded(format_prose(bounded(body, RESULT_LIMIT)), RESULT_LIMIT)
     error = turn.get("error")
     if turn.get("status") == "failed" and isinstance(error, dict) and isinstance(error.get("message"), str) and error["message"].strip():
         body = (body + "\n\n原生错误：" + bounded(error["message"], 8000)).strip()
-    return body or "原生任务已结束，没有文本结果。"
+    return body or "原生任务已结束，没有最终文本结果。"
