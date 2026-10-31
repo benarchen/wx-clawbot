@@ -110,3 +110,31 @@ class RpcTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)
         self.assertIsInstance(self.rpc.failure, ConnectionLost)
         self.assertEqual(self.rpc.events.qsize(), 2)
+
+    async def test_event_byte_budget_is_released_only_when_consumed(self):
+        self.reply({"method": "fixture", "params": {"text": "x" * 200}})
+        await asyncio.sleep(.01)
+        self.assertGreater(self.rpc.event_bytes, 200)
+        await self.rpc.next_event()
+        self.assertEqual(self.rpc.event_bytes, 0)
+
+    async def test_event_byte_overflow_fails_even_when_count_limit_is_not_full(self):
+        self.rpc.MAX_EVENT_BYTES = 100
+        self.reply({"method": "fixture", "params": {"text": "x" * 200}})
+        await asyncio.sleep(.01)
+        self.assertIsInstance(self.rpc.failure, ConnectionLost)
+        self.assertEqual(self.rpc.events.qsize(), 0)
+        self.assertEqual(self.rpc.event_bytes, 0)
+
+    async def test_inline_image_event_above_old_one_mib_limit_preserves_identity(self):
+        await self.rpc.close()
+        self.reader = asyncio.StreamReader(limit=20 * 1024 * 1024)
+        self.writer = MemoryTransport(self.reader)
+        self.rpc = JsonRpc(self.writer, event_limit=2)
+        self.addAsyncCleanup(self.rpc.close)
+        self.reply({'method': 'item/started', 'params': {'threadId': 'fixture-thread',
+                    'item': {'type': 'userMessage', 'clientId': 'fixture-image-client',
+                             'content': [{'type': 'image', 'url': 'data:image/png;base64,' + 'A' * (1024 * 1024)}]}}})
+        event = await self.rpc.next_event()
+        self.assertEqual(event['params']['item']['clientId'], 'fixture-image-client')
+        self.assertEqual(self.rpc.event_bytes, 0)

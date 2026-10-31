@@ -53,6 +53,37 @@ class NativeQueueTests(unittest.IsolatedAsyncioTestCase):
             await self.queue.add("eleventh task", "client-11")
         self.assertFalse(any(method == "thread/queue/add" for method, _ in self.calls))
 
+    async def test_image_and_text_enter_one_original_queue_submission(self):
+        path = self.project / 'synthetic-image.png'
+        path.write_bytes(b'file-identity-fixture')
+        content = [{'type': 'text', 'text': 'describe'}, {'type': 'localImage', 'path': str(path)}]
+        await self.queue.add('describe', 'image-client', input_items=content)
+        submitted = [(method, params) for method, params in self.calls if method == 'thread/queue/add']
+        self.assertEqual(len(submitted), 1)
+        self.assertEqual(submitted[0][1]['input'], content)
+        self.assertEqual(submitted[0][1]['threadId'], 'thread-a')
+
+    async def test_missing_image_or_untrusted_input_shape_refuses_before_any_rpc(self):
+        samples = [[{'type': 'localImage', 'path': str(self.project / 'missing.png')}],
+                   [{'type': 'localImage', 'path': None}], [{'type': 'image', 'url': 'https://untrusted.test/'}],
+                   [{'type': 'text', 'text': ''}], [{'type': 'text', 'text': 'x' * 32001}]]
+        for content in samples:
+            with self.subTest(content_type=content[0]['type']), self.assertRaises(ValueError):
+                await self.queue.add('bounded task', 'client', input_items=content)
+        self.connection.rpc.request.assert_not_awaited()
+
+    async def test_image_queue_pages_keep_only_identity_and_detect_repeated_cursors(self):
+        async def paged(method, params):
+            self.assertEqual(params['limit'], 1)
+            index = int(params.get('cursor', '0'))
+            return {'data': [{'id': str(index), 'clientUserMessageId': 'client-'+str(index),
+                              'input': [{'type': 'image', 'url': 'data:image/png;base64,discard-body'}]}],
+                    'nextCursor': str(index+1) if index < 2 else None}
+        self.connection.rpc.request.side_effect = paged
+        result = await self.queue.list()
+        self.assertEqual(len(result), 3)
+        self.assertTrue(all(set(item) == {'id', 'clientUserMessageId'} for item in result))
+
     async def test_cancel_requires_matching_native_queue_identity(self):
         await self.queue.add("task", "client-1")
         self.assertTrue(await self.queue.delete("queue-1"))

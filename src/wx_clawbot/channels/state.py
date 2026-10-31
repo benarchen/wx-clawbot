@@ -16,6 +16,7 @@ from .wechat import validate_updates
 
 class ChannelState:
     APPLICATION_ID = 0x57584342
+    parse_message = staticmethod(parse_text)
 
     def __init__(self, path: Path, credentials):
         self.path, self.credentials = path, credentials
@@ -110,7 +111,7 @@ class ChannelState:
         self.db.execute("BEGIN IMMEDIATE")
         try:
             for raw in messages:
-                message, reason = parse_text(raw, self.credentials)
+                message, reason = self.parse_message(raw, self.credentials)
                 if message is None:
                     rejected[reason] = rejected.get(reason, 0) + 1
                     continue

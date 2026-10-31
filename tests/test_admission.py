@@ -2,9 +2,41 @@ import asyncio
 import shutil
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 from pathlib import Path
 
-from wx_clawbot.admission import repository_key
+from wx_clawbot.admission import repository_key, conflict
+
+
+class RemovedRegistrationTests(unittest.IsolatedAsyncioTestCase):
+    async def check(self, destination, resolver):
+        target = {'cwd': '/fixture/new', 'repository': 'git:/fixture/shared',
+                  'project_alias': 'new', 'session_id': 'new-session'}
+        task = {'id': 'new-task', 'target': target}
+        old = {'id': 'old-task', 'state': 'unknown', 'target': destination}
+        with patch('wx_clawbot.admission.repository_key', resolver):
+            return await conflict(task, [old, task], SimpleNamespace(sessions={}), {})
+
+    async def test_removed_project_frozen_repository_still_blocks_same_repository(self):
+        resolve = AsyncMock(side_effect=AssertionError('Frozen identity must be kept'))
+        reason = await self.check({'cwd': '/fixture/old', 'repository': 'git:/fixture/shared',
+                                  'project_alias': 'removed', 'session_id': 'old-session'}, resolve)
+        self.assertIn('同仓库', reason)
+        resolve.assert_not_awaited()
+
+    async def test_legacy_removed_project_can_only_use_verified_git_identity(self):
+        resolve = AsyncMock(return_value='git:/fixture/other')
+        reason = await self.check({'cwd': '/fixture/old', 'project_alias': 'removed',
+                                  'session_id': 'old-session'}, resolve)
+        self.assertIsNone(reason)
+        resolve.assert_awaited_once_with(Path('/fixture/old'), None)
+
+    async def test_unverifiable_removed_project_blocks_without_crashing(self):
+        resolve = AsyncMock(side_effect=ValueError('No registered root'))
+        reason = await self.check({'cwd': '/fixture/old', 'project_alias': 'removed',
+                                  'session_id': 'old-session'}, resolve)
+        self.assertIn('无法复验', reason)
 
 
 @unittest.skipUnless(shutil.which("git"), "Local Git required for repository/worktree identity tests")

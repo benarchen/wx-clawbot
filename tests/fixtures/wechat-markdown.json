@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "purpose": "MD01 人工生成的离线及后续真机对照样例；当前所有客户端效果未验证，不得自动发送或执行内容。",
+  "cases": [
+    {"id": "F01", "text": "第一行。\n第二行。\n\n第二段。\n硬换行前。  \n硬换行后。", "verify": "逐行、段落及 Markdown 硬换行可辨。", "literal_spans": []},
+    {"id": "F02", "text": "\n开头。\n\n中间。\n\n\n结尾。\n\n", "verify": "空段可辨，重复处理稳定；记录连续空行的实际显示。", "literal_spans": []},
+    {"id": "F03", "text": "**中文重点**，**English**，**123**，**中文 Codex 2**。\n\\*\\*字面星号\\*\\*，`**代码星号**`。", "verify": "加粗范围准确，转义和代码不被加粗。", "literal_spans": ["**代码星号**"]},
+    {"id": "F04", "text": "# 一级标题\n\n正文。\n\n## 二级标题\n\n### 三级标题\n\n#### 四级标题\n\n##### 五级标题\n\n###### 六级标题", "verify": "一至三级层级可辨；四至六级逐项记录原生或兼容效果。", "literal_spans": []},
+    {"id": "F05", "text": "- 第一项\n  - 第二层\n    - 第三层\n- 第二项\n\n3. 第三项\n4. 第四项\n\n   续段。\n\n       value = 4\n       print(value)\n", "verify": "顺序、起始编号、至少两层嵌套、续段和列表内代码保留。", "literal_spans": ["       value = 4\n       print(value)\n"]},
+    {"id": "F06", "text": "> 一级引用。\n>\n> **引用重点**\n> - 引用列表\n>> 二级引用。\n\n引用外正文。", "verify": "两层引用、引用内强调及列表成立，正文退出引用。", "literal_spans": []},
+    {"id": "F07", "text": "[编码与参数](https://example.invalid/a%20b?q=alpha&n=2#part)。\n裸链接：https://example.invalid/path?q=1#part\n[括号目标](https://example.invalid/a(b))\n[引用式链接][ref]\n\n[ref]: https://example.invalid/reference?q=1#two", "verify": "显示文字与目标准确；真机只检查链接目标，不需要访问测试域名。", "literal_spans": ["https://example.invalid/a%20b?q=alpha&n=2#part", "https://example.invalid/path?q=1#part", "https://example.invalid/a(b)", "https://example.invalid/reference?q=1#two"]},
+    {"id": "F08", "text": "命令 `/focus 1`，路径 `/fixture/a b.py`，变量 `snake_case`。\n嵌套反引号：``a ` b``。\n字面文本 `中文x,y:1`。", "verify": "行内代码字面内容、空格、反引号、标点和路径不变。", "literal_spans": ["/focus 1", "/fixture/a b.py", "snake_case", "a ` b", "中文x,y:1"]},
+    {"id": "F09", "text": "反引号围栏。\n\n```python\nvalue = '中文x,y'\n\nprint(value)  \n```\n\n波浪线围栏。\n\n~~~text\nA\\B\n  C\n~~~\n\n内嵌围栏。\n\n````markdown\n```text\ninside\n```\n````\n\n缩进代码。\n\n    first = 1\n    second = 2\n", "verify": "围栏、缩进代码的 LF、空行、尾随空格、反斜杠和复制内容逐字一致；不执行。", "literal_spans": ["value = '中文x,y'\n\nprint(value)  \n", "A\\B\n  C\n", "```text\ninside\n```\n", "    first = 1\n    second = 2\n"]},
+    {"id": "F10", "text": "*中文斜体*、*English*、***中文粗斜体***、***English***、~~删除线~~。", "verify": "逐项记录原生、兼容或不支持，不推断客户端能力。", "literal_spans": []},
+    {"id": "F11", "text": "第一组。\n\n---\n\n第二组。\n\n***\n\n命令参数 `--dry-run`，转义 \\-\\-\\-。", "verify": "分隔线可辨，命令及转义不被误识别。", "literal_spans": ["--dry-run"]},
+    {"id": "F12", "text": "| 名称 | 值 |\n| --- | --- |\n| Alpha | `a_b` |\n| 带竖线 | a\\|b |\n| 长单元格 | 中文 English 123，完整保留对应关系 |", "verify": "表头、对应关系、转义竖线和代码完整；记录窄屏兼容方式。", "literal_spans": ["a_b", "a\\|b"], "rendered_literal_spans": ["a_b", "a|b"]},
+    {"id": "F13", "text": "- [ ] 待办事项\n- [x] 已完成事项\n  - [ ] 嵌套待办", "verify": "静态完成状态和层级可辨，无可执行或修改任务副作用。", "literal_spans": []},
+    {"id": "F14", "text": "## 混合结果\n\n**检查结果**：仅演示。\n\n- 项目一\n  - 嵌套项\n\n> 引用说明。\n\n```text\n  A\\B\n\nC  \n```\n\n[完整链接](https://example.invalid/result?q=1#end)\n\n结束。", "verify": "混合结构及长消息顺序保留；长样例由离线探针确定性生成。", "literal_spans": ["  A\\B\n\nC  \n", "https://example.invalid/result?q=1#end"]}
+  ]
+}

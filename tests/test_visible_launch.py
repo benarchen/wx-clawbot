@@ -145,6 +145,26 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(binding.thread_id, "fixture-thread")
         self.assertEqual(self.registry.load(self.identity)["phase"], "ready")
 
+    async def test_ready_launch_surviving_process_can_rebind_changed_terminal_after_full_proof(self):
+        directory, native, _ = await self.handshake_fixture()
+        await reconcile_launch(self.registry, self.identity, directory, native)
+        old = directory.discover.return_value[0]
+        new = TerminalEndpoint("restored-terminal", old.process, old.classification)
+        directory.discover.return_value = [new]
+        rebound = await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(rebound.endpoint.terminal_id, "restored-terminal")
+        self.assertEqual(self.registry.load(self.identity)["terminal_id"], "restored-terminal")
+
+    async def test_ready_launch_changed_native_identity_is_unbound_without_rewriting_record(self):
+        from wx_clawbot.sessions import SessionUnbound
+        directory, native, _ = await self.handshake_fixture()
+        await reconcile_launch(self.registry, self.identity, directory, native)
+        before = self.registry.load(self.identity)
+        native.runtime_identity = (9, 9)
+        with self.assertRaises(SessionUnbound):
+            await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(self.registry.load(self.identity), before)
+
     async def test_visible_switch_cannot_rebind_launch_to_another_thread(self):
         directory, native, _ = await self.handshake_fixture()
         directory.current_thread_id.return_value = "another-desktop-thread"

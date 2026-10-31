@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "purpose": "Artificial MD01 G01 raw-text client capability probes; explicit owner-only send required",
+  "samples": [
+    {
+      "id": "P01",
+      "formats": [
+        "F01",
+        "F02"
+      ],
+      "text": "MD01 排版样例 P01：换行与空段\n仅核对显示，不执行任务。\n\nA．标准单 LF：\nA1 第一行\nA2 第二行\n\nB．双 LF 段落：\n\nB1 第一段\n\nB2 第二段\n\nC．Markdown 硬换行：\nC1 第一行  \nC2 第二行\n\nD．既有硬分隔对照：\nD1 第一行 D2 第二行\n\nE．连续空段：\nE1 开始\n\n\nE2 结束"
+    },
+    {
+      "id": "P02",
+      "formats": [
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08"
+      ],
+      "text": "MD01 排版样例 P02：核心结构\n仅核对显示，不执行任务。\n\n# H1 一级标题\n\n正文。\n\n## H2 二级标题\n\n### H3 三级标题\n\n#### H4 四级标题\n\n##### H5 五级标题\n\n###### H6 六级标题\n\n**中文加粗**，**English 123**；\\*\\*字面星号\\*\\*。\n\n- 无序第一项\n  - 二层子项\n- 无序第二项\n\n3. 有序第三项\n4. 有序第四项\n\n> 一级引用\n>> 二级引用\n\n引用外正文。\n\n[显示文字](https://example.invalid/a%20b?q=1&n=2#frag)\n\nhttps://example.invalid/plain?q=2#part\n\n行内代码 `/focus 1`、`snake_case`、``a ` b``。"
+    },
+    {
+      "id": "P03",
+      "formats": [
+        "F09",
+        "F10",
+        "F11",
+        "F12",
+        "F13",
+        "F14"
+      ],
+      "text": "MD01 排版样例 P03：代码与扩展\n仅核对显示与复制，不执行代码。\n\n```python\nvalue = \"中文x,y\"\n\nprint(value)  \npath = \"A\\B\"\n```\n\n~~~text\nA\\B\n  C\n~~~\n\n缩进代码：\n\n    first = 1\n    second = 2\n\n*中文斜体*，*English italic*，***中文粗斜体***，~~删除线~~。\n\n---\n\n- [ ] 待办项\n- [x] 已完成项\n  - [ ] 二层待办\n\n| 名称 | 值 |\n| --- | --- |\n| Alpha | `a_b` |\n| 带竖线 | a\\|b |\n\n样例结束。"
+    }
+  ]
+}

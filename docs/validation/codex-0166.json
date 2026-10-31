@@ -1,0 +1,224 @@
+{
+  "baseline_version": "0.165.0",
+  "version": "0.166.0",
+  "source": "Local version-matched app-server generate-json-schema --experimental",
+  "official_reference": "https://learn.chatgpt.com/docs/app-server",
+  "scope": "Schema compatibility; runtime and dynamic checks recorded separately in HOST01",
+  "schema_count": 36,
+  "schemas": {
+    "v1/InitializeParams.json": {
+      "baseline_sha256": "b55124e7c0f36a1789396daa5578217a92be67f053903696236686e59f6f212e",
+      "sha256": "b55124e7c0f36a1789396daa5578217a92be67f053903696236686e59f6f212e",
+      "structural_changes": []
+    },
+    "v1/InitializeResponse.json": {
+      "baseline_sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+      "sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+      "structural_changes": []
+    },
+    "CommandExecutionRequestApprovalParams.json": {
+      "baseline_sha256": "c9728280b8f3204fd729d0fb3d1ca7bb05b1150de26b3653f7163e6a9bd941e7",
+      "sha256": "c9728280b8f3204fd729d0fb3d1ca7bb05b1150de26b3653f7163e6a9bd941e7",
+      "structural_changes": []
+    },
+    "CommandExecutionRequestApprovalResponse.json": {
+      "baseline_sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7",
+      "sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7",
+      "structural_changes": []
+    },
+    "ToolRequestUserInputParams.json": {
+      "baseline_sha256": "fda15b62e7446105b59c8ed85c908abed2a47db70653e57c92c47a2f204fa77a",
+      "sha256": "fda15b62e7446105b59c8ed85c908abed2a47db70653e57c92c47a2f204fa77a",
+      "structural_changes": []
+    },
+    "ToolRequestUserInputResponse.json": {
+      "baseline_sha256": "5073b245f741fa8ce62ec52e4dd1809b7831f9c4284c279a78abc9b171f8e3f2",
+      "sha256": "5073b245f741fa8ce62ec52e4dd1809b7831f9c4284c279a78abc9b171f8e3f2",
+      "structural_changes": []
+    },
+    "v2/ThreadReadParams.json": {
+      "baseline_sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+      "sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+      "structural_changes": []
+    },
+    "v2/ThreadReadResponse.json": {
+      "baseline_sha256": "7295305720a6d19e2aea99afb876e686bbffe96f7ae352656c625ded65adcffc",
+      "sha256": "25f3eb2888f592c7810420b054aba8ffb5fa134dd2a2d1cce5a90c2f038be7f6",
+      "structural_changes": [
+        "Adds policyCapacityUnavailable error; existing generic rendering remains valid",
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/ThreadListParams.json": {
+      "baseline_sha256": "1781b1778cb08619f0bf12528b128e55648b86569114196b1b5ec565b9b7935d",
+      "sha256": "1781b1778cb08619f0bf12528b128e55648b86569114196b1b5ec565b9b7935d",
+      "structural_changes": []
+    },
+    "v2/ThreadListResponse.json": {
+      "baseline_sha256": "8ac11afef85029494eeb3e8f8b7e62f43d5ce8e7697253459050570a651369e3",
+      "sha256": "0a4820f94729dd2799d141e1ac8d375ac54bb6ab2d75a4684f5c73623df536ba",
+      "structural_changes": [
+        "Adds policyCapacityUnavailable error; existing generic rendering remains valid",
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/ThreadLoadedListParams.json": {
+      "baseline_sha256": "42c2d124ab2b2998d84f0126daae2d32b0bf9c5a7ea7266e3a0814e5e37cf00d",
+      "sha256": "42c2d124ab2b2998d84f0126daae2d32b0bf9c5a7ea7266e3a0814e5e37cf00d",
+      "structural_changes": []
+    },
+    "v2/ThreadLoadedListResponse.json": {
+      "baseline_sha256": "1ea02c4710083e552b2a3a89b931b9049d5bf05b7db46278b8352cf9fd80cd52",
+      "sha256": "1ea02c4710083e552b2a3a89b931b9049d5bf05b7db46278b8352cf9fd80cd52",
+      "structural_changes": []
+    },
+    "v2/ThreadResumeParams.json": {
+      "baseline_sha256": "8152ea774ace4eb5623081abd64a1135f28cbff1e73ca641cfb80ac16f6eed32",
+      "sha256": "8152ea774ace4eb5623081abd64a1135f28cbff1e73ca641cfb80ac16f6eed32",
+      "structural_changes": []
+    },
+    "v2/ThreadResumeResponse.json": {
+      "baseline_sha256": "668e2ac9417b742963e6f34c2b1f284d69f7415d3408e9129ee1fe50485f91a0",
+      "sha256": "98166feff59447179d8598f2dc96f6bf204758f8483aef7cc1137f4407c9195e",
+      "structural_changes": [
+        "Adds policyCapacityUnavailable error; existing generic rendering remains valid",
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/ThreadTurnsListParams.json": {
+      "baseline_sha256": "2a8b93d7d4437cc25e16a1dde16d8db3c338d39e16c5eece2a56e943a21577d7",
+      "sha256": "2a8b93d7d4437cc25e16a1dde16d8db3c338d39e16c5eece2a56e943a21577d7",
+      "structural_changes": []
+    },
+    "v2/ThreadTurnsListResponse.json": {
+      "baseline_sha256": "a2ccdaaa57a779ca3c58eca9d0ac507d87b57775ce06b705bfe8dcc3bf76539c",
+      "sha256": "7953d842384fbc572c0b33f03c0fb1c6b746d3a3cc9c25302e6a03f9dce6d46a",
+      "structural_changes": [
+        "Adds policyCapacityUnavailable error; existing generic rendering remains valid",
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/ThreadUnsubscribeParams.json": {
+      "baseline_sha256": "77c67e0dc0a729af2d4612f30ed63f1297160232e96cd32b7cb9cc3e7fff0233",
+      "sha256": "77c67e0dc0a729af2d4612f30ed63f1297160232e96cd32b7cb9cc3e7fff0233",
+      "structural_changes": []
+    },
+    "v2/ThreadUnsubscribeResponse.json": {
+      "baseline_sha256": "9cad5e71a589c3c20e0980ce34a894a29e2898a075b10b1493bc87f32500081a",
+      "sha256": "9cad5e71a589c3c20e0980ce34a894a29e2898a075b10b1493bc87f32500081a",
+      "structural_changes": []
+    },
+    "v2/TurnStartParams.json": {
+      "baseline_sha256": "f671d01c24995e99fcc110862ff3251c26d334fba212c7dc12857fb939506e47",
+      "sha256": "c7483aee79757d260c4fc1bb5c68b1a8d6f72846388e9f1e88d6f76f423287c8",
+      "structural_changes": [
+        "Optional additional context name; not sent by bridge"
+      ]
+    },
+    "v2/TurnStartResponse.json": {
+      "baseline_sha256": "9588fa7c85b5eb67b363d3fca8f4a6bf9291f3b4b8c6295b7e7d154228270159",
+      "sha256": "85da8d16c86432da14440504ae1e76d13527058920d4ed81632dd50c3fbd054d",
+      "structural_changes": [
+        "Adds policyCapacityUnavailable error; existing generic rendering remains valid",
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/ThreadQueueAddParams.json": {
+      "baseline_sha256": "60f25b7d3e3357c215bef9d2fe7047200f545e030dca9e00527ac0620cd0c88f",
+      "sha256": "60f25b7d3e3357c215bef9d2fe7047200f545e030dca9e00527ac0620cd0c88f",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueAddResponse.json": {
+      "baseline_sha256": "c11b9772788427b19c9f9decf0765e2b41cbdead1aa9c3d39f42fdd70b339314",
+      "sha256": "c11b9772788427b19c9f9decf0765e2b41cbdead1aa9c3d39f42fdd70b339314",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueListParams.json": {
+      "baseline_sha256": "b4c889089eee8a0f785ff85e0128a4d3f347353870fa848221096a472223773b",
+      "sha256": "b4c889089eee8a0f785ff85e0128a4d3f347353870fa848221096a472223773b",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueListResponse.json": {
+      "baseline_sha256": "be4e0bfa6fc776101f96582543605d2eff6186309a08903203512b99c5005926",
+      "sha256": "be4e0bfa6fc776101f96582543605d2eff6186309a08903203512b99c5005926",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueDeleteParams.json": {
+      "baseline_sha256": "35d17cc17897a7f560250d0148ec9df0482ba3d33bdcca039dde8391d3b4edbe",
+      "sha256": "35d17cc17897a7f560250d0148ec9df0482ba3d33bdcca039dde8391d3b4edbe",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueDeleteResponse.json": {
+      "baseline_sha256": "5983c0a94e89f93340caecfe96e16d8f535edca39142920bc0ba60ec90a52919",
+      "sha256": "5983c0a94e89f93340caecfe96e16d8f535edca39142920bc0ba60ec90a52919",
+      "structural_changes": []
+    },
+    "v2/TurnInterruptParams.json": {
+      "baseline_sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b",
+      "sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b",
+      "structural_changes": []
+    },
+    "v2/TurnInterruptResponse.json": {
+      "baseline_sha256": "531de6be06fe979b5963f249bab82498a175e614bf65ac12fb2e849dfe60bcf1",
+      "sha256": "531de6be06fe979b5963f249bab82498a175e614bf65ac12fb2e849dfe60bcf1",
+      "structural_changes": []
+    },
+    "v2/TurnStartedNotification.json": {
+      "baseline_sha256": "46d86869a7145b82bb97ac3811e50686a92c79bc0e9c12c639462a292dd8495b",
+      "sha256": "f5b0ea97eea0d28c8b009a82b9ede7bba5c194dc5bbf91b8e268b2874e0d9eee",
+      "structural_changes": [
+        "Adds policyCapacityUnavailable error; existing generic rendering remains valid",
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/TurnCompletedNotification.json": {
+      "baseline_sha256": "119bde7262f8e3f8f50a590a2eacac2b04083bb0d788d7949bd0d81a18ac7de9",
+      "sha256": "e9a5e3bcddaeee04afc60abafbbdcb5b0a531b5578db573fcacdd1477565bd0a",
+      "structural_changes": [
+        "Adds policyCapacityUnavailable error; existing generic rendering remains valid",
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/ItemStartedNotification.json": {
+      "baseline_sha256": "c5dc7bc43ffd6164b0920004e15b97f0d2b91f44e21547615122dbd6b104faf1",
+      "sha256": "6a16ca46dafb5495a100870bdcdc50bb4d4555eab54f4f0c3bbb75f9f3337da9",
+      "structural_changes": [
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/ItemCompletedNotification.json": {
+      "baseline_sha256": "2b80261a0bdb2c6fa2ffd97584ae3fb7979f2105614b395ef66375bc10b4e69b",
+      "sha256": "f12a69b4f26a7fd2accadd87db4edd5e96e67ff78a1cac203dd12b91462031d7",
+      "structural_changes": [
+        "Optional item timestamps and imageGeneration generationId; no existing required field changes"
+      ]
+    },
+    "v2/ServerRequestResolvedNotification.json": {
+      "baseline_sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+      "sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+      "structural_changes": []
+    },
+    "v2/ThreadSettingsUpdateParams.json": {
+      "baseline_sha256": "749419634bb7ed66216d72bf9d8734ecf0e6efaa8cd46fe51a117d1b42ed9657",
+      "sha256": "749419634bb7ed66216d72bf9d8734ecf0e6efaa8cd46fe51a117d1b42ed9657",
+      "structural_changes": []
+    },
+    "v2/ThreadSettingsUpdateResponse.json": {
+      "baseline_sha256": "adb6c5232ff2474b61ac1811c9fe0faf8beae7f629c9bb2182190679d82bf0b1",
+      "sha256": "adb6c5232ff2474b61ac1811c9fe0faf8beae7f629c9bb2182190679d82bf0b1",
+      "structural_changes": []
+    },
+    "v2/ThreadBackgroundTerminalsListResponse.json": {
+      "baseline_sha256": "b56b1cbcb1d60079ee9f9caaeef29cad869a25b4a6d356566f7c9f672faa7bf4",
+      "sha256": "b56b1cbcb1d60079ee9f9caaeef29cad869a25b4a6d356566f7c9f672faa7bf4",
+      "structural_changes": []
+    }
+  },
+  "image_input_schema": {
+    "UserInput": "unchanged",
+    "TextElement": "unchanged",
+    "ImageDetail": "unchanged",
+    "input_property": "unchanged",
+    "fresh_native_smoke": "passed_original_received_image_on_0166"
+  }
+}

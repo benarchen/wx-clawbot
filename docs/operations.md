@@ -19,7 +19,7 @@
 
 `serve` 自动向 PATH 中的 Codex CLI 查询既有 daemon 的 socket 和原生可执行文件，再核验连接。GUI 包装脚本依赖 `node`，不能代替原生 Mach-O 可执行文件。若当前终端找不到 CLI，先修复该终端自己的 PATH；也可沿用 [README](../README.md) 的显式 `--socket`／`--codex-executable` 参数。`--codex-home` 默认为当前用户的 `.codex`，必须与连接的既有运行时相同。不会更换模型、覆盖配置或新建后台替代会话。
 
-出现 `foreground_ready` 才表示完成账本恢复、原生连接和宿主连接；不代表某个业务任务已经执行成功。stdout 只输出状态及错误分类，不输出消息正文、凭据或认证响应。前台不自动写日志文件，终端历史的保留由使用者控制。
+出现 `foreground_ready` 表示账本及微信入口已准备，宿主和原生依赖可以仍在恢复；不能据此认定会话可派发或任务执行成功。`capabilities` 另报 host／native 状态；host 为 ready 且 native 为 ready 后，新任务仍须逐次核验准确会话。stdout 只输出状态及错误分类，不输出消息正文、凭据或认证响应。直接运行 serve 不自动写日志文件，也不保证随启动终端或工具退出后继续存活；长期运行采用下文用户级托管。
 
 另一个普通 Shell 中运行：
 
@@ -30,11 +30,28 @@
 .venv/bin/wx-clawbot status
 ```
 
-自定义运行目录时，以上命令与 `serve` 都传入同一个 `--state-dir`。`status` 只读显示实例、权限、任务／回执计数及最多 100 个待核对回执 ID，不读出任务正文、微信身份或回复上下文。`running` 表示实例记录的进程启动身份及消费者锁同时有效；`consumer_unverified` 表示消费者存在但没有可核验实例，例如旧入口，不等同服务健康。`stopped` 表示消费者锁空闲；任务可能仍在原生终端执行。
+自定义运行目录时，以上命令与 `serve` 都传入同一个 `--state-dir`。`status` 只读显示实例、权限、依赖状态、任务／回执计数及最多 100 个待核对回执 ID，不读出任务正文、微信身份或回复上下文。`running` 表示实例记录的进程启动身份及消费者锁同时有效，不能替代 components 中的 host／native 状态；旧进程没有依赖记录时显示 unknown。`consumer_unverified` 表示消费者存在但没有可核验实例，例如旧入口，不等同服务健康。`stopped` 表示消费者锁空闲；任务可能仍在原生终端执行。
 
 `stop` 只写入当前实例代次的退出请求，不发送进程信号、不停止 Codex。返回 `stop_requested` 后等待 `status` 成为 `stopped`；HTTP 工作线程可能仍在等待超时，不要立刻启动第二个消费者。未核验实例拒绝请求；旧入口在原前台按 Ctrl+C。Ctrl+C 也是正式前台入口的正常退出方式。异常退出遗留的旧代次不会停止新实例。
 
-重启仍使用同一 `serve` 命令；恢复原生状态后才轮询接收。旧审批失效；未知任务只核对原生记录，无法确认时保留 unknown，不重新执行。上次选择只有重新通过完整身份核验才恢复；不能核验时保持未选，旧列表编号失效。若启动时被原生弹窗遮住 Session ID，待终端恢复后用 `/sessions` 刷新，触发一次只读对账，再按新列表选择目标；仍不能核验的任务继续保持 unknown。
+重启仍使用同一 `serve` 命令；先轮询微信，依赖后台恢复期间帮助、项目列表和状态可用，新任务未核验不接收。原生连接代次变化后旧审批失效；未知任务只核对原生记录，无法确认时保留 unknown，不重新执行。上次选择只有重新通过完整身份核验才恢复；不能核验时保持未选，旧列表编号失效。若启动时被原生弹窗遮住 Session ID，待终端恢复后用 `/sessions` 刷新，触发一次只读对账，再按新列表选择目标；仍不能核验的任务继续保持 unknown。
+
+手动启动准备接入的 Codex 时，先在 Shell 中实际进入已注册项目目录，再运行 `codex`。仅使用 `codex --cd <项目目录>` 可能使 Codex 的工作根目录与进程真实 cwd 不同；当前发现先按进程 cwd 限定注册项目，会保守忽略该终端，不应通过读取未注册目录屏幕绕过。可在尚未发送任务的新终端退出 Codex，先执行 `cd <注册项目目录>` 后重新启动。受管可见启动器已有独立子进程 `os.chdir`，不改变桥接自身目录。
+
+还须核对 TUI 是否确实加入桥接使用的 daemon；CLI 的版本命令与 doctor 协议检查不能证明某个终端属于该运行时。不同原生二进制可能启动独立 TUI，表现为底部有 Session ID，但该 ID 不在目标 daemon 的已加载列表中。此时保持未核验，不复制历史或另起后台任务；优先使用微信 `/cd`、`/new` 的受管可见启动，它使用既有 daemon 报告且已核验的原生可执行文件，再按完整身份与真实握手确认。
+
+## iTerm2 退出、按需启动与恢复
+
+- iTerm2 未启动时，后台只等待；有效的 `/sessions`、`/cd`、`/new` 可通过系统启动入口拉起一次。`/new` 仍要求先有当前目录，无效参数先拒绝。帮助、项目列表、状态及普通文字／图片不拉起应用。
+- 宿主断连后，不必重启微信桥接。应用重新运行后自动获取新连接、刷新端点并核验原生身份；同一波命令共用连接／启动流程，额外选择请求返回忙碌，不积压到恢复后集中执行。
+- 会话操作先告知处理中，宿主准备／发现阶段总预算 25 秒，失败清理另有边界；真实可见 Codex 启动保留 120 秒握手预算。进展与明确结果是不同回执，进展不代表创建或派发成功。
+- 认证通过可终止子进程完成，单次 8 秒截止；超时不等于 API 被禁用。电脑端若有系统 Automation 或 iTerm2 授权提示，需要本人处理。处理后再发一个会话命令重试授权；后台暂停明确授权失败的重复认证，不改设置、不绕过授权。请求授权前及授权子进程超时后会进行禁用授权 UI、移除 cookie／key 的有界传输探测：服务无响应则按连接故障退避重连；服务仍可响应时继续等待本人核对授权。该探测不执行 API 操作，也不授予会话派发资格。
+- 应用已打开、API 已连接、原生运行时就绪和会话已核验是不同状态。daemon 缺席时保持微信入口，后台只读发现现有受支持运行时；不会另建后台 Codex 来冒充原终端。
+- iTerm2 的窗口恢复可能只保留滚屏。原进程／native thread 已消失时，普通消息被拒绝；需要本人通过新的 `/cd`、`/new` 请求进入可见会话，未知旧创建不自动重做。
+- 单纯宿主断连不会撤销仍有效的准确原生任务／观察订阅；它们继续接收结果及已关联交互，但不能授予新任务派发资格。原生连接断开才使该连接的旧交互失效。
+- 重连中未知任务不自动重放，原冻结目标不迁移到新窗口。命令列表须重新获取；状态中的 unknown 须结合原生记录核对，不通过清库消除。
+
+实施和真实验收范围见 [HOST01 记录](validation/host-lifecycle-recovery.md)。应用整体退出／重启由本人安排，不能因只有一个专用测试窗口就忽略其他窗口受影响的可能性。
 
 ## 故障定位
 
@@ -44,13 +61,23 @@
 | --- | --- |
 | config | 检查 JSON 字段、项目目录与可访问性 |
 | state／upgrade_required | 检查 `0700`／`0600`、本人绑定、单消费者及[显式升级计划](state-schema.md)，不删除库重新开始 |
-| agent_discovery／agent | 核对既有 daemon、受支持版本、同一 Codex home、当前完整 Session ID；未知任务不重新发送 |
+| agent_discovery／agent | 核对既有 daemon、受支持版本、同一 Codex home、当前完整 Session ID；`doctor` 的 `runtime.verified_schema: false` 表示该服务端版本尚未核验，须先检查[协议基线](protocol-baseline.md)，不能仅凭 CLI 版本判断；未知任务不重新发送 |
 | host | 打开 iTerm2，核对 Python API 和该脚本的授权，执行 `doctor --iterm2` |
 | channel_receive／channel_send | 核对网络、本人绑定与登录状态；登录过期需要本人扫码，不能读取其他项目凭据或静默替换连接 |
 | receive_disconnected | 网络轮询会有限退避重连，游标保留；不代表已丢消息或应再次提交任务 |
 | maintenance／lifecycle | 核对账本／原生连接或实例记录权限；必要时在原前台 Ctrl+C 后重新诊断 |
 
 不使用 `killall`／宽泛进程名停服务，不清空运行目录来绕过锁或升级错误。现有 hook 告警属于原环境，桥接不修改它来掩盖失败。
+
+## 图片运行与资源边界
+
+图片版本启用前用 migrate-state 查看计划，明确备份和对象，再停止前台执行显式升级；serve 不自动迁移。使用及错误分类见 [图片指南](image-input.md)，附件一致性与回收见 [账本说明](state-schema.md)。启用前后核对实际 schema、原配置、原生身份及未决任务，不清空状态重新开始。
+
+图片准备有两个有界工作槽位，取消调用者不会在工作仍存活时提前释放额度。原生接收帧最多 16 MiB，事件同时受 256 条和 32 MiB 限制，WebSocket 接收高水位两个帧；出站 RPC 仍限 1 MiB。队列单项分页、最多核对 100 项，只保留身份，不积压内联图片；启动复核只读第一条握手 turn。超限时停止连接并保留未知状态，不重放。
+
+运行时换代可能改变稳定会话编号。旧任务可在当前同项目、同目录、同 native thread 的唯一终端完整复验后，只读对账准确 client 的唯一原生终态；这不改写旧任务目标，不恢复旧路由，不创建订阅或重新派发。无法唯一匹配、当前身份不明、原生仍执行或缺少准确 client 时继续保持 unknown。图片准备完成但受仓库保护阻塞时，回执说明等待准入原因；本地 received 的图片尚未原生提交，恢复后保持原 client 和目标继续一次处理。
+
+旧桌面任务的原生轮次若出现输入合并或 client 冲突，恢复保留 unknown 并提示核对，不把它误归为某条独立任务，也不阻止整个前台启动。配置移除旧项目不代表释放其未结束任务的仓库保护；缺少可核验仓库身份时保守等待。
 
 ## 只重试回执
 
@@ -70,10 +97,39 @@ unknown 可能已经送达手机；只有明确接受可能重复时才额外传
 
 保留期检查、显式清理及独立备份见[账本说明](state-schema.md)。不自动清理真实账本，不触碰 Codex 历史、其他服务或业务项目文件。
 
-## 可选 launchd 模板与卸载
+## 用户级 launchd 托管、日志与卸载
 
-[用户级模板](../config/launchd.example.plist) 仅供后续明确部署。先替换所有绝对路径占位值，保持 `ProgramArguments` 数组，不拼接 Shell；显式 socket／原生可执行文件可避免 launchd 的缩减 PATH。模板不含凭据，凭据仍从私有目录读取。`RunAtLoad` 和 `KeepAlive` 均为 false，不自动启动或重启；stdout／stderr 指向 `/dev/null`，避免无界日志。需要保留日志时另行指定有轮转与权限管理的方案。
+[用户级模板](../config/launchd.example.plist) 使用 `.venv/bin/python -m wx_clawbot.managed --config <原配置> --state-dir <原运行目录>`。仅在本人明确授权部署后，将占位绝对路径替换并保存至本人 `~/Library/LaunchAgents/local.wx-clawbot.plist`，不覆盖其他来源文件。保持 argv 数组，不拼接 Shell，不放入凭据。PATH 须能找到同一 Codex CLI；默认由既有只读发现机制核验运行时，沿用该用户的 Codex home，不固定一次性的 socket。
 
-人工检查模板可用 `plutil -lint /absolute/path/to/private/local.wx-clawbot.plist`。本项目不会复制到 LaunchAgents 或执行注册。仅在未来明确部署该模板后，可用 macOS `launchctl bootstrap gui/$(id -u) /absolute/path/to/private/local.wx-clawbot.plist` 注册，`launchctl kickstart gui/$(id -u)/local.wx-clawbot` 启动；停止先用本项目 `stop`，再核对 `status`。卸载仅对自己部署的此 Label 执行 `launchctl bootout gui/$(id -u)/local.wx-clawbot` 并移除自己复制的模板，不操作其他 Label。
+模板的 `RunAtLoad=true` 使用户登录后启动；`KeepAlive.SuccessfulExit=false` 只在异常退出后重新启动，`ThrottleInterval=30` 限制快速失败循环。`stop` 的正常退出码为 0，主动停止后保持停止，恢复需明确执行 kickstart；下次登录仍按已安装的启动项启动。macOS 注销、睡眠、关机或网络中断时不承诺在线，不修改电源设置，也不自动启动 Codex daemon。非零的持久配置／认证错误会继续限速失败，应先 stop／bootout 后定位，不反复扫码或改库。
+
+托管入口复用原 serve 和账本，单独持有 `managed.lock`，既有消费者锁继续生效。`managed.json` 保存完整进程身份、源码摘要、启动及可观察的退出状态；`status` 的 `supervision` 字段只有在完整进程身份与有效前台相同时才报告 running。记录为 running 而进程已消失时显示 `previous_exit_unobserved`，不把未知退出误报为正常停止或捏造具体原因。
+
+托管日志位于私有运行目录的 `logs/bridge.jsonl`，目录为 `0700`、文件为 `0600`，单文件最多 1 MiB，最多 3 份轮转备份。只保留已知状态、组件和异常类型；任意 stdout、原始 stderr／回溯、消息正文、账号、token、上下文均不入日志。SIGTERM 有明确记录；SIGKILL／断电无法由进程自己记下退出码，下一次启动会标记前次退出未观察到，再结合 launchctl 的退出状态判断。Python 导入或日志初始化前失败也可能没有应用日志，应检查 launchctl。stdout／stderr 指向 `/dev/null`，避免另增无界文件。
+
+先停止并核对旧消费者退出，再校验及注册，避免并行两个入口：
+
+```sh
+.venv/bin/wx-clawbot stop
+.venv/bin/wx-clawbot status
+plutil -lint "$HOME/Library/LaunchAgents/local.wx-clawbot.plist"
+launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/local.wx-clawbot.plist"
+.venv/bin/wx-clawbot status
+```
+
+已注册但主动停止后恢复：`launchctl kickstart "gui/$(id -u)/local.wx-clawbot"`。只读查看托管状态：`launchctl print "gui/$(id -u)/local.wx-clawbot"`；该系统输出可能含本机路径，不直接公开。`running` 与 host／native ready 及微信本人收件分别核验，不能只用 launchctl 的 PID 证明通道健康。
+
+卸载／回退时仅对本人部署的 Label 执行 `launchctl bootout "gui/$(id -u)/local.wx-clawbot"`，再确认消费者停止，才能恢复原前台 serve。bootout 本身不删除 plist，下次登录会再次加载；永久撤销登录启动还须按本人明确授权移除或移出该文件。保留账本、凭据和日志，不操作其他 Label、Codex 或 iTerm2。真实安装与验证结论见[进程恢复记录](validation/bridge-supervision.md)。
 
 当前前台方式卸载时，先停止并核对桥接已退出；按需要保留私有运行目录以供恢复。删除凭据、账本、项目或虚拟环境均由本人另行明确选择，不自动删除；Codex 和 iTerm2 不需要卸载，也不应停止其会话。
+
+
+## 出站排版与冻结回执核对
+
+排版模块的规则、自测和客户端边界见[排版说明](wechat-markdown.md)，实际加载与验收记录见[MD01 证据](validation/wechat-markdown.md)。分开核对接口 accepted、本人实际显示和实际复制；截图中的代码复制按钮不等于字节正确。用户提供的截屏／照片只留本地，公开记录保存摘要；不自动操作、登录或重试微信客户端。
+
+正常重载前确认没有活跃任务和未决关键回执，保存任务／旧 outbox／当前配置摘要，按本页已有 stop 与 kickstart 流程仅恢复既有桥接 Label。核对旧进程正常退出、消费者释放、新进程源码摘要与预期一致以及 host／native 状态，再请本人验收新生成的回执。既有 outbox、摘要和投递尝试不随排版升级重写；未知任务不重放。若全局配置较更早快照发生其他变化，记录并保护重载前的当前值，不回滚用户现状。
+
+本地 stopped／锁释放与 launchd 的旧任务退出可存在短暂先后差异：启动前另用 `launchctl print gui/$(id -u)/local.wx-clawbot` 确认顶层 state 为 not running，再执行既有 kickstart。启动调用成功不等于新进程已加载；须核对新管理进程／源码摘要。若没有新启动记录，先只读核对 launchd 与锁状态，不重复执行停止或使用强制重启参数。
+
+排版缺陷先对照冻结发送原文与本人看到的内容，不无证据归因于任务执行、客户端风控或某个内部渲染阶段。根据明确差异补源形态回归，完整自测后再做少量具体授权的小样；未通过的核心格式保持未验收。

@@ -35,6 +35,26 @@
       "file": "src/api/types.ts",
       "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/api/types.ts",
       "sha256": "9e321e1a79bd7ec385b8e2b9695f1d87507282ff33f9cfdafbe4e33aea5387ac"
+    },
+    {
+      "file": "src/media/media-download.ts",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/media/media-download.ts",
+      "sha256": "18e3968fc0b7a7e328ef0f5ac84eb4c1433ae96a467a6f5c702cd93cf8260cb1"
+    },
+    {
+      "file": "src/cdn/pic-decrypt.ts",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/cdn/pic-decrypt.ts",
+      "sha256": "49a9b08ced1b3ddb7c4d80dd279ba7d7f977febc999a9507f8f41c05976dceaa"
+    },
+    {
+      "file": "src/cdn/aes-ecb.ts",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/cdn/aes-ecb.ts",
+      "sha256": "3aff4fbef828f085db0e29a146ae76aebf338308c676c9c0a68ca4d22264e93a"
+    },
+    {
+      "file": "src/cdn/cdn-url.ts",
+      "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/cdn/cdn-url.ts",
+      "sha256": "d1f1e9eed76e8adb97c238a4d9967bea35d5460d2cb9bc3113a5ea1459b42646"
     }
   ],
   "version": "2.4.10",

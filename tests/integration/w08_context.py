@@ -89,7 +89,7 @@ async def observe(args):
                 ledger = args.state_dir / "runtime.sqlite3"
                 private_file(ledger)
                 with closing(sqlite3.connect(ledger.as_uri() + "?mode=ro", uri=True)) as db:
-                    schema.validate(db, credentials, versions=(2,))
+                    schema.validate(db, credentials, versions=(2, schema.VERSION))
                     row = db.execute("SELECT token,created_ms FROM reply_context WHERE id=1").fetchone()
                 if not row or row[1] / 1000 <= record["rejected_at"] or row[0] == record["old_context"]:
                     raise ValueError("A distinct, newly received owner context after rejection is required")

@@ -35,3 +35,24 @@ class HostConnectionTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(App, "instance", app):
             await close_connection(connection)
             self.assertIs(App.instance, app)
+
+    async def test_close_removes_only_owned_app_handlers_and_cancels_receivers(self):
+        from iterm2.app import App, invalidate_app
+        from iterm2 import notifications
+        callback, foreign = object(), object()
+        key = (None, 1)
+        connection = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
+        receiver = asyncio.get_running_loop().create_future()
+        helper = asyncio.create_task(asyncio.Event().wait())
+        setattr(connection, "_Connection__receivers", [(lambda _: True, receiver)])
+        setattr(connection, "_Connection__tasks", [helper])
+        app = SimpleNamespace(connection=connection, tokens=[(key, callback)])
+        with patch.object(App, "instance", app), \
+                patch.dict(notifications._handlers, {key: [callback, foreign]}, clear=True), \
+                patch("iterm2.connection.gDisconnectCallbacks", [invalidate_app, foreign]) as disconnects:
+            await close_connection(connection)
+            self.assertEqual(notifications._handlers[key], [foreign])
+            self.assertEqual(disconnects, [foreign])
+            self.assertIsNone(App.instance)
+        self.assertTrue(receiver.cancelled())
+        self.assertTrue(helper.cancelled())

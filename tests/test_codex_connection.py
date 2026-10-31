@@ -73,12 +73,35 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
             await connection.close()
         self.assertEqual(self.methods, ["initialize", "initialized", "thread/read"])
         self.assertEqual(connection.server_version, "0.164.0")
+        self.assertFalse(connection.capabilities.image_input)
 
     async def test_unverified_version_is_rejected_before_any_task(self):
         self.server_version = "0.999.0"
         with self.assertRaisesRegex(ValueError, "schema baseline"):
             await CodexConnection.connect(self.socket)
         self.assertEqual(self.methods, ["initialize"])
+
+    async def test_verified_0165_handshake_and_read_do_not_submit_tasks(self):
+        self.server_version = "0.165.0"
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            self.assertEqual(connection.server_version, "0.165.0")
+            self.assertTrue(connection.capabilities.image_input)
+            self.assertEqual((await connection.inspect("fixture-thread"))["id"], "fixture-thread")
+        finally:
+            await connection.close()
+        self.assertEqual(self.methods, ["initialize", "initialized", "thread/read"])
+
+    async def test_verified_0166_handshake_and_read_do_not_submit_tasks(self):
+        self.server_version = "0.166.0"
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            self.assertEqual(connection.server_version, "0.166.0")
+            self.assertTrue(connection.capabilities.image_input)
+            self.assertEqual((await connection.inspect("fixture-thread"))["id"], "fixture-thread")
+        finally:
+            await connection.close()
+        self.assertEqual(self.methods, ["initialize", "initialized", "thread/read"])
 
     async def test_non_private_socket_is_rejected_before_connect(self):
         os.chmod(self.socket, 0o666)

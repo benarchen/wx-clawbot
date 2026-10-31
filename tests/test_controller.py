@@ -93,6 +93,88 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.controller.routes.observer)
         self.assertTrue(self.controller.subscriptions.has(self.sessions[1].target, "task-" + task["id"]))
 
+    async def test_hung_session_discovery_has_deadline_and_releases_selection(self):
+        self.controller.selection_timeout = .02
+        async def hung(*_):
+            await asyncio.Event().wait()
+        self.catalog.discover.side_effect = hung
+        await asyncio.wait_for(self.command("/sessions"), .3)
+        self.assertEqual(self.controller.selection_pending, 0)
+        self.assertFalse(self.controller.changes.locked())
+        rows = await self.state._call(lambda: list(self.state.db.execute("SELECT text FROM outbox")))
+        self.assertTrue(any("超时" in row[0] for row in rows))
+        self.catalog.discover.side_effect = None
+        await self.command("/sessions")
+        self.assertIsNotNone(self.controller.routes.list)
+
+    async def test_failed_rollback_requests_native_recovery_without_blocking_status(self):
+        from wx_clawbot.hosts.lifecycle import HostUnavailable
+        await self.select()
+        self.controller.host = SimpleNamespace(state="ready", phase="ready", generation=1, connection=object())
+        self.controller.rollback_timeout = .02
+        async def hung(*_):
+            await asyncio.Event().wait()
+        with patch.object(self.controller, "_change", new=AsyncMock(side_effect=HostUnavailable("rpc"))), \
+                patch.object(self.controller, "_restore_roles", new=AsyncMock(side_effect=hung)):
+            await asyncio.wait_for(self.command("/focus 1"), .3)
+        self.assertTrue(self.controller.recovery_requested.is_set())
+        self.assertFalse(self.controller.native_ready)
+        self.assertEqual(self.controller.selection_pending, 0)
+        self.assertFalse(self.controller.changes.locked())
+        await self.command("/status")
+        self.queue.add.assert_not_awaited()
+
+    async def test_native_retirement_during_reply_joins_one_final_write(self):
+        await self.select()
+        before = await self.state.delivery_counts()
+        entered, release = asyncio.Event(), asyncio.Event()
+        queue_reply = self.state.queue_reply
+        async def delayed(*args, **kwargs):
+            entered.set()
+            await release.wait()
+            return await queue_reply(*args, **kwargs)
+        with patch.object(self.state, "queue_reply", side_effect=delayed):
+            work = asyncio.create_task(self.command("/unfocus"))
+            await entered.wait()
+            retire = asyncio.create_task(self.controller.retire())
+            await asyncio.sleep(0)
+            release.set()
+            await asyncio.gather(work, retire)
+        self.assertEqual((await self.state.delivery_counts())["pending"], before["pending"] + 1)
+
+    async def test_native_retirement_joins_pending_route_commit_before_recovery_reads(self):
+        await self.select()
+        entered, release = asyncio.Event(), asyncio.Event()
+        save_routes = self.state.save_routes
+        async def delayed(snapshot):
+            entered.set()
+            await release.wait()
+            await save_routes(snapshot)
+        with patch.object(self.state, "save_routes", side_effect=delayed):
+            work = asyncio.create_task(self.command("/focus 1"))
+            await entered.wait()
+            retire = asyncio.create_task(self.controller.retire())
+            await asyncio.sleep(.01)
+            self.assertFalse(retire.done())
+            release.set()
+            await asyncio.gather(work, retire)
+        self.assertEqual((await self.state.load_routes())["target"]["session_id"], self.sessions[0].target.session_id)
+
+    async def test_host_generation_change_before_queue_add_prevents_submission(self):
+        await self.select()
+        host = SimpleNamespace(state="ready", phase="ready", generation=1, connection=object())
+        self.controller.host = host
+        update = self.state.task_update
+        async def changed(task_id, state, **kwargs):
+            result = await update(task_id, state, **kwargs)
+            if state == "dispatching":
+                host.generation += 1
+            return result
+        with patch.object(self.state, "task_update", side_effect=changed):
+            await self.command("never submit on stale proof")
+        self.queue.add.assert_not_awaited()
+        self.assertEqual((await self.state.tasks())[0]["state"], "failed")
+
     async def test_rejected_new_subscription_keeps_original_observer_and_focus(self):
         await self.select()
         await self.command("/attach 1")
@@ -369,6 +451,42 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("failed", reply["text"])
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "failed")
 
+    async def test_recovery_keeps_external_merged_turn_unknown_without_stopping_service(self):
+        from wx_clawbot.controller import target_record
+        await self.select()
+        await self.command('a previously submitted bridge task')
+        bridge = (await self.state.tasks())[0]
+        external = await self.state.external_task(target_record(self.sessions[1]), 'merged-turn')
+        await self.state.task_update(external['id'], 'unknown')
+        turn = {'id': 'merged-turn', 'status': 'completed', 'items': [
+            {'type': 'userMessage', 'clientId': bridge['client_id']},
+            {'type': 'userMessage', 'clientId': 'external-client'},
+        ]}
+        with patch.object(self.engine, 'read_turn', new=AsyncMock(return_value=turn)):
+            await self.engine.reconcile()
+        self.assertEqual((await self.state.tasks(task_id=external['id']))['state'], 'unknown')
+        self.assertEqual((await self.state.tasks(task_id=bridge['id']))['state'], 'queued')
+        self.queue.add.assert_awaited_once()
+        reply = await self.state.claim_reply()
+        self.assertIn('保持未知', reply['text'])
+
+    async def test_recovery_keeps_external_turn_unknown_when_client_conflicts(self):
+        from wx_clawbot.controller import target_record
+        await self.select()
+        await self.command('another previously submitted task')
+        bridge = (await self.state.tasks())[0]
+        external = await self.state.external_task(target_record(self.sessions[1]), 'conflicting-turn',
+                                                   native_client_id='external-client')
+        await self.state.task_update(external['id'], 'unknown')
+        turn = {'id': 'conflicting-turn', 'status': 'completed', 'items': [
+            {'type': 'userMessage', 'clientId': bridge['client_id']},
+        ]}
+        with patch.object(self.engine, 'read_turn', new=AsyncMock(return_value=turn)):
+            await self.engine.reconcile()
+        self.assertEqual((await self.state.tasks(task_id=external['id']))['state'], 'unknown')
+        self.assertEqual((await self.state.tasks(task_id=bridge['id']))['state'], 'queued')
+        self.queue.add.assert_awaited_once()
+
     async def test_restart_restores_independent_verified_targets_but_not_numeric_list(self):
         await self.select()
         await self.command("/attach 1")
@@ -395,6 +513,58 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(RouteError):
             restored.prepare(await self.incoming("never replay"))
         self.queue.add.assert_not_awaited()
+
+    async def test_host_recovery_rebinds_only_same_native_identity_and_invalidates_numbers(self):
+        await self.select()
+        await self.command("/attach 2")
+        prior = self.sessions[1]
+        prior.binding.runtime_identity = (1, 2)
+        prior.binding.native_session_id = "native-two"
+        replacement = SimpleNamespace(target=Target("new-terminal", "two", prior.target.cwd, "managed"),
+                                      binding=SimpleNamespace(thread_id="thread-two", runtime_identity=(1, 2),
+                                                              native_session_id="native-two"), title="two")
+        async def refreshed(*_):
+            self.catalog.sessions = {replacement.target.session_id: replacement}
+            return (replacement,)
+        self.catalog.discover.side_effect = refreshed
+        await self.controller.recover_host()
+        self.assertEqual(self.controller.routes.target, replacement.target)
+        self.assertEqual(self.controller.routes.observer, replacement.target)
+        self.assertIsNone(self.controller.routes.list)
+        self.assertEqual(self.controller.last_managed[("two", prior.target.cwd)], replacement.target)
+        self.agent.unsubscribe.assert_not_awaited()
+        self.assertEqual(self.agent.observe_loaded.await_count, 1)
+        self.queue.add.assert_not_awaited()
+
+    async def test_host_recovery_refuses_reused_thread_with_changed_native_session(self):
+        await self.select()
+        prior = self.sessions[1]
+        prior.binding.runtime_identity = (1, 2)
+        prior.binding.native_session_id = "original-native"
+        replacement = SimpleNamespace(target=Target("new-terminal", "two", prior.target.cwd, "managed"),
+                                      binding=SimpleNamespace(thread_id="thread-two", runtime_identity=(1, 2),
+                                                              native_session_id="changed-native"), title="two")
+        async def refreshed(*_):
+            self.catalog.sessions = {replacement.target.session_id: replacement}
+            return (replacement,)
+        self.catalog.discover.side_effect = refreshed
+        await self.controller.recover_host()
+        self.assertIsNone(self.controller.routes.target)
+        self.assertIsNone(self.controller.routes.list)
+        self.queue.add.assert_not_awaited()
+
+    async def test_host_recovery_hidden_footer_keeps_passive_observer_without_route(self):
+        await self.select()
+        await self.command("/attach 2")
+        async def refreshed(*_):
+            self.catalog.sessions = {}
+            return ()
+        self.catalog.discover.side_effect = refreshed
+        await self.controller.recover_host()
+        self.assertIsNone(self.controller.routes.target)
+        self.assertEqual(self.controller.routes.observer, self.sessions[1].target)
+        self.assertTrue(self.controller.subscriptions.has(self.sessions[1].target, "observer"))
+        self.agent.unsubscribe.assert_not_awaited()
 
     async def test_failed_route_commit_restores_previous_leases_and_never_acknowledges_change(self):
         await self.select()
@@ -541,6 +711,99 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
         self.agent.rpc.request.assert_not_awaited()
         self.queue.add.assert_not_awaited()
+
+    async def changed_identity_external_task(self):
+        task = await self.desktop_start(observe=True)
+        await self.state.task_update(task["id"], "unknown")
+        self.engine.observed_turns.clear()
+        self.engine.turn_tasks.clear()
+        original = self.sessions[1]
+        target = Target("new-runtime-session", original.target.project_alias, original.target.cwd, "original")
+        replacement = SimpleNamespace(target=target, binding=original.binding, title="same original thread")
+        self.catalog.sessions = {target.session_id: replacement}
+        async def require(current):
+            if current.session_id not in self.catalog.sessions:
+                raise SessionUnbound("Runtime generation changed the stable session ID")
+            return self.catalog.sessions[current.session_id]
+        self.catalog.require.side_effect = require
+        self.agent.observe_loaded.reset_mock()
+        return task
+
+    async def test_changed_session_id_reconciles_exact_external_terminal_without_route_or_replay(self):
+        task = await self.changed_identity_external_task()
+        before_route = self.controller.routes.target
+        self.agent.rpc.request.return_value = {"data": [{"id": "desktop-turn", "status": "interrupted", "items": [
+            {"type": "userMessage", "clientId": "desktop-native-client"}]}], "nextCursor": None}
+        await self.engine.reconcile()
+        after = await self.state.tasks(task_id=task["id"])
+        self.assertEqual(after["state"], "interrupted")
+        self.assertEqual(after["target"], task["target"])
+        self.assertEqual(self.controller.routes.target, before_route)
+        self.queue.add.assert_not_awaited()
+        self.agent.rpc.respond.assert_not_awaited()
+        self.agent.observe_loaded.assert_not_awaited()
+
+    async def test_changed_session_reconciliation_requires_unique_terminal_client_and_verified_binding(self):
+        task = await self.changed_identity_external_task()
+        valid = {"id": "desktop-turn", "status": "interrupted", "items": [
+            {"type": "userMessage", "clientId": "desktop-native-client"}]}
+        cases = [[], [{**valid, "status": "inProgress"}],
+                 [{**valid, "items": [{"type": "userMessage", "clientId": "different-client"}]}],
+                 [{**valid, "items": valid["items"] * 2}], [valid, {**valid, "id": "duplicate-turn"}]]
+        for turns in cases:
+            with self.subTest(turns=turns):
+                async def page(_method, params):
+                    index = int(params.get("cursor", "0"))
+                    return {"data": turns[index:index + 1],
+                            "nextCursor": str(index + 1) if index + 1 < len(turns) else None}
+                self.agent.rpc.request.side_effect = page
+                await self.engine.reconcile()
+                self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
+        self.catalog.require.side_effect = SessionUnbound("Current footer cannot be verified")
+        self.agent.rpc.request.reset_mock()
+        await self.engine.reconcile()
+        self.agent.rpc.request.assert_not_awaited()
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
+        self.queue.add.assert_not_awaited()
+
+    async def test_changed_session_reconciles_bridge_client_without_resubmission(self):
+        await self.select()
+        self.queue.add.side_effect = OutcomeUnknown("lost receipt")
+        await self.command("one original request")
+        task = (await self.state.tasks())[0]
+        original = self.sessions[1]
+        target = Target("new-runtime-session", "two", original.target.cwd, "original")
+        self.catalog.sessions = {target.session_id: SimpleNamespace(target=target, binding=original.binding)}
+        async def require(current):
+            if current != target:
+                raise SessionUnbound("Old runtime identity")
+            return self.catalog.sessions[target.session_id]
+        self.catalog.require.side_effect = require
+        self.agent.rpc.request.return_value = {"data": [{"id": "original-turn", "status": "completed", "items": [
+            {"type": "userMessage", "clientId": task["client_id"]},
+            {"type": "agentMessage", "text": "original result"}]}], "nextCursor": None}
+        await self.engine.reconcile()
+        result = await self.state.tasks(task_id=task["id"])
+        self.assertEqual(result["state"], "completed")
+        self.assertEqual(result["target"], task["target"])
+        self.assertEqual(self.queue.add.await_count, 1)
+
+    async def test_changed_session_reconciliation_never_guesses_thread_project_or_directory(self):
+        task = await self.changed_identity_external_task()
+        original = next(iter(self.catalog.sessions.values()))
+        variants = [SimpleNamespace(target=original.target, binding=SimpleNamespace(thread_id="other-thread")),
+                    SimpleNamespace(target=Target("other", "one", original.target.cwd), binding=original.binding),
+                    SimpleNamespace(target=Target("other", "two", self.root / "one"), binding=original.binding)]
+        for session in variants:
+            with self.subTest(session=session):
+                self.catalog.sessions = {session.target.session_id: session}
+                await self.engine.reconcile()
+        duplicate = SimpleNamespace(target=Target("duplicate", "two", original.target.cwd), binding=original.binding)
+        self.catalog.sessions = {s.target.session_id: s for s in (original, duplicate)}
+        await self.engine.reconcile()
+        self.agent.rpc.request.assert_not_awaited()
+        self.queue.add.assert_not_awaited()
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
 
     async def test_unsupported_agent_refuses_before_durable_task_admission(self):
         await self.select()
@@ -775,7 +1038,8 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
             {"type": "agentMessage", "text": "说明。\n\n```python\n" + code + "```"}]})
         reply = await self.state.claim_reply()
         self.assertIn(code, reply["text"])
-        self.assertIn("\u2028", reply["text"])
+        self.assertIn("\n\n```python\n", reply["text"])
+        self.assertNotIn("\u2028", reply["text"])
 
     async def test_newly_visible_desktop_session_is_discovered_before_repository_admission(self):
         await self.select()

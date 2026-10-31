@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from collections import deque
 from typing import Any
 
 
@@ -20,11 +21,16 @@ class RpcError(RuntimeError):
 
 
 class JsonRpc:
-    MAX_MESSAGE = 1024 * 1024
+    # A 10 MiB image is normalized to base64 in native user-message events.
+    MAX_MESSAGE = 16 * 1024 * 1024
+    MAX_SEND = 1024 * 1024
+    MAX_EVENT_BYTES = 32 * 1024 * 1024
 
     def __init__(self, transport: Any, *, event_limit: int = 256):
         self.transport = transport
         self.events: asyncio.Queue[dict] = asyncio.Queue(maxsize=event_limit)
+        self.event_sizes = deque()
+        self.event_bytes = 0
         self.pending: dict[tuple[type, int | str], asyncio.Future] = {}
         self.failure: ConnectionLost | None = None
         self.sequence = 0
@@ -41,7 +47,7 @@ class JsonRpc:
         if self.failure:
             raise self.failure
         data = json.dumps(message, ensure_ascii=False, allow_nan=False)
-        if len(data.encode()) > self.MAX_MESSAGE:
+        if len(data.encode()) > self.MAX_SEND:
             raise ValueError("RPC message exceeds configured bound")
         async with self.lock:
             await self.transport.send(data)
@@ -86,7 +92,9 @@ class JsonRpc:
                 if self.failure:
                     raise self.failure
                 try:
-                    return await asyncio.wait_for(self.events.get(), 0.1)
+                    event = await asyncio.wait_for(self.events.get(), 0.1)
+                    self.event_bytes -= self.event_sizes.popleft()
+                    return event
                 except TimeoutError:
                     continue
 
@@ -103,7 +111,8 @@ class JsonRpc:
                 raw = await self.transport.recv()
                 if not raw:
                     raise ConnectionLost("Native connection closed; task outcomes require reconciliation")
-                if len(raw.encode() if isinstance(raw, str) else raw) > self.MAX_MESSAGE:
+                size = len(raw.encode() if isinstance(raw, str) else raw)
+                if size > self.MAX_MESSAGE:
                     raise ConnectionLost("RPC message exceeds configured bound")
                 message = json.loads(raw)
                 if not isinstance(message, dict):
@@ -114,7 +123,11 @@ class JsonRpc:
                     if "id" in message:
                         self.key(message["id"])
                     # Never silently drop an approval or terminal event on overload.
+                    if self.event_bytes + size > self.MAX_EVENT_BYTES:
+                        raise ConnectionLost("Native event byte budget exceeded")
                     self.events.put_nowait(message)
+                    self.event_sizes.append(size)
+                    self.event_bytes += size
                 elif "id" in message:
                     key = self.key(message["id"])
                     if ("result" in message) == ("error" in message):

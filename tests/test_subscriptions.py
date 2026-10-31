@@ -43,6 +43,20 @@ class SubscriptionTests(unittest.IsolatedAsyncioTestCase):
             await self.pool.acquire(self.target, "observer")
         self.assertFalse(self.pool.roles)
 
+    async def test_rebinding_same_thread_to_new_endpoint_preserves_one_subscription(self):
+        await self.pool.acquire(self.target, "route")
+        await self.pool.acquire(self.target, "task-original")
+        replacement = Target("new-terminal-session", "fixture", self.target.cwd)
+        new_session = SimpleNamespace(target=replacement, binding=self.session.binding)
+        self.catalog.require.return_value = new_session
+        await self.pool.acquire(replacement, "route")
+        self.agent.observe_loaded.assert_awaited_once()
+        await self.pool.release(self.target, "route")
+        await self.pool.release(self.target, "task-original")
+        self.agent.unsubscribe.assert_not_awaited()
+        await self.pool.release(replacement, "route")
+        self.agent.unsubscribe.assert_awaited_once_with("fixture-thread")
+
     async def test_unknown_unsubscribe_keeps_subscription_state_for_reconciliation(self):
         await self.pool.acquire(self.target, "observer")
         self.agent.unsubscribe.side_effect = ConnectionError("unknown receipt")

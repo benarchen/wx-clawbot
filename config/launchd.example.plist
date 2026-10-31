@@ -6,16 +6,18 @@
   <key>ProgramArguments</key>
   <array>
     <string>/absolute/path/to/wx-clawbot/.venv/bin/python</string>
-    <string>-m</string><string>wx_clawbot</string><string>serve</string>
+    <string>-m</string><string>wx_clawbot.managed</string>
     <string>--config</string><string>/absolute/path/to/private/config.json</string>
-    <string>--socket</string><string>/absolute/path/to/native-control.sock</string>
-    <string>--codex-executable</string><string>/absolute/path/to/native/codex</string>
-    <string>--codex-home</string><string>/absolute/path/to/codex-home</string>
     <string>--state-dir</string><string>/absolute/path/to/private/wx-clawbot</string>
   </array>
   <key>WorkingDirectory</key><string>/absolute/path/to/wx-clawbot</string>
-  <key>RunAtLoad</key><false/>
-  <key>KeepAlive</key><false/>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>ExitTimeOut</key><integer>120</integer>
+  <key>Umask</key><integer>63</integer>
   <key>ProcessType</key><string>Interactive</string>
   <key>StandardOutPath</key><string>/dev/null</string>
   <key>StandardErrorPath</key><string>/dev/null</string>

@@ -24,7 +24,9 @@ class Subscriptions:
                 raise SubscriptionUnavailable("Agent does not support native event observation")
             current = self.roles.get(target.session_id)
             if current is None:
-                await agent.observe_loaded(session.binding.thread_id, target.cwd)
+                shared = any(s.binding.thread_id == session.binding.thread_id for s in self.bound.values())
+                if not shared:
+                    await agent.observe_loaded(session.binding.thread_id, target.cwd)
                 current = set()
                 self.roles[target.session_id] = current
                 self.bound[target.session_id] = session
@@ -44,7 +46,10 @@ class Subscriptions:
             session = self.bound.get(target.session_id)
             if session is None or session.target != target:
                 raise SubscriptionUnavailable("Original subscription identity is no longer registered")
-            await self.catalog.agent.unsubscribe(session.binding.thread_id)
+            shared = any(key != target.session_id and s.binding.thread_id == session.binding.thread_id
+                         for key, s in self.bound.items())
+            if not shared:
+                await self.catalog.agent.unsubscribe(session.binding.thread_id)
             del self.roles[target.session_id]
             del self.bound[target.session_id]
             return True

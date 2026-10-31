@@ -50,7 +50,7 @@ class SchemaTests(unittest.TestCase):
         before = self.path.read_bytes(), self.snapshot()
         report = schema.inspect(self.root, self.credentials)
         self.assertEqual(report["status"], "upgrade_available")
-        self.assertEqual(report["add_tables"], ["routes", "interactions", "delivery_attempts"])
+        self.assertEqual(report["add_tables"], ["routes", "interactions", "delivery_attempts", "attachments"])
         self.assertEqual(report["row_counts"]["tasks"], 1)
         self.assertFalse((self.root / "backups").exists())
         self.assertEqual((self.path.read_bytes(), self.snapshot()), before)
@@ -65,7 +65,7 @@ class SchemaTests(unittest.TestCase):
         self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
         self.assertEqual(backup.parent.stat().st_mode & 0o777, 0o700)
         with closing(sqlite3.connect(self.path)) as db:
-            self.assertEqual(schema.validate(db, self.credentials), 2)
+            self.assertEqual(schema.validate(db, self.credentials), schema.VERSION)
             digest = db.execute("SELECT body_sha256 FROM inbox").fetchone()[0]
             self.assertEqual(digest, hashlib.sha256(b"original input").hexdigest())
             attempts = db.execute("SELECT state,started_at,finished_at,provenance FROM delivery_attempts ORDER BY state").fetchall()

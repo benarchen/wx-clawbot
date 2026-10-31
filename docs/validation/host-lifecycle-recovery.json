@@ -1,0 +1,1660 @@
+{
+  "work_package": "HOST01",
+  "status": "complete",
+  "goal_status": "complete",
+  "offline": {
+    "last_full_suite": {
+      "tests": 456,
+      "result": "passed",
+      "seconds": 24.568
+    },
+    "latest_controller_suite": {
+      "tests": 66,
+      "result": "passed"
+    },
+    "latest_connection_cleanup_suite": {
+      "tests": 4,
+      "result": "passed",
+      "additional_final_source_real_cycles": 2
+    },
+    "recovery_cycles_tested": 20,
+    "full_suite_after_latest_changes": "passed",
+    "self_test_coverage": {
+      "T01": {
+        "result": "passed_offline",
+        "tests": [
+          "test_hung_session_discovery_has_deadline_and_releases_selection",
+          "test_full_dynamic_work_slots_do_not_block_static_commands_or_controls"
+        ]
+      },
+      "T02": {
+        "result": "passed_offline",
+        "tests": [
+          "test_serve_receives_and_handles_owner_commands_before_any_dependency_exists",
+          "test_native_discovery_failure_keeps_static_commands_alive"
+        ]
+      },
+      "T03": {
+        "result": "passed_offline",
+        "tests": [
+          "test_invalid_shapes_and_private_fields_are_rejected",
+          "test_existing_database_binding_mismatch_does_not_overwrite_owner",
+          "test_two_consumers_cannot_share_the_same_private_channel_state"
+        ]
+      },
+      "T04": {
+        "result": "passed_offline",
+        "tests": [
+          "test_completed_reader_cannot_be_reused_as_live_connection",
+          "test_unresponsive_read_expires_and_recovery_accepts_new_work"
+        ]
+      },
+      "T05": {
+        "result": "passed_offline",
+        "tests": [
+          "test_real_owned_child_is_reaped_after_timeout_and_event_loop_remains_live",
+          "test_oversized_child_output_is_stopped_without_accumulating_output",
+          "test_authorization_failure_is_not_repeated_until_explicit_request",
+          "test_unresponsive_api_never_starts_authorization_request",
+          "test_auth_transport_probe_never_sends_credentials_or_requests_ui",
+          "test_auth_transport_probe_closes_allowed_connection_without_api_calls",
+          "test_auth_transport_probe_unresponsive_server_reports_connect_failure",
+          "test_authentication_timeout_with_unresponsive_server_is_retryable",
+          "test_authentication_timeout_with_responsive_server_still_blocks_repeated_auth",
+          "test_auth_transport_timeout_recovers_same_app_without_explicit_command"
+        ]
+      },
+      "T06": {
+        "result": "passed_offline",
+        "tests": [
+          "test_invalid_project_and_new_without_directory_do_not_launch",
+          "test_cd_when_native_missing_connects_host_but_never_creates_codex",
+          "test_sessions_can_launch_app_and_explain_no_verified_native_sessions"
+        ]
+      },
+      "T07": {
+        "result": "passed_offline",
+        "tests": [
+          "test_concurrent_explicit_requests_launch_and_connect_only_once",
+          "test_lost_host_ack_leaves_unknown_and_does_not_repeat_side_effect"
+        ]
+      },
+      "T08": {
+        "result": "passed_offline",
+        "tests": [
+          "test_late_reply_cannot_commit_after_connection_changed",
+          "test_retired_command_prepared_before_swap_cannot_mutate_later"
+        ]
+      },
+      "T09": {
+        "result": "passed_offline",
+        "tests": [
+          "test_runtime_session_and_project_changes_are_rejected",
+          "test_directory_lookup_refuses_generation_change_during_read",
+          "test_host_generation_change_before_queue_add_prevents_submission"
+        ]
+      },
+      "T10": {
+        "result": "passed_offline",
+        "tests": [
+          "test_missing_footer_is_reported_unverified_and_not_guessed_from_one_thread",
+          "test_same_directory_two_terminals_are_joined_by_current_uuid_not_list_order",
+          "test_unregistered_process_directory_never_triggers_screen_or_native_reads"
+        ]
+      },
+      "T11": {
+        "result": "passed_offline",
+        "tests": [
+          "test_host_recovery_refuses_reused_thread_with_changed_native_session",
+          "test_changed_endpoint_cannot_restore_old_target_or_submit"
+        ]
+      },
+      "T12": {
+        "result": "passed_offline",
+        "tests": [
+          "test_host_recovery_hidden_footer_keeps_passive_observer_without_route",
+          "test_rebinding_same_thread_to_new_endpoint_preserves_one_subscription"
+        ]
+      },
+      "T13": {
+        "result": "passed_offline",
+        "tests": [
+          "test_expired_or_disconnected_request_does_not_send_an_answer",
+          "test_unverified_version_is_rejected_before_any_task"
+        ]
+      },
+      "T14": {
+        "result": "passed_offline",
+        "tests": [
+          "test_native_disconnect_preserves_received_but_marks_attempts_unknown",
+          "test_unknown_image_queue_receipt_never_replays",
+          "test_lost_host_ack_leaves_unknown_and_does_not_repeat_side_effect"
+        ]
+      },
+      "T15": {
+        "result": "passed_offline",
+        "tests": [
+          "test_failed_rollback_requests_native_recovery_without_blocking_status",
+          "test_native_retirement_joins_pending_route_commit_before_recovery_reads",
+          "test_native_retirement_during_reply_joins_one_final_write",
+          "test_native_outage_revokes_dispatch_before_waiting_for_host_restore_lock"
+        ]
+      },
+      "T16": {
+        "result": "passed_offline",
+        "tests": [
+          "test_slow_image_does_not_block_status_or_other_project_and_same_thread_cannot_overtake",
+          "test_received_image_restart_keeps_frozen_target_and_prepared_file_without_redownload"
+        ]
+      },
+      "T17": {
+        "result": "passed_offline",
+        "tests": [
+          "test_twenty_reconnects_leave_only_current_owned_reader",
+          "test_twenty_native_recoveries_keep_one_consumer_and_release_old_engines"
+        ]
+      },
+      "T18": {
+        "result": "passed_offline",
+        "tests": [
+          "test_unknown_identity_unsupported_media_and_missing_ids_never_enter_inbox",
+          "test_status_is_read_only_and_redacts_messages_binding_and_routes",
+          "test_malformed_or_denied_auth_is_redacted_and_never_opens_socket"
+        ]
+      }
+    },
+    "latest_runtime_lifecycle_test_count": 17,
+    "native_recovery_cycles_tested": 20,
+    "peak_native_event_consumers": 1,
+    "retained_old_execution_engines": 0,
+    "remaining_async_tasks_after_native_cycles": 0,
+    "latest_host_lifecycle_suite": {
+      "tests": 20,
+      "result": "passed"
+    }
+  },
+  "readonly": {
+    "native": {
+      "version": "0.165.0",
+      "result": "connected",
+      "elapsed_seconds": 0.158
+    },
+    "host_initial": {
+      "result": "unavailable",
+      "elapsed_seconds": 8.043
+    },
+    "host_after_owner_authorization": {
+      "result": "connected",
+      "elapsed_seconds": 0.236
+    },
+    "session_survey": {
+      "verified_count": 1,
+      "unverified_count": 0
+    },
+    "tasks_submitted": 0,
+    "terminals_created": 0,
+    "owned_reconnect_cycles": [
+      {
+        "cycle": 1,
+        "elapsed_seconds": 0.285,
+        "verified_count": 1,
+        "identity_stable": true,
+        "remaining_app_handlers": 0,
+        "remaining_disconnect_callbacks": 0
+      },
+      {
+        "cycle": 2,
+        "elapsed_seconds": 0.243,
+        "verified_count": 1,
+        "identity_stable": true,
+        "remaining_app_handlers": 0,
+        "remaining_disconnect_callbacks": 0
+      }
+    ]
+  },
+  "acceptance": {
+    "A01": "passed",
+    "A02": "passed",
+    "A03": "passed",
+    "A04": "passed",
+    "A05": "passed",
+    "A06": "passed",
+    "A07": "passed",
+    "A08": "passed",
+    "A09": "passed",
+    "A10": "passed",
+    "A11": "passed",
+    "A12": "passed"
+  },
+  "production_reload": {
+    "status": "running",
+    "host": "ready",
+    "native": "ready",
+    "schema_version": 3,
+    "config_unchanged": true,
+    "task_counts_unchanged": true,
+    "old_source_tasks": 0,
+    "backup_integrity": "ok",
+    "loaded_full_suite_tests": 430
+  },
+  "published": false,
+  "owner_acceptance_window": {
+    "scheduled_at": "2026-10-29T20:00:00+08:00",
+    "reminder_created": true,
+    "one_time": true,
+    "destination": "current_thread",
+    "automatic_application_actions": false,
+    "handoff_after_actual_completion": "Remind owner to confirm MD01 start after all required HOST01 gates, documentation and native Goal completion; never auto-start MD01",
+    "md01_preparation_only": true,
+    "reminder_delivered_at": "2026-10-29T20:00:10+08:00",
+    "owner_returned": true,
+    "owner_saved_work_and_continued": true
+  },
+  "independent_delivery_checks": {
+    "result": "passed",
+    "branch": "dev",
+    "cli_help": true,
+    "diff_check": true,
+    "linked_documents": 10,
+    "self_test_groups_mapped": 18,
+    "selected_privacy_rules": true
+  },
+  "blocked_reason": null,
+  "bridge_supervision": {
+    "evidence": "bridge-supervision.json",
+    "result": "delivered",
+    "tasks_unchanged": true,
+    "schema_unchanged": true,
+    "config_unchanged": true,
+    "phone_after_handoff": {
+      "/sessions": {
+        "delivery_states": {
+          "accepted": 2
+        },
+        "last_receipt_seconds": 0.903,
+        "owner_screenshot_confirmed": true
+      },
+      "/status": {
+        "delivery_states": {
+          "accepted": 1
+        },
+        "last_receipt_seconds": 0.559,
+        "owner_screenshot_confirmed": true
+      }
+    }
+  },
+  "real_app_absence_before_reboot": {
+    "app_absence_seconds": 61.157,
+    "background_app_relaunches": 0,
+    "bridge_identity_unchanged": true,
+    "consumer_always_running": true,
+    "task_counts_unchanged": true,
+    "last_host": {
+      "state": "not_running",
+      "phase": "not_running"
+    },
+    "last_native": {
+      "state": "ready"
+    },
+    "result": "passed"
+  },
+  "reboot_round": {
+    "boot_time_epoch": 1793279239,
+    "managed_started_after_boot": true,
+    "launchd_loaded": true,
+    "launchd_pid_matches_app": true,
+    "config_unchanged": true,
+    "source_unchanged": true,
+    "tasks_unchanged": true,
+    "schema_unchanged": true,
+    "runtime_status": "running",
+    "supervision": {
+      "state": "running",
+      "previous_exit_unobserved": false,
+      "last_exit_code": null
+    },
+    "components": {
+      "host": {
+        "state": "not_running",
+        "phase": "not_running"
+      },
+      "native": {
+        "state": "unavailable"
+      }
+    },
+    "phone_after_boot": "pending",
+    "old_endpoints_reusable": false,
+    "owner_confirmed_static_replies": true
+  },
+  "post_reboot_static": {
+    "commands": {
+      "/help": {
+        "delivery_states": {
+          "accepted": 1
+        }
+      },
+      "/projects": {
+        "delivery_states": {
+          "accepted": 1
+        }
+      },
+      "/status": {
+        "delivery_states": {
+          "accepted": 1
+        }
+      }
+    },
+    "bridge_identity_unchanged": true,
+    "consumer_always_running": true,
+    "task_counts_unchanged": true,
+    "app_launches_observed": 0,
+    "owner_confirmed_static_replies": true,
+    "app_absence_seconds": 61.12,
+    "last_components": {
+      "host": {
+        "state": "not_running",
+        "phase": "not_running"
+      },
+      "native": {
+        "state": "unavailable"
+      }
+    },
+    "result": "passed"
+  },
+  "post_reboot_explicit_sessions": {
+    "app_processes": 1,
+    "app_start_seconds_after_command": [
+      0.112
+    ],
+    "delivery_states": {
+      "accepted": 2
+    },
+    "final_state": "accepted",
+    "final_kind": "accurate_empty_list",
+    "last_receipt_seconds": 1.783,
+    "bridge_identity_unchanged": true,
+    "task_counts_unchanged": true,
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "unavailable"
+      }
+    },
+    "owner_display_confirmation": "iterm_opened; accurate empty verified-session list received"
+  },
+  "fixture_configuration_handoff": {
+    "status": "running",
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "supervision": {
+      "state": "running",
+      "previous_exit_unobserved": false,
+      "last_exit_code": null
+    },
+    "tasks_unchanged": true,
+    "schema_unchanged": true,
+    "original_config_unchanged": true,
+    "temporary_project_aliases": [
+      "host-one",
+      "host-two"
+    ],
+    "original_launch_agent_saved": true,
+    "daily_configuration_restored": false
+  },
+  "manual_bootstrap_observations": {
+    "first_attempt": "process cwd remained home despite logical --cd; skipped without reading unregistered screen",
+    "second_attempt": "registered cwd and visible ID found, but thread not loaded in target daemon",
+    "tui_version": "0.164.0",
+    "daemon_version": "0.165.0",
+    "different_executables": true,
+    "native_tasks_submitted": 0,
+    "owner_closed_empty_test_window": true,
+    "next_path": "existing managed visible launcher; no global upgrade"
+  },
+  "two_project_visible_launch": {
+    "sessions": [
+      {
+        "project_alias": "host-two",
+        "full_binding_verified": true,
+        "native_executable_matches_daemon": true,
+        "turns": 1,
+        "completed": true,
+        "user_marker_count": 1
+      },
+      {
+        "project_alias": "host-one",
+        "full_binding_verified": true,
+        "native_executable_matches_daemon": true,
+        "turns": 1,
+        "completed": true,
+        "user_marker_count": 1
+      }
+    ],
+    "launch_records_per_project": {
+      "host-one": 1,
+      "host-two": 1
+    },
+    "owned_windows": 1,
+    "owned_terminals": 2,
+    "total_windows": 2,
+    "total_terminals": 4,
+    "both_authorized_targets_trusted": true,
+    "other_global_fields_unchanged_since_baseline": false,
+    "owner_cd_reuse_and_new_project_confirmed": true
+  },
+  "resume_after_codex_reinstall": {
+    "checked_at_beijing": "2026-10-29 22:34",
+    "cli_version": "0.165.0",
+    "daemon_version": "0.165.0",
+    "cli_reinstalled_by_owner": true,
+    "cli_daemon_discovery": "passed_outside_sandbox",
+    "native_binary_sha256": "a45099154d7fb4a5ed8a56f40966a95deb938e508bab23e6985035c709e9a85a",
+    "prior_current_native_content_equal": true,
+    "same_bridge_process": true,
+    "source_sha256": "1db4fed7bdce578553abfbf7221ee80fb24844cd3d766e6c46eade07778cc14b",
+    "loaded_source_matches": true,
+    "host_state": "ready",
+    "native_state": "ready",
+    "old_owned_test_processes_alive": 0,
+    "tasks": {
+      "cancelled": 3,
+      "completed": 48,
+      "failed": 2,
+      "interrupted": 6,
+      "unknown": 2
+    },
+    "unsettled_replies": 0,
+    "active_config": "host01-config.json",
+    "daily_config_restored": false,
+    "other_global_fields_match_trust_baseline": false,
+    "global_changes_preserved": true,
+    "service_path_changed": false,
+    "md01_started": false,
+    "initial_check_host_state": "not_running",
+    "subsequent_host_state": "ready",
+    "passive_reconnect": {
+      "application_started_at_beijing": "2026-10-29T22:33:02+08:00",
+      "host_ready_logged_at_beijing": "2026-10-29T22:33:15.931258+08:00",
+      "elapsed_seconds_upper_bound": 13.932,
+      "same_bridge_process": true,
+      "operator_started_application": false,
+      "operator_sent_helper_command": false,
+      "owner_action_confirmation_pending": true
+    }
+  },
+  "post_reinstall_new_visible_session": {
+    "new_visible_launch_records": 1,
+    "sessions": [
+      {
+        "project_alias": "host-one",
+        "phase": "ready",
+        "full_binding_verified": true,
+        "native_executable_matches_daemon": true,
+        "turn_count": 1,
+        "turn_statuses": [
+          "completed"
+        ],
+        "turn_page_fields": [
+          "backwardsCursor",
+          "data",
+          "nextCursor"
+        ],
+        "native_item_types": {
+          "userMessage": 1,
+          "reasoning": 1,
+          "agentMessage": 1
+        }
+      }
+    ],
+    "new_commands": [
+      {
+        "command": "/sessions",
+        "phase": "handled"
+      },
+      {
+        "command": "/cd host-one",
+        "phase": "handled"
+      }
+    ],
+    "same_bridge_process": true,
+    "tasks_unchanged": true,
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "unsettled_replies": 0,
+    "owner_screenshot_confirmed": true,
+    "command_receipts": [
+      {
+        "command": "/sessions",
+        "reply_count": 2,
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_created_seconds": 0.004,
+        "final_reply_created_seconds": 0.055
+      },
+      {
+        "command": "/cd host-one",
+        "reply_count": 2,
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_created_seconds": 0.001,
+        "final_reply_created_seconds": 8.373
+      }
+    ]
+  },
+  "post_reinstall_text_and_new": {
+    "sessions": [
+      {
+        "project_alias": "host-one",
+        "title": "",
+        "full_binding_verified": true,
+        "phase": "ready",
+        "turn_count": 2,
+        "turn_statuses": [
+          "completed",
+          "completed"
+        ],
+        "item_types": {
+          "userMessage": 2,
+          "reasoning": 2,
+          "agentMessage": 2
+        }
+      },
+      {
+        "project_alias": "host-one",
+        "title": "host01-fresh",
+        "full_binding_verified": true,
+        "phase": "ready",
+        "turn_count": 1,
+        "turn_statuses": [
+          "completed"
+        ],
+        "item_types": {
+          "userMessage": 1,
+          "reasoning": 1,
+          "agentMessage": 1
+        }
+      }
+    ],
+    "owned_windows": 1,
+    "owned_terminals": 2,
+    "text_task_proofs": [
+      {
+        "task_state": "completed",
+        "target_project": "host-one",
+        "matched_turns": 1,
+        "matching_client_user_messages": 1,
+        "native_statuses": [
+          "completed"
+        ],
+        "item_types": {
+          "userMessage": 1,
+          "reasoning": 1,
+          "agentMessage": 1
+        },
+        "native_answer_correct": true,
+        "reply_states": [
+          "accepted",
+          "accepted",
+          "accepted"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "/new host01-fresh",
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_seconds": 0.002,
+        "final_reply_seconds": 7.825
+      },
+      {
+        "command": "/status",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.001,
+        "final_reply_seconds": 0.001
+      }
+    ],
+    "launch_start_receipt_states": [
+      "accepted",
+      "accepted"
+    ],
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "tasks": {
+      "cancelled": 3,
+      "completed": 49,
+      "failed": 2,
+      "interrupted": 6,
+      "unknown": 2
+    },
+    "same_bridge_process": true,
+    "unsettled_replies": 0,
+    "owner_screenshots_confirmed": true
+  },
+  "owner_quit_current_round": {
+    "absence_observed_seconds": 61.355,
+    "relaunch_observed": false,
+    "same_bridge_process": true,
+    "all_samples_bridge_running": true,
+    "all_samples_consumer_busy": true,
+    "all_samples_tasks_unchanged": true,
+    "samples": 59,
+    "final_components": {
+      "host": {
+        "state": "not_running",
+        "phase": "not_running"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "final_tasks": {
+      "cancelled": 3,
+      "completed": 49,
+      "failed": 2,
+      "interrupted": 6,
+      "unknown": 2
+    },
+    "unsettled_replies": 0,
+    "inbox_seq_before_quit": 166,
+    "old_application_process_ended": true,
+    "phone_checks": [
+      {
+        "entry": "/help",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.006,
+        "task_rows_for_source": 0,
+        "reply_reports_host_absent": false
+      },
+      {
+        "entry": "/projects",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.002,
+        "task_rows_for_source": 0,
+        "reply_reports_host_absent": false
+      },
+      {
+        "entry": "/status",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.001,
+        "task_rows_for_source": 0,
+        "reply_reports_host_absent": true
+      },
+      {
+        "entry": "plain_text_rejection",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.001,
+        "task_rows_for_source": 0,
+        "reply_reports_host_absent": true
+      }
+    ],
+    "owner_screenshot_confirmed": true
+  },
+  "owner_demand_start_current_round": {
+    "initial_application_absent": true,
+    "sessions_source_messages": 1,
+    "observed_application_generations": 1,
+    "application_started_after_inbox_seconds": 0.077,
+    "first_reply_created_seconds": 0.004,
+    "final_reply_created_seconds": 1.179,
+    "receipt_states": [
+      "accepted",
+      "accepted"
+    ],
+    "accurate_empty_list": true,
+    "same_bridge_process": true,
+    "tasks_unchanged": true,
+    "components": {
+      "host": {
+        "state": "not_running",
+        "phase": "not_running"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "inbox_seq_before_command": 170
+  },
+  "owner_demand_new_project": {
+    "new_project": "host-two",
+    "full_binding_verified": true,
+    "new_launches_for_cd_request": 1,
+    "handshake_turn_count": 1,
+    "handshake_statuses": [
+      "completed"
+    ],
+    "item_types": {
+      "userMessage": 1,
+      "reasoning": 1,
+      "agentMessage": 1
+    },
+    "previous_owned_processes_ended": true,
+    "new_owned_window": true,
+    "new_native_thread": true,
+    "owned_windows": 1,
+    "owned_terminals": 1,
+    "commands": [
+      {
+        "command": "/sessions",
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_seconds": 0.004,
+        "final_reply_seconds": 1.179
+      },
+      {
+        "command": "/cd host-two",
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_seconds": 0.003,
+        "final_reply_seconds": 10.974
+      }
+    ],
+    "components_after_verification": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "owner_confirmed_launch_and_screenshots": true
+  },
+  "owner_manual_two_restarts": {
+    "status": "observed",
+    "rounds": [
+      {
+        "round": 1,
+        "application_generation_changed": true,
+        "application_started_at_beijing": "2026-10-29T22:52:24.681819+08:00",
+        "host_ready_seconds": 1.412,
+        "ready_within_30_seconds": true,
+        "same_bridge_process": true,
+        "tasks_unchanged": true
+      },
+      {
+        "round": 2,
+        "application_generation_changed": true,
+        "application_started_at_beijing": "2026-10-29T22:52:45.815148+08:00",
+        "host_ready_seconds": 14.597,
+        "ready_within_30_seconds": true,
+        "same_bridge_process": true,
+        "tasks_unchanged": true
+      }
+    ],
+    "helper_session_commands_during_observation": 0,
+    "final_components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "operator_application_mutations": 0,
+    "old_owned_window_absent": true,
+    "old_owned_processes_ended": true,
+    "current_codex_candidates": 0,
+    "owner_confirmed_two_rounds": true,
+    "current_components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "global_settings_modified_by_operator": false
+  },
+  "post_two_restarts_focus_and_observe": {
+    "full_binding_verified": true,
+    "project_alias": "host-two",
+    "managed": true,
+    "live_owned_terminals": 1,
+    "handshake_turns": 1,
+    "native_statuses": [
+      "completed"
+    ],
+    "item_types": {
+      "userMessage": 1,
+      "reasoning": 1,
+      "agentMessage": 1
+    },
+    "commands": [
+      {
+        "command": "/cd host-two",
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_seconds": 0.002,
+        "final_reply_seconds": 9.244
+      },
+      {
+        "command": "/sessions",
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_seconds": 0.003,
+        "final_reply_seconds": 0.155
+      },
+      {
+        "command": "/focus 1",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.05,
+        "final_reply_seconds": 0.05
+      },
+      {
+        "command": "/attach 1",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.02,
+        "final_reply_seconds": 0.02
+      }
+    ],
+    "route_mode": "focused",
+    "has_focus_target": true,
+    "has_observer_target": true,
+    "focus_and_observer_same_target": true,
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "unsettled_replies": 0,
+    "owner_screenshot_confirmed": true,
+    "focus_and_observer_native_thread_match": true
+  },
+  "single_image_and_desktop_observation": {
+    "target_reverified": true,
+    "project_alias": "host-two",
+    "same_native_thread_for_image_and_desktop": true,
+    "image_task_count": 1,
+    "image_client_native_matches": 1,
+    "image_native_status": "completed",
+    "native_image_items": 1,
+    "attachment_states": [
+      "ready"
+    ],
+    "native_image_matches_downloaded_attachment": true,
+    "image_answer_contains_code": true,
+    "image_answer_visuals_owner_confirmed": true,
+    "image_item_types": {
+      "userMessage": 1,
+      "agentMessage": 1
+    },
+    "task_receipts": [
+      {
+        "kind": "progress",
+        "state": "accepted"
+      },
+      {
+        "kind": "accepted",
+        "state": "accepted"
+      },
+      {
+        "kind": "progress",
+        "state": "accepted"
+      },
+      {
+        "kind": "final",
+        "state": "accepted"
+      }
+    ],
+    "desktop_turn_matches": 1,
+    "desktop_native_status": "completed",
+    "desktop_answer_contains_image_code_and_marker": true,
+    "desktop_item_types": {
+      "userMessage": 1,
+      "agentMessage": 1
+    },
+    "desktop_observation_receipt_count": 2,
+    "desktop_observation_states": [
+      "accepted",
+      "accepted"
+    ],
+    "owner_screenshots_confirmed": true,
+    "current_task_counts": {
+      "cancelled": 3,
+      "completed": 51,
+      "failed": 2,
+      "interrupted": 6,
+      "unknown": 2
+    },
+    "unsettled_replies": 0,
+    "exact_desktop_start_and_final_receipts": [
+      "accepted",
+      "accepted"
+    ],
+    "exact_desktop_final_receipts": 1
+  },
+  "api_pause_preparation": {
+    "status": "executed_once_recovery_defect_found_and_fixed_offline",
+    "maximum_application_pause_seconds": 40,
+    "signals": [
+      "SIGSTOP",
+      "SIGCONT"
+    ],
+    "independent_guard_self_test": {
+      "stop_sent": true,
+      "guard_resumed": true,
+      "fallback_resumed": false,
+      "same_target_process_after_resume": true,
+      "heartbeat_resumed": true,
+      "pause_gap_seconds": 1.544,
+      "real_application_signals": 0,
+      "parent_exit_guard_resumed": true,
+      "heartbeat_after_parent_exit": true
+    },
+    "global_configuration_changes": 0,
+    "actual_application_fault_test_started": true,
+    "owner_confirmed_work_saved": true,
+    "authorized_at_beijing": "2026-10-29 23:13",
+    "authorized_application_pause_attempts": 1,
+    "first_task_precondition": {
+      "task_result": "completed",
+      "command_exit_code": 0,
+      "command_duration_ms": 14903,
+      "native_matches": 1,
+      "physical_pause_attempts": 0,
+      "temporary_observer_result": "did_not_capture_live_command",
+      "next_observer": "exact native item/started stream",
+      "old_task_replayed": false
+    }
+  },
+  "api_pause_actual": {
+    "commands": [
+      {
+        "command": "/sessions",
+        "receipt_states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_created_seconds": 0.002,
+        "last_reply_created_seconds": 16.344,
+        "busy_not_queued": false,
+        "authentication_timeout_reported": true
+      },
+      {
+        "command": "/cd host-two",
+        "receipt_states": [
+          "accepted"
+        ],
+        "first_reply_created_seconds": 0.001,
+        "last_reply_created_seconds": 0.001,
+        "busy_not_queued": true,
+        "authentication_timeout_reported": false
+      },
+      {
+        "command": "/help",
+        "receipt_states": [
+          "accepted"
+        ],
+        "first_reply_created_seconds": 0.007,
+        "last_reply_created_seconds": 0.007,
+        "busy_not_queued": false,
+        "authentication_timeout_reported": false
+      },
+      {
+        "command": "/status",
+        "receipt_states": [
+          "accepted"
+        ],
+        "first_reply_created_seconds": 0.002,
+        "last_reply_created_seconds": 0.002,
+        "busy_not_queued": false,
+        "authentication_timeout_reported": false
+      }
+    ],
+    "one_physical_pause": true,
+    "paused_seconds": 39.988,
+    "independent_guard_resumed": true,
+    "same_app_and_bridge_process": true,
+    "wait_task_completed_during_host_unavailable": true,
+    "wait_task_final_receipt_state": "accepted",
+    "wait_task_final_delivery_during_pause": true,
+    "observed_post_resume_auto_recovery": "failed_authentication_blocked",
+    "independent_api_probe_after_resume": "connected",
+    "source_fix_required": true,
+    "owner_screenshots_confirmed": true
+  },
+  "auth_transport_fix": {
+    "regression_before_fix": "3 new failures",
+    "host_module_after_fix": {
+      "tests": 20,
+      "result": "passed"
+    },
+    "full_suite": {
+      "tests": 450,
+      "result": "passed",
+      "seconds": 24.516
+    },
+    "real_noninteractive_probe_seconds": 0.037,
+    "real_authenticated_connection_after_probe": true,
+    "live_bridge_reloaded": true,
+    "fixed_outage_retest": "passed_real_reset15_case",
+    "preflight_regression_before_fix": "failed as expected; no authorization request allowed for unresponsive server",
+    "normal_real_connect_seconds": 0.179,
+    "handoff": {
+      "normal_stop_exit_code": 0,
+      "loaded_source_sha256": "cad34fc893358e1bb5ea85e2475c8062abbf287245465226da65a4274dae9acd",
+      "full_suite_tests": 450,
+      "components": {
+        "host": {
+          "state": "ready",
+          "phase": "ready"
+        },
+        "native": {
+          "state": "ready"
+        }
+      },
+      "schema_unchanged": true,
+      "tasks_unchanged": true,
+      "tasks": {
+        "cancelled": 3,
+        "completed": 53,
+        "failed": 2,
+        "interrupted": 6,
+        "unknown": 2
+      },
+      "configs_global_and_launch_agent_unchanged": true,
+      "original_codex_process_preserved": true,
+      "same_original_focus_restored": true,
+      "same_original_observer_restored": true,
+      "route_mode": "focused",
+      "unsettled_replies": 0,
+      "historical_tasks_replayed": 0,
+      "further_physical_pause_attempted": false
+    },
+    "second_pause_authorized_at_beijing": "2026-10-29 23:49",
+    "same_bridge_process_during_corrected_recovery": true
+  },
+  "fixed_api_pause_retest": {
+    "pause_seconds": 39.988,
+    "guard_resumed": true,
+    "same_app_process": true,
+    "same_bridge_process": true,
+    "same_terminal_full_binding_after_recovery": true,
+    "host_full_reverify_seconds_after_helper": 4.753,
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "native_matches_for_client": 1,
+    "task_native_status": "completed",
+    "command_count": 1,
+    "command_exit_code": 0,
+    "command_duration_ms": 14905,
+    "native_ready_throughout_pause": true,
+    "task_completed_while_host_unavailable": true,
+    "final_delivery_during_pause": true,
+    "task_final_delivery_state": "accepted",
+    "commands": [
+      {
+        "command": "/sessions",
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_seconds": 0.002,
+        "final_reply_seconds": 3.871,
+        "api_timeout_reported": true,
+        "reuse_reported": false
+      },
+      {
+        "command": "/cd host-two",
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_seconds": 0.004,
+        "final_reply_seconds": 3.113,
+        "api_timeout_reported": true,
+        "reuse_reported": false
+      },
+      {
+        "command": "/help",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.003,
+        "final_reply_seconds": 0.003,
+        "api_timeout_reported": false,
+        "reuse_reported": false
+      },
+      {
+        "command": "/status",
+        "states": [
+          "accepted"
+        ],
+        "first_reply_seconds": 0.004,
+        "final_reply_seconds": 0.004,
+        "api_timeout_reported": false,
+        "reuse_reported": false
+      },
+      {
+        "command": "/cd host-two",
+        "states": [
+          "accepted",
+          "accepted"
+        ],
+        "first_reply_seconds": 0.006,
+        "final_reply_seconds": 0.171,
+        "api_timeout_reported": false,
+        "reuse_reported": true
+      }
+    ],
+    "new_visible_launches_since_fault": 0,
+    "owner_screenshot_confirmed": true,
+    "prior_failed_tasks_replayed": false
+  },
+  "surviving_session_continuity": {
+    "original_application_and_codex_identity_preserved": true,
+    "same_runtime_thread_session_project": true,
+    "pre_fault_desktop_marker_verified": true,
+    "post_fault_wechat_recalls": [
+      {
+        "source": "wechat",
+        "native_matches": 1,
+        "state": "completed",
+        "both_markers_correct": true,
+        "no_tools": true
+      },
+      {
+        "source": "wechat",
+        "native_matches": 1,
+        "state": "completed",
+        "both_markers_correct": true,
+        "no_tools": true
+      }
+    ],
+    "post_fault_desktop_turns": 1,
+    "desktop_source_is_external_without_wechat_inbox": true,
+    "desktop_native_status": "completed",
+    "desktop_two_markers_correct": true,
+    "desktop_no_tools": true,
+    "desktop_start_and_final_delivery": [
+      "accepted",
+      "accepted"
+    ],
+    "desktop_final_duplicate_count": 1,
+    "owner_screenshots_confirmed": true,
+    "full_binding_reverified": true
+  },
+  "operator_handoff": {
+    "at_beijing": "2026-10-30 00:05",
+    "owner_unavailable_about_minutes": 30,
+    "independent_work_authorized": true,
+    "applications_and_test_session_preserved": true,
+    "remaining_owner_work": [
+      "A10 native interaction regression",
+      "A11 queued cancel and running interrupt",
+      "A12 daily-config restoration phone check"
+    ],
+    "md01_started": false
+  },
+  "independent_delivery_preparation": {
+    "status": "independent_checks_passed_final_delivery_pending",
+    "control_preparation_tests": 5,
+    "trust_cleanup_preparation_tests": 7,
+    "preparation_tests_separate_from_full_450_suite": true,
+    "final_source_real_readonly_resource_check": {
+      "cycles": [
+        {
+          "cycle": 1,
+          "connect_verify_close_seconds": 0.245,
+          "same_original_binding": true,
+          "sdk_app_singleton_released": true,
+          "sdk_notification_handlers": 0,
+          "sdk_disconnect_callbacks": 0,
+          "additional_live_tasks_after_close": 0,
+          "fd_growth": 0
+        },
+        {
+          "cycle": 2,
+          "connect_verify_close_seconds": 0.252,
+          "same_original_binding": true,
+          "sdk_app_singleton_released": true,
+          "sdk_notification_handlers": 0,
+          "sdk_disconnect_callbacks": 0,
+          "additional_live_tasks_after_close": 0,
+          "fd_growth": 0
+        }
+      ],
+      "native_task_submissions": 0,
+      "terminal_creations": 0,
+      "application_mutations": 0,
+      "bridge_tasks_unchanged": true,
+      "components": {
+        "host": {
+          "state": "ready",
+          "phase": "ready"
+        },
+        "native": {
+          "state": "ready"
+        }
+      }
+    },
+    "privacy": {
+      "checked_text_files": 87,
+      "matches": [],
+      "local_attachments_ignored": true,
+      "tracked_attachment_files": 0
+    },
+    "daily_restore_preflight": {
+      "status": "prepared_no_changes",
+      "original_agent_backup_valid": true,
+      "only_active_difference_is_temporary_config_argument": true,
+      "original_config_projects": 2,
+      "original_daily_config_preserved": true,
+      "active_label_owned_by_this_project": true,
+      "task_identity_state_client_sha256": "f5d4942b2242689201bf1be0f01983677a2ced3bde777d6d7f8a6dfb20fb84c2",
+      "restoration_applied": false,
+      "temporary_trust_cleanup_applied": false
+    },
+    "temporary_trust_removal_dry_run": {
+      "target_fields": 2,
+      "other_fields_preserved": true,
+      "applied": false
+    },
+    "native_question_prepared": {
+      "native_task_submissions": 0,
+      "settings_changes": 0
+    },
+    "runtime_checkpoint": {
+      "at_beijing": "2026-10-30 00:28",
+      "bridge_status": "running",
+      "supervision": {
+        "state": "running",
+        "previous_exit_unobserved": false,
+        "last_exit_code": null
+      },
+      "components": {
+        "host": {
+          "state": "ready",
+          "phase": "ready"
+        },
+        "native": {
+          "state": "ready"
+        }
+      },
+      "source_sha256": "cad34fc893358e1bb5ea85e2475c8062abbf287245465226da65a4274dae9acd",
+      "source_loaded_matches": true,
+      "schema_version": 3,
+      "tasks": {
+        "cancelled": 3,
+        "completed": 57,
+        "failed": 3,
+        "interrupted": 6,
+        "unknown": 2
+      },
+      "replies": {
+        "accepted": 374,
+        "superseded": 5
+      },
+      "unsettled_replies": 0,
+      "same_selected_input_and_observer": true,
+      "question_prepared_but_not_started": true,
+      "control_case_not_started": true,
+      "current_config_is_temporary": true,
+      "md01_started": false
+    },
+    "final_checks": {
+      "local_links_checked": 146,
+      "validation_json_valid": true,
+      "private_values_scan_text_files": 87,
+      "private_matches": [],
+      "git_branch": "dev",
+      "tracked_private_attachments": 0,
+      "runtime_ready_and_no_new_active_tasks": true,
+      "loaded_source_matches": true,
+      "md01_not_started": true,
+      "at_beijing": "2026-10-30 00:30",
+      "compileall": "passed",
+      "git_diff_check": "passed"
+    }
+  },
+  "control_regression": {
+    "cases": [
+      {
+        "kind": "running",
+        "state": "interrupted",
+        "native_client_matches": 1,
+        "native_statuses": [
+          "interrupted"
+        ],
+        "still_queued": false,
+        "terminal_receipts": 1,
+        "terminal_receipt_states": [
+          "accepted"
+        ]
+      },
+      {
+        "kind": "queued",
+        "state": "cancelled",
+        "native_client_matches": 0,
+        "native_statuses": [],
+        "still_queued": false,
+        "terminal_receipts": 1,
+        "terminal_receipt_states": [
+          "accepted"
+        ]
+      }
+    ],
+    "native_queue_items_after": 0,
+    "background_terminal_items": 1,
+    "background_has_next": false,
+    "running_observation_duplicate_receipts": 0,
+    "full_binding_reverified": true,
+    "owner_screenshot_confirmed": true,
+    "background_terminal_items_after": 0,
+    "background_cleanup_mutations": 0,
+    "command_after_interrupt": {
+      "status": "completed",
+      "exit_code": 0,
+      "duration_ms": 179906,
+      "observation": "Native turn interrupted; its sleep subprocess finished naturally. No terminate call was made."
+    }
+  },
+  "resume_0166": {
+    "at_beijing": "2026-10-30 07:29",
+    "runtime_version": "0.166.0",
+    "runtime_generation_changed": true,
+    "original_terminal_process_preserved": true,
+    "old_question_native_status": "interrupted",
+    "old_question_interaction_state": "stale",
+    "old_question_replayed": false,
+    "schemas_compared": 36,
+    "full_suite_tests": 451,
+    "full_suite_result": "passed",
+    "dynamic_recovery_pending": false,
+    "normal_stop_exit_code": 0,
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "source_loaded_matches": true,
+    "tasks_unchanged": true,
+    "config_credentials_global_launch_agent_unchanged": true,
+    "schema_version": 3,
+    "tasks": {
+      "cancelled": 4,
+      "completed": 57,
+      "failed": 3,
+      "interrupted": 7,
+      "unknown": 3
+    },
+    "unsettled_replies": [],
+    "old_question_settings_restored": true,
+    "global_file_unchanged_by_restoration": true,
+    "new_generation_full_binding_verified": true,
+    "awaiting_owner_new_sessions": false,
+    "owner_focus_and_observer_confirmed": true,
+    "new_question_phase": "restored",
+    "new_question_submissions": 1,
+    "new_question_auto_answers": 0,
+    "new_question_verified": true,
+    "image_compatibility": "passed_real_original_received_image"
+  },
+  "native_question_after_recovery": {
+    "version": "0.166.0",
+    "native_client_matches": 1,
+    "native_status": "completed",
+    "final_answer_correct": true,
+    "question_ids": [
+      "choice"
+    ],
+    "real_answer_inbox_rows": 1,
+    "interaction_state": "resolved",
+    "observer_final_receipts": 1,
+    "observer_final_state": "accepted",
+    "original_settings_restored": true,
+    "global_config_unchanged": true,
+    "owner_both_screenshots_confirmed": true,
+    "automatic_answers": 0
+  },
+  "runtime_generation_admission_fix": {
+    "cause": "Old stable session ID prevented terminal reconciliation; prepared images lacked an admission-wait receipt",
+    "before_fix_regressions": 2,
+    "new_regression_tests": 5,
+    "full_suite_tests": 456,
+    "full_suite_seconds": 24.568,
+    "full_suite_result": "passed",
+    "handoff": {
+      "image_native_execution_count_before": 0,
+      "image_native_queue_count_before": 0,
+      "old_native_turn_interrupted_and_client_unique": true,
+      "full_suite_tests": 456,
+      "loaded_source_matches": true,
+      "configs_and_global_unchanged": true,
+      "normal_stop_exit_code": 0,
+      "historical_other_unknown_tasks_unchanged": true,
+      "only_old_exact_turn_reconciled": true,
+      "old_target_record_unchanged": true,
+      "image_same_original_intent": true,
+      "image_state": "running",
+      "components": {
+        "host": {
+          "state": "ready",
+          "phase": "ready"
+        },
+        "native": {
+          "state": "ready"
+        }
+      }
+    }
+  },
+  "image_0166_smoke": {
+    "passed": true,
+    "version": "0.166.0",
+    "same_received_task_used": true,
+    "native_client_matches": 1,
+    "native_status": "completed",
+    "native_user_messages": 1,
+    "native_image_items": 1,
+    "native_image_matches_downloaded_attachment": true,
+    "fresh_code_correct": true,
+    "native_tools": 0,
+    "receipts": [
+      {
+        "kind": "progress",
+        "state": "accepted"
+      },
+      {
+        "kind": "accepted",
+        "state": "accepted"
+      },
+      {
+        "kind": "progress",
+        "state": "accepted"
+      },
+      {
+        "kind": "final",
+        "state": "accepted"
+      }
+    ],
+    "final_receipts": 1,
+    "phone_screenshot_of_result_pending": false,
+    "received_image_not_resubmitted": true,
+    "visuals_correct_operator_review": true,
+    "owner_screenshot_confirmed": true
+  },
+  "cleanup": {
+    "temporary_trust_fields_removed": 2,
+    "other_global_fields_preserved": true,
+    "trust_cleanup_recheck_remaining": 0,
+    "owned_terminal": {
+      "owned_terminal_closed": true,
+      "other_terminal_ids_preserved": true,
+      "other_terminal_count": 0,
+      "native_daemon_not_stopped": true,
+      "all_original_turns_terminal_before_close": true,
+      "backgrounds_and_queue_empty": true
+    },
+    "daily_restore": {
+      "normal_stop_exit_code": 0,
+      "single_consumer_running": true,
+      "daily_agent_exactly_restored": true,
+      "daily_config_projects": 2,
+      "config_credentials_global_unchanged": true,
+      "task_identity_state_client_unchanged": true,
+      "schema_version": 3,
+      "components": {
+        "host": {
+          "state": "ready",
+          "phase": "ready"
+        },
+        "native": {
+          "state": "ready"
+        }
+      },
+      "tasks": {
+        "cancelled": 4,
+        "completed": 59,
+        "failed": 3,
+        "interrupted": 8,
+        "unknown": 2
+      },
+      "loaded_source_matches": true,
+      "fixture_routes_cleared": true,
+      "phone_check_seq_before": 211,
+      "owner_phone_check": "passed"
+    },
+    "owner_phone_check": "passed"
+  },
+  "final_delivery_check": {
+    "text_files_checked": 88,
+    "json_files_parsed": 9,
+    "local_links_checked": 269,
+    "private_value_matches": [],
+    "broken_links": [],
+    "tracked_attachments": [],
+    "staged_files": [],
+    "compileall": "passed",
+    "pip_check": "passed",
+    "diff_check": "passed"
+  },
+  "final_owner_receipts": {
+    "daily_phone_commands": [
+      {
+        "command": "/projects",
+        "native_inbox_rows": 1,
+        "receipt_count": 1,
+        "receipt_state": "accepted",
+        "reply_created_seconds": 0.003,
+        "owner_screenshot_confirmed": true
+      },
+      {
+        "command": "/status",
+        "native_inbox_rows": 1,
+        "receipt_count": 1,
+        "receipt_state": "accepted",
+        "reply_created_seconds": 0.002,
+        "owner_screenshot_confirmed": true
+      }
+    ],
+    "owner_image_final_screenshot_confirmed": true,
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "tasks_unchanged_after_restoration": true,
+    "historical_unknown_count": 2,
+    "unsettled_replies": 0,
+    "source_loaded_matches": true,
+    "single_consumer_running": true,
+    "schema_version": 3,
+    "phone_check_passed": true
+  },
+  "checkpoints": {
+    "G00": "passed",
+    "G01": "passed",
+    "G02": "passed",
+    "G03": "passed",
+    "G04": "passed",
+    "G05": "passed",
+    "G06": "passed"
+  },
+  "delivered_at_beijing": "2026-10-30 07:46",
+  "git_actions": {
+    "staged": false,
+    "committed": false,
+    "merged": false,
+    "pushed": false
+  },
+  "completed_at_beijing": "2026-10-30 07:47",
+  "goal_completion": {
+    "actual_native_goal_status": "complete",
+    "completion_recorded": true,
+    "new_md01_goal_created": false
+  }
+}

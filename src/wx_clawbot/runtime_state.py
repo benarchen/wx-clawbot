@@ -1,5 +1,6 @@
 """Private foreground ledger; native execution and delivery have separate outcomes."""
 
+import asyncio
 import json
 import hashlib
 import math
@@ -11,12 +12,14 @@ from contextlib import closing
 from .channels.http import ProtocolError
 from .channels.private import private_file
 from .channels.state import ChannelState
+from .channels.messages import parse_message
 from . import schema
-from .output import display_text, display_segments, LINE_BREAK
+from .output import DisplaySegment, render_segments
 
 
 class RuntimeState(ChannelState):
     APPLICATION_ID = schema.APPLICATION_ID
+    parse_message = staticmethod(parse_message)
 
     def _open(self):
         new = self._open_database()
@@ -66,25 +69,103 @@ class RuntimeState(ChannelState):
                 self.db.execute("ROLLBACK")
                 raise
         if schema.validate(self.db, self.credentials) != schema.VERSION:
-            raise schema.UpgradeRequired("Runtime schema 1 requires an explicitly authorized upgrade")
+            raise schema.UpgradeRequired("An older runtime schema requires an explicitly authorized upgrade")
         # No task, inbound command or uncertain HTTP send is replayed on restart.
+        # Image preparation precedes every native attempt. Resume only its frozen
+        # task, never replay an old inbox command; dispatching remains unknown.
+        self.db.execute("UPDATE tasks SET state='received' WHERE state='prepared' AND input_items<>'[]'")
         self.db.execute("UPDATE tasks SET state='unknown' WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')")
         self.db.execute("UPDATE outbox SET state='unknown' WHERE state='sending'")
         self.db.execute("UPDATE delivery_attempts SET state='unknown' WHERE state='sending'")
         self.db.execute("UPDATE inbox SET phase='stale' WHERE phase='runtime'")
+        self.db.execute("""UPDATE attachments SET state='failed',media='{}',
+            error_code='file_unavailable',updated_at=? WHERE task_id IS NULL
+            AND state='pending' AND message_id IN
+            (SELECT message_id FROM inbox WHERE phase IN ('handled','stale'))""", (time.time(),))
         self._stale_interactions()
 
     def _prior_matches(self, message):
         row = self.db.execute("SELECT body_sha256 FROM inbox WHERE message_id=?", (message.message_id,)).fetchone()
-        return None if row is None else row[0] == hashlib.sha256(message.text.encode()).hexdigest()
+        return None if row is None else row[0] == (message.body_sha256 or hashlib.sha256(message.text.encode()).hexdigest())
 
     def _insert_message(self, message, phase):
-        self.db.execute("""INSERT INTO inbox(message_id,text,context,created_ms,seq,received_at,phase,body_sha256)
-            VALUES(?,?,?,?,?,?,?,?)""", (message.message_id, message.text, message.context_token,
-                message.created_ms, message.sequence, time.time(), phase, hashlib.sha256(message.text.encode()).hexdigest()))
+        content, attachments = [], []
+        now = time.time()
+        for index, item in enumerate(message.content):
+            if item["type"] == "image":
+                identity = "a-" + uuid.uuid5(uuid.NAMESPACE_URL, self.credentials.bot_id + "\0" + message.message_id + "\0" + str(index)).hex
+                attachments.append((identity, message.message_id, index, json.dumps(item["image"], sort_keys=True), now, now))
+                content.append({"type": "image", "attachment_id": identity})
+            else:
+                content.append(item)
+        self.db.execute("""INSERT INTO inbox(message_id,text,context,created_ms,seq,received_at,phase,body_sha256,content)
+            VALUES(?,?,?,?,?,?,?,?,?)""", (message.message_id, message.text, message.context_token,
+                message.created_ms, message.sequence, now, phase,
+                message.body_sha256 or hashlib.sha256(message.text.encode()).hexdigest(), json.dumps(content, ensure_ascii=False)))
+        self.db.executemany("""INSERT INTO attachments(id,message_id,item_index,media,state,created_at,updated_at)
+            VALUES(?,?,?,?,'pending',?,?)""", attachments)
 
     async def handled(self, message_id):
-        await self._call(lambda: self.db.execute("UPDATE inbox SET phase='handled' WHERE message_id=?", (message_id,)))
+        def finish():
+            self.db.execute("BEGIN IMMEDIATE")
+            try:
+                self.db.execute("UPDATE inbox SET phase='handled' WHERE message_id=?", (message_id,))
+                # No task was admitted: retain the tombstone, not unused keys.
+                self.db.execute("""UPDATE attachments SET state='failed',media='{}',
+                    error_code='file_unavailable',updated_at=? WHERE message_id=?
+                    AND task_id IS NULL AND state='pending'""", (time.time(), message_id))
+                self.db.execute("COMMIT")
+            except BaseException:
+                self.db.execute("ROLLBACK")
+                raise
+        await self._call(finish)
+
+    async def attachments(self, *, task_id=None, message_id=None):
+        def read():
+            keys = ("id", "message_id", "item_index", "task_id", "media", "state", "filename", "sha256",
+                    "byte_size", "format", "width", "height", "error_code")
+            query = "SELECT " + ",".join(keys) + " FROM attachments"
+            if task_id is not None:
+                rows = self.db.execute(query + " WHERE task_id=? ORDER BY item_index", (task_id,))
+            elif message_id is not None:
+                rows = self.db.execute(query + " WHERE message_id=? ORDER BY item_index", (message_id,))
+            else:
+                raise ValueError("An exact task or message identity is required")
+            return [dict(zip(keys, row)) for row in rows]
+        return await self._call(read)
+
+    async def prepare_attachment_file(self, attachment_id, *, filename, sha256, byte_size, format, width, height):
+        from .image_files import FILENAME
+        if (not isinstance(filename, str) or not FILENAME.fullmatch(filename)
+                or not isinstance(sha256, str) or len(sha256) != 64
+                or type(byte_size) is not int or not 0 < byte_size <= 10 * 1024 * 1024
+                or format not in {"PNG", "JPEG"} or type(width) is not int or type(height) is not int
+                or width <= 0 or height <= 0 or width * height > 20_000_000):
+            raise ValueError("Verified bounded image metadata required")
+        def prepare():
+            row = self.db.execute("SELECT state,filename,sha256 FROM attachments WHERE id=?", (attachment_id,)).fetchone()
+            if row is None or row[0] not in {"pending", "preparing"}:
+                raise ProtocolError("Attachment is unavailable for preparation")
+            if row[1] is not None and (row[1], row[2]) != (filename, sha256):
+                raise ProtocolError("Prepared image identity cannot be replaced")
+            self.db.execute("""UPDATE attachments SET state='preparing',filename=?,sha256=?,byte_size=?,format=?,
+                width=?,height=?,updated_at=? WHERE id=?""",
+                (filename, sha256, byte_size, format, width, height, time.time(), attachment_id))
+        return await self._call(prepare)
+
+    async def finish_attachment(self, attachment_id, *, error_code=None):
+        if error_code is not None and error_code not in {"download_failed", "invalid_image", "capacity", "file_unavailable"}:
+            raise ValueError("A bounded public attachment error category required")
+        def finish():
+            row = self.db.execute("SELECT state,filename,sha256,byte_size FROM attachments WHERE id=?", (attachment_id,)).fetchone()
+            if row is None or row[0] not in {"pending", "preparing"}:
+                raise ProtocolError("Attachment preparation is no longer active")
+            if error_code is None:
+                from .image_files import verify_image_file
+                verify_image_file(self.path.parent, row[1], row[2], row[3])
+            self.db.execute("UPDATE attachments SET state=?,media='{}',error_code=?,updated_at=? WHERE id=?",
+                            ("failed" if error_code else "ready", error_code, time.time(), attachment_id))
+        return await self._call(finish)
 
     async def admission_budget(self):
         def read():
@@ -190,6 +271,13 @@ class RuntimeState(ChannelState):
     async def stale_interactions(self, generation=None):
         await self._call(self._stale_interactions, generation)
 
+    async def native_disconnected(self):
+        """Preserve intent and receipts; never replay an uncertain native call."""
+        def mark():
+            self.db.execute("UPDATE tasks SET state='unknown',updated_at=? WHERE state IN "
+                            "('prepared','dispatching','queued','running','waiting_interaction','stopping')", (time.time(),))
+        await self._call(mark)
+
     async def task_intent(self, message_id, target: dict, text: str):
         if (not isinstance(message_id, str) or not message_id or not isinstance(target, dict)
                 or not isinstance(target.get("thread_id"), str) or not target["thread_id"]
@@ -204,14 +292,21 @@ class RuntimeState(ChannelState):
                 if existing != (encoded, text):
                     raise ProtocolError("Source message cannot be retargeted or rewritten")
                 return None
-            row = self.db.execute("SELECT conflict,phase FROM inbox WHERE message_id=?", (message_id,)).fetchone()
-            if row != (0, "runtime"):
+            row = self.db.execute("SELECT conflict,phase,content FROM inbox WHERE message_id=?", (message_id,)).fetchone()
+            if row is None or row[:2] != (0, "runtime"):
                 raise ProtocolError("Task must originate from a fresh validated runtime message")
             if self.db.execute("SELECT count(*) FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
                 raise ProtocolError("Unresolved task admission bound reached")
             now = time.time()
-            self.db.execute("INSERT INTO tasks(id,source_message_id,client_id,target,thread_id,input,state,created_at,updated_at) VALUES(?,?,?,?,?,?,'prepared',?,?)",
-                            (task_id, message_id, client_id, encoded, target["thread_id"], text, now, now))
+            self.db.execute("BEGIN IMMEDIATE")
+            try:
+                self.db.execute("INSERT INTO tasks(id,source_message_id,client_id,target,thread_id,input,state,created_at,updated_at,input_items) VALUES(?,?,?,?,?,?,'prepared',?,?,?)",
+                                (task_id, message_id, client_id, encoded, target["thread_id"], text, now, now, row[2]))
+                self.db.execute("UPDATE attachments SET task_id=? WHERE message_id=? AND task_id IS NULL", (task_id, message_id))
+                self.db.execute("COMMIT")
+            except BaseException:
+                self.db.execute("ROLLBACK")
+                raise
             return {"id": task_id, "client_id": client_id, "target": target, "state": "prepared"}
         return await self._call(insert)
 
@@ -261,14 +356,15 @@ class RuntimeState(ChannelState):
     def _task(row):
         if row is None:
             return None
-        keys = ("id", "source_message_id", "client_id", "target", "thread_id", "input", "state", "queue_id", "turn_id")
+        keys = ("id", "source_message_id", "client_id", "target", "thread_id", "input", "state", "queue_id", "turn_id", "input_items")
         result = dict(zip(keys, row))
         result["target"] = json.loads(result["target"])
+        result["input_items"] = json.loads(result["input_items"])
         return result
 
     async def tasks(self, *, task_id=None, client_id=None, active_only=False, native_turn=None):
         def read():
-            query = "SELECT id,source_message_id,client_id,target,thread_id,input,state,queue_id,turn_id FROM tasks"
+            query = "SELECT id,source_message_id,client_id,target,thread_id,input,state,queue_id,turn_id,input_items FROM tasks"
             if task_id is not None:
                 return self._task(self.db.execute(query + " WHERE id=?", (task_id,)).fetchone())
             if client_id is not None:
@@ -310,11 +406,14 @@ class RuntimeState(ChannelState):
         return True
 
     async def queue_reply(self, event_id, text, *, priority=5, task_id=None, kind="reply"):
-        text = display_text(text)
+        chunks = [text] if isinstance(text, DisplaySegment) else await asyncio.to_thread(render_segments, text)
         def queue():
             self.db.execute("BEGIN IMMEDIATE")
             try:
-                result = self._queue_reply(event_id, text, priority, task_id, kind)
+                result = False
+                for index, chunk in enumerate(chunks):
+                    key = event_id if len(chunks) == 1 else f"{event_id}-part-{index}"
+                    result = self._queue_reply(key, chunk.text, priority, task_id, kind) or result
                 self.db.execute("COMMIT")
                 return result
             except BaseException:
@@ -327,6 +426,8 @@ class RuntimeState(ChannelState):
             raise ValueError("Explicit terminal native task state required")
         if not isinstance(text, str) or not text.strip() or len(text) > 512000:
             raise ValueError("Bounded native result required")
+        chunks = await asyncio.to_thread(render_segments, text,
+            prefix=lambda i, n: f"〔{i}/{n}〕{task_id}\n\n" if n > 1 else "") if deliver else []
         def finish():
             self.db.execute("BEGIN IMMEDIATE")
             try:
@@ -337,13 +438,14 @@ class RuntimeState(ChannelState):
                     return False
                 if only_if is not None and row[0] not in only_if:
                     return False
+                self.db.execute("""UPDATE attachments SET state='failed',media='{}',
+                    error_code='file_unavailable',updated_at=? WHERE task_id=?
+                    AND state IN ('pending','preparing')""", (time.time(), task_id))
                 self.db.execute("UPDATE tasks SET state=?,turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=?",
                                 (state, turn_id, time.time(), task_id))
                 self.db.execute("UPDATE outbox SET state='superseded' WHERE task_id=? AND state='pending' AND kind IN ('accepted','progress')", (task_id,))
-                chunks = display_segments(text) if deliver else []
                 for index, chunk in enumerate(chunks, 1):
-                    prefix = f"〔{index}/{len(chunks)}〕{task_id}{LINE_BREAK}" if len(chunks) > 1 else ""
-                    self._queue_reply(f"{task_id}-final-{index}", display_text(prefix + chunk), reply_priority, task_id, "final")
+                    self._queue_reply(f"{task_id}-final-{index}", chunk.text, reply_priority, task_id, "final")
                 self.db.execute("COMMIT")
                 return True
             except BaseException:

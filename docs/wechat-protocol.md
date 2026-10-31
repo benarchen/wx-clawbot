@@ -1,6 +1,6 @@
-# 微信文本通道协议与联调入口
+# 微信通道协议与联调入口
 
-输入固定于 [腾讯参考清单](wechat-reference.json) 的同一 commit；W04 补充消息类型文件并逐项核验七份源码哈希。本文描述本项目具体实现与测试方法，当前进度以 [ROADMAP](../ROADMAP.md) 为准。
+输入固定于 [腾讯参考清单](wechat-reference.json) 的同一 commit；W04 补充消息类型文件，IMG01 再核对四份图片下载、解密及 CDN 源码。本文描述本项目具体实现与测试方法，当前进度以 [ROADMAP](../ROADMAP.md) 为准。
 
 ## 请求字段与本项目选择
 
@@ -10,6 +10,8 @@
 | `GET ilink/bot/get_qrcode_status` | URL 编码的 qrcode，可选配对码；仅应用 headers，不带 POST 鉴权头 |
 | `POST ilink/bot/getupdates` | 自有 bot token、已确认游标 `get_updates_buf`、`base_info`；不用已废弃的 `sync_buf` |
 | `POST ilink/bot/sendmessage` | `from_user_id: ""`，收件人必须是扫码且明确确认的 owner；稳定 `client_id`，type／state 为 2，单个 type 1 文本 item，原消息回复上下文 |
+
+出站 Markdown 仍通过文本 item 的 `text_item.text` 发送，没有新增 `parse_mode` 或其他未经核验的模式字段。新回执在入账前完成兼容渲染和结构分段，发送器逐字使用冻结正文；升级不重排历史 outbox，投递重试不重新执行任务。接口 accepted、本人实际显示和实际复制分别记录，客户端兼容范围见[排版说明](wechat-markdown.md)及[真机证据](validation/wechat-markdown.md)。
 
 公共 `iLink-App-Id` 采用参考中的 `bot`；客户端版本按参考的 uint32 算法编码本项目自身版本，`0.1.0.dev0` 对应 256。`base_info.channel_version` 使用本项目版本，`bot_agent` 为 `wx-clawbot/<version>`，不伪装成参考插件及其版本。真实接口已完成独立扫码、鉴权轮询及本人手机文本往返。
 
@@ -23,9 +25,11 @@ HTTP 错误、非零业务码、会话失效和未知投递区分处理。消息
 
 ## 身份、去重、游标和回复上下文
 
-首次扫码仅保存待确认凭据，不允许收发。本人明确确认后，客户端仍逐条核对发件人为 owner、收件人为该 bot，拒绝群聊、非用户消息、未完成消息与非文本内容。缺少稳定原生 message ID 的输入不进入任务链路，不用正文哈希吞掉相同文本的不同消息。
+首次扫码仅保存待确认凭据，不允许收发。本人明确确认后，客户端仍逐条核对发件人为 owner、收件人为该 bot，拒绝群聊、非用户消息与未完成消息。诊断入口保持纯文本；新版 runtime 支持一张静态 JPEG／PNG 及同消息图文，其他媒体或多图整条拒绝，不只执行残余文字。缺少稳定原生 message ID 的输入不进入任务链路，不用正文哈希吞掉相同文本的不同消息。
 
-`ChannelState` 使用独立私有 SQLite。inbox 与非空游标在同一事务提交；中途存储失败全部回滚。重复 message ID 不再次交付，原 ID 下的不同正文标记冲突；不同 ID 的相同正文各自保留。旧消息或重复消息不会替换较新回复上下文。未知身份与不支持的输入只记录拒绝类别，不保存其消息正文。
+`ChannelState` 使用独立私有 SQLite。inbox 与非空游标在同一事务提交；中途存储失败全部回滚。重复 message ID 不再次交付，原 ID 下的不同正文标记冲突；不同 ID 的相同正文各自保留。旧消息或重复消息不会替换较新回复上下文。未知身份不保存其消息正文。新版 runtime 对已核验本人的不支持媒体记录稳定摘要和错误类别以明确回执，不保存被拒媒体正文或下载材料；支持图片的有序内容及附件引用同事务保存。
+
+图片字段优先 image_item.aeskey；否则解析 media.aes_key 的 base64 原始 16 字节或十六进制字符串。完整 URL 优先于 encrypt_query_param；只允许固定微信 CDN HTTPS origin，不跟随重定向、不带 bot Bearer。有密钥时按 AES-128-ECB／PKCS#7 解密，无密钥也须完整解码。现有 HTTPS CONNECT 代理保持原主机名 TLS 校验；直连解析只允许公网且连接已核验地址。资源上限、附件保护及使用方式见 [图片指南](image-input.md)，两端可行性与整链路验收分开见 [IMG01 记录](validation/image-input.md)。
 
 诊断接收标记为 `diagnostic`，不转为 Agent 任务，不因后续接入路由而回放历史个人消息。测试回显只匹配明确口令；每条原消息先保存发送意图再调用 API。断连或缺少明确成功回执进入 unknown，不能自动重新发送，更不能重新执行任务。API `ret: 0` 或有效原生消息 ID 仅表示服务端接受；手机实际收到还须本人核对。
 
@@ -57,6 +61,6 @@ HTTP 错误、非零业务码、会话失效和未知投递区分处理。消息
 
 ## 新增二维码依赖
 
-标准库与已有依赖不提供 QR 编码。选择 `segno==1.6.6` 仅生成标准 PNG，不增加 Pillow、PNG 编码器或网络依赖；Python 3.14 下真实生成 PNG 并用于登录页，手机扫码为 V06 的最终可读性验证。
+标准库与当时已有依赖不提供 QR 编码。选择 `segno==1.6.6` 仅生成标准 PNG，不因二维码引入 Pillow 或网络依赖；IMG01 后来另为完整图片解码引入 Pillow，见 [依赖证据](protocol-baseline.md)。Python 3.14 下真实生成 PNG 并用于登录页，手机扫码为 V06 的最终可读性验证。
 
 [PyPI](https://pypi.org/project/segno/) 核对发行日期 2025-03-12、哈希和 Python 要求；[官方源码](https://github.com/heuer/segno/commit/b11dc2913c22b22b3bc0a6efaa989904c44977bf) 最近抽样提交为 2026-07-23，许可证 BSD-3-Clause。抽样 issue #153 的三条评论均为 NONE 角色，不能证明维护者及时响应；不把这些检查称为完整安全审计。依赖只在项目虚拟环境安装，精确版本与分发哈希进入 requirements.lock。

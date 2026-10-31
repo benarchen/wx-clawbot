@@ -9,6 +9,16 @@ import subprocess
 class DoctorTests(unittest.TestCase):
     @patch("wx_clawbot.cli.shutil.which", return_value="/fixture/command")
     @patch("wx_clawbot.cli.subprocess.run")
+    def test_verified_daemon_need_not_match_cli_version(self, run, _which):
+        run.side_effect = [subprocess.CompletedProcess([], 0, "codex-cli 0.164.0"),
+                           subprocess.CompletedProcess([], 0, '{"status":"running","cliVersion":"0.164.0","appServerVersion":"0.165.0"}')]
+        report, ok = doctor()
+        self.assertTrue(ok)
+        self.assertTrue(report["runtime"]["verified_schema"])
+        self.assertEqual(report["runtime"]["appServerVersion"], "0.165.0")
+
+    @patch("wx_clawbot.cli.shutil.which", return_value="/fixture/command")
+    @patch("wx_clawbot.cli.subprocess.run")
     def test_malformed_or_unverified_runtime_is_reported_without_sensitive_fields(self, run, _which):
         for raw in ('[]', '{"status":"running","cliVersion":"private token","appServerVersion":"9.9.9","managedCodexPath":"private path"}'):
             run.side_effect = [subprocess.CompletedProcess([], 0, "codex-cli 0.163.0"), subprocess.CompletedProcess([], 0, raw)]

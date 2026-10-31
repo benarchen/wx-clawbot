@@ -6,17 +6,21 @@
 
 取消确认只发送一条；主动中断已订阅的桌面任务时，最终结果不再重复发送观察副本。最终正文保留原生最终回答及错误，不混入标记为 commentary 的进展；没有最终回答时明确说明。
 
+Android 微信 8.0.80 已验证换行、加粗、明确层级标题、列表／引用、链接、行内代码及代码块展示。含代码的简单列表项以所属项标签另列续段和独立代码；表格采用字段列表，受限样式明确提示兼容。长结果按结构分段，代码与 URL 字面内容受保护，旧冻结回执不重排。[格式规则与客户端边界](docs/wechat-markdown.md) 说明复制、超限及 Mac 的已知限制。
+
+中断结果以原生轮次的 `interrupted` 确认为准；已经启动的系统子进程可能继续运行，不能将该回执理解为所有子进程均已终止。
+
 微信支持一次性命令审批和多题单选加自由文本追问；电脑与微信操作同一原生请求，由原生运行时裁决首次有效答复。已处理、过期或断连旧请求的答复被拒绝。[交互证据](docs/validation/w08.md) 区分各实际场景。
 
 Python 模块另提供目录校验、环境诊断、显式绑定复核，以及命令审批和多题单选与自由文本答复校验；[原生模块验证](docs/validation/w03.md) 说明交互与队列的底层行为。
 
 微信侧提供独立二维码登录、本人绑定和指定口令文本回显，可与本人微信真实往返；该诊断入口不执行 Codex 任务。操作见[微信联调说明](docs/wechat-protocol.md)。
 
-`serve` 提供前台命令桥接入口，组合项目／会话路由、原生队列、独立观察订阅和可见启动。任务意图与回复分别记录在本项目私有运行账本；重启后的未知任务不会自动执行。原生组件的实际检查范围见 [W05 证据](docs/validation/w05.md)。
+`serve` 提供前台命令桥接入口，组合项目／会话路由、原生队列、独立观察订阅和可见启动。任务意图与回复分别记录在本项目私有运行账本；重启后的未知任务不会自动执行。运行时换代后，仅在当前原终端完整复验及原生 client／终态唯一匹配时只读更新历史结果；图片受仓库保护等待时会说明原因。原生组件的实际检查范围见 [W05 证据](docs/validation/w05.md)。
 
 ## 安装与使用
 
-使用 Python 3.14，并准备可用的 Git、iTerm2 与已登录的 Codex 原生 daemon。Git 用于核对同仓库与 worktree 的准入冲突；在仓库根目录执行：
+使用 Python 3.14，并准备可用的 Git、iTerm2 与已登录的 Codex。实际执行任务需要受支持的既有原生 daemon；宿主或运行时暂时缺席时，微信帮助、项目列表和状态仍可用，桥接不自动启动 daemon。Git 用于核对同仓库与 worktree 的准入冲突；在仓库根目录执行：
 
 ```sh
 python3 -m venv .venv
@@ -32,6 +36,8 @@ python3 -m venv .venv
 ```
 
 诊断输出只包含版本、配置状态和项目数量；无效配置返回非零状态，不打印配置内容。
+
+当前已核验的原生 app-server 版本为 `0.163.0`、`0.164.0`、`0.165.0`、`0.166.0`；以 `doctor` 的 `runtime.appServerVersion` 和 `verified_schema` 为准，CLI 版本可以不同。`verified_schema: false` 时不要继续启动，须先核对对应版本协议，不能只修改版本列表绕过检查。
 
 显式检查 iTerm2 API：`.venv/bin/wx-clawbot doctor --iterm2`。这可能触发宿主脚本授权；诊断不会启用 API、发送终端输入或启动 Codex。[协议与依赖基线](docs/protocol-baseline.md) 记录版本和重建方式。
 
@@ -66,17 +72,21 @@ python3 -m venv .venv
 
 `--codex-executable` 必须是已核验的原生可执行文件，不能使用依赖 GUI 环境中 `node` 的包装脚本。默认沿用当前用户的 Codex home；可用 `--codex-home` 明确指定同一既有运行时的目录。桥接不自动更换模型或修改全局配置。
 
-微信中发送 `/projects` 查看注册项目，`/sessions` 获取会话编号，`/focus 1` 选择后续普通消息目标，或 `/send 1 指令` 单次派发。`/cd 项目别名` 复用受管会话，没有时可见创建；`/new 标题` 在当前目录新建。`/help` 返回命令说明，`/status` 查看目标与任务。独立 `/attach`／`/detach` 语义见[命令契约](docs/command-contract-proposal.md)。
+微信中发送 `/projects` 查看注册项目，`/sessions` 获取会话编号，`/focus 1` 选择后续普通消息目标，或 `/send 1 指令` 单次派发。`/cd 项目别名` 复用受管会话，没有时可见创建；`/new 标题` 在当前目录新建。有效的 `/sessions`、`/cd`、`/new` 可按需拉起未运行的 iTerm2；其他命令和普通消息不触发应用启动。`/help` 返回命令说明，`/status` 查看目标、任务及宿主／原生就绪状态。独立 `/attach`／`/detach` 语义见[命令契约](docs/command-contract-proposal.md)。
+
+宿主连接失效后，桥接保持微信收发并在 iTerm2 重新运行时自动重连；用户主动退出应用后，后台不会反复拉起。重新连接后需要完整核验原会话，旧数字列表失效；只恢复窗口内容不能证明原 Codex 仍在。认证和 API 等待有时限，系统授权仍须本人处理，不自动改设置。真实验收状态及限制见 [HOST01 证据](docs/validation/host-lifecycle-recovery.md)。
 
 按收到的准确请求 ID 使用 `/approve`／`/deny`；追问使用 `/answer`，多题答案须为实际题目 ID 到回答数组的 JSON 对象。单独发送选项文字会按普通任务处理，不自动猜测要回答哪道题。交互十分钟过期后只拒绝微信迟到答复，不自动批准或拒绝原生请求；仍可在原终端核对处理。
 
-前台运行使用独立 `runtime.sqlite3`，首次只从本项目旧诊断库读取游标和回复上下文，不导入诊断消息为任务，不修改旧库 schema。初始化运行账本后，指定口令 `wechat echo` 不再使用旧诊断游标；微信通道同时只允许一个本项目消费者。退出前台进程会保留原生终端和其中可能仍在执行的任务。重启仅恢复重新通过完整身份核验的选择；不能核验的目标保持未选并提示刷新，旧列表编号失效，未知任务不自动重放。
+前台运行使用独立 `runtime.sqlite3`，首次只从本项目旧诊断库读取游标和回复上下文，不导入诊断消息为任务，不修改旧库 schema。初始化运行账本后，指定口令 `wechat echo` 不再使用旧诊断游标；微信通道同时只允许一个本项目消费者。退出前台进程会保留原生终端和其中可能仍在执行的任务。重启先启动微信通道，再恢复依赖和通过完整身份核验的选择；恢复期间拒绝新派发，不能核验的目标保持未选并提示刷新，旧列表编号失效，未知任务不自动重放。
 
 已有旧版账本时，先用 `.venv/bin/wx-clawbot migrate-state` 只读检查升级计划；`serve` 不会自动升级已有运行数据。字段、备份、拒绝条件与显式执行方法见[账本升级说明](docs/state-schema.md)。
 
 `.venv/bin/wx-clawbot maintain-state` 默认只读查看已结记录的保留期计划；实际清理需要显式操作并停止前台，具体范围见同一账本说明。
 
-另一个普通 Shell 可运行 `.venv/bin/wx-clawbot status` 只读查看计数和待核对回执 ID，或用 `.venv/bin/wx-clawbot stop` 请求当前桥接自行退出；原生 Codex 会话继续运行。只重试回执的 `retry-reply`、分组件故障处理、私有权限及待部署模板见[前台运维说明](docs/operations.md)。
+另一个普通 Shell 可运行 `.venv/bin/wx-clawbot status` 只读查看计数和待核对回执 ID，或用 `.venv/bin/wx-clawbot stop` 请求当前桥接自行退出；原生 Codex 会话继续运行。只重试回执的 `retry-reply`、分组件故障处理、私有权限及用户级托管模板见[前台运维说明](docs/operations.md)。
+
+长期运行提供用户级 launchd 托管入口：登录启动、异常退出后限速重启、正常 stop 后保持停止；复用原配置及账本，不管理 Codex／iTerm2 进程。托管状态可由 status 核对，私有诊断日志限制容量并轮转。安装、主动恢复及回退见同一[运维说明](docs/operations.md)；电脑睡眠或关机期间不保证微信在线。
 
 会话列表同时显示编号、稳定会话 ID、原终端／受管类型和目录。启动未确认时，可用 `/sessions` 核对已经出现的原会话，不必再次新建。失败任务会保留原生错误；额度恢复后可提交新请求，原失败任务不会自动重跑。仍在原终端和原生已加载列表中的错误状态会话，经完整身份复验后可以继续使用。
 
@@ -101,6 +111,8 @@ codex queue --remote unix:///absolute/path/to/native-control.sock \
 git diff --check
 ```
 
-[项目规范](AGENTS.md) · [当前进度与阻塞](ROADMAP.md) · [产品设计](docs/product-design.md) · [架构](docs/architecture-design.md) · [技术决策](docs/technical-decisions.md) · [开发契约](docs/development-contracts.md) · [施工清单](goals/implementation-plan.md)
+[排版模块与自测](docs/wechat-markdown.md) · [项目规范](AGENTS.md) · [当前进度与阻塞](ROADMAP.md) · [产品设计](docs/product-design.md) · [架构](docs/architecture-design.md) · [技术决策](docs/technical-decisions.md) · [开发契约](docs/development-contracts.md) · [施工清单](goals/implementation-plan.md)
+
+本人可在已聚焦的原生会话中直接发送一张静态 JPEG／PNG，图片通过原队列处理，结果以文本返回；发送前使用 `/sessions` 和 `/focus <编号>` 选择目标。图片输入的原生版本准入为 0.165.0／0.166.0，已有账本须显式升级到 schema 3。详细操作与边界见 [图片输入指南](docs/image-input.md)。
 
 独立二维码登录、本人确认及指定口令文本诊断的操作入口见 [微信通道协议与联调说明](docs/wechat-protocol.md)。诊断命令不会执行 Agent 任务，只有已明确确认的本人绑定才能进行测试收发。

@@ -1,6 +1,6 @@
 import unittest
 
-from wx_clawbot.output import RESULT_LIMIT, bounded, display_text, display_segments, format_prose, native_output, split_text
+from wx_clawbot.output import RESULT_LIMIT, bounded, display_text, display_segments, format_prose, native_output, split_text, render_segments
 
 
 class OutputTests(unittest.TestCase):
@@ -53,11 +53,12 @@ class OutputTests(unittest.TestCase):
         self.assertTrue(text.startswith("ERROR_START"))
         self.assertTrue(text.endswith("ERROR_END"))
 
-    def test_display_hard_breaks_leave_code_bytes_literal_and_rendering_is_idempotent(self):
+    def test_display_standard_lf_leaves_code_bytes_literal_and_rendering_is_idempotent(self):
         code = 'value = "A B"\nprint(value)\n'
         text = "项目：fixture-one\n状态：仅展示\n\n```python\n" + code + "```\n\n结束。"
         result = display_text(text)
-        self.assertIn("fixture-one\u2028状态", result)
+        self.assertIn("fixture-one\n\n状态", result)
+        self.assertNotIn("\u2028", result)
         self.assertIn("\n\n```python\n" + code + "```\n\n结束。", result)
         self.assertEqual(display_text(result), result)
 
@@ -67,13 +68,16 @@ class OutputTests(unittest.TestCase):
         actual = []
         for chunk in chunks:
             self.assertLess(len(chunk), 8000)
-            self.assertEqual(chunk.count("```"), 2)
+            if "value_" in chunk:
+                self.assertEqual(chunk.count("```"), 2)
             actual.extend(line for line in chunk.splitlines(keepends=True) if line.startswith("value_"))
         self.assertEqual(actual, lines)
 
     def test_excessive_code_fence_cannot_overflow_transport_or_silently_lose_original_result(self):
         text = "`" * 10000 + "text\noriginal result\n" + "`" * 10000
-        chunks = display_segments(text)
-        self.assertTrue(all(len(chunk) < 8000 for chunk in chunks))
-        self.assertTrue(all("原文片段" in chunk for chunk in chunks))
-        self.assertEqual("".join(chunk.split("\u2028", 1)[1] for chunk in chunks), text)
+        chunks = render_segments(text)
+        self.assertTrue(all(len(chunk.text) < 8000 for chunk in chunks))
+        self.assertTrue(all("原文片段" in chunk.text for chunk in chunks))
+        self.assertEqual("".join(chunk.source for chunk in chunks), text)
+        for chunk in chunks:
+            self.assertEqual(chunk.text[len(chunk.before):len(chunk.text)-len(chunk.after)], chunk.source)

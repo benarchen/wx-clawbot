@@ -2,6 +2,7 @@
 
 import os
 import stat
+from dataclasses import replace
 from pathlib import Path
 
 from websockets.asyncio.client import unix_connect
@@ -9,7 +10,7 @@ from websockets.asyncio.client import unix_connect
 from .rpc import JsonRpc
 from .base import Capabilities, SubmissionReceipt, thread_is_loaded
 
-SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0"})
+SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0", "0.165.0", "0.166.0"})
 
 
 class CodexConnection:
@@ -27,7 +28,7 @@ class CodexConnection:
             raise ValueError("Native socket must be private and owned by current user")
         transport = await unix_connect(
             str(socket), uri="ws://localhost/", open_timeout=5, close_timeout=2,
-            max_size=JsonRpc.MAX_MESSAGE, max_queue=16,
+            max_size=JsonRpc.MAX_MESSAGE, max_queue=2,
         )
         connection = cls(transport)
         connection.runtime_identity = (metadata.st_dev, metadata.st_ino)
@@ -48,6 +49,7 @@ class CodexConnection:
             if server_version not in SUPPORTED_SERVER_VERSIONS:
                 raise ValueError("Native version has no verified schema baseline")
             connection.server_version = server_version
+            connection.capabilities = replace(cls.capabilities, image_input=server_version in {"0.165.0", "0.166.0"})
             connection.server_info = result
             await connection.rpc.notify("initialized", {})
             return connection
@@ -117,8 +119,10 @@ class CodexConnection:
             raise ValueError("Original thread unloaded during subscription")
         return after
 
-    async def read_turns(self, thread_id: str, *, cursor: str | None = None) -> dict:
-        params = {"threadId": thread_id, "limit": 20, "itemsView": "full", "sortDirection": "asc"}
+    async def read_turns(self, thread_id: str, *, cursor: str | None = None, limit: int = 20) -> dict:
+        if type(limit) is not int or not 1 <= limit <= 20:
+            raise ValueError("Bounded native history page required")
+        params = {"threadId": thread_id, "limit": limit, "itemsView": "full", "sortDirection": "asc"}
         if cursor is not None:
             params["cursor"] = cursor
         return await self.rpc.request("thread/turns/list", params)

@@ -45,7 +45,7 @@ def ledger(root, credentials):
     private_file(path)
     db = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)
     try:
-        schema.validate(db, credentials, versions=(2,))
+        schema.validate(db, credentials, versions=(2, schema.VERSION))
     except BaseException:
         db.close()
         raise

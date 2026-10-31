@@ -1,0 +1,330 @@
+{
+  "stage": "single_image_delivered",
+  "runtime_version": "0.165.0",
+  "native_probe": {
+    "visible_fixture": true,
+    "same_native_identity": true,
+    "global_config_unchanged": true,
+    "matched_native_turns": 1,
+    "turn_status": "completed",
+    "user_messages": 1,
+    "input_types_in_history": [
+      "text",
+      "image"
+    ],
+    "tools_used": false,
+    "unprompted_visual_features_identified": true
+  },
+  "schema_count": 4,
+  "schemas": {
+    "ThreadQueueAddParams": {
+      "sha256": "60f25b7d3e3357c215bef9d2fe7047200f545e030dca9e00527ac0620cd0c88f",
+      "input_variants": [
+        "TextUserInput",
+        "ImageUserInput",
+        "LocalImageUserInput",
+        "AudioUserInput",
+        "LocalAudioUserInput",
+        "SkillUserInput",
+        "MentionUserInput"
+      ]
+    },
+    "ThreadQueueListResponse": {
+      "sha256": "be4e0bfa6fc776101f96582543605d2eff6186309a08903203512b99c5005926",
+      "input_variants": [
+        "TextUserInput",
+        "ImageUserInput",
+        "LocalImageUserInput",
+        "AudioUserInput",
+        "LocalAudioUserInput",
+        "SkillUserInput",
+        "MentionUserInput"
+      ]
+    },
+    "ThreadTurnsListResponse": {
+      "sha256": "a2ccdaaa57a779ca3c58eca9d0ac507d87b57775ce06b705bfe8dcc3bf76539c",
+      "input_variants": [
+        "TextUserInput",
+        "ImageUserInput",
+        "LocalImageUserInput",
+        "AudioUserInput",
+        "LocalAudioUserInput",
+        "SkillUserInput",
+        "MentionUserInput"
+      ]
+    },
+    "TurnStartParams": {
+      "sha256": "f671d01c24995e99fcc110862ff3251c26d334fba212c7dc12857fb939506e47",
+      "input_variants": [
+        "TextUserInput",
+        "ImageUserInput",
+        "LocalImageUserInput",
+        "AudioUserInput",
+        "LocalAudioUserInput",
+        "SkillUserInput",
+        "MentionUserInput"
+      ]
+    }
+  },
+  "wechat_reference": {
+    "commit": "874637a0dbc24050f72d1385add4fc6170a2d726",
+    "source": "Existing project frozen reference; downloaded exact files again; image references appended to project manifest",
+    "files": [
+      {
+        "file": "docs/protocol.md",
+        "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/docs/protocol.md",
+        "sha256": "8d778054436f6a0d93b4b38abf2dfd09c16e4a961bed044634cac2d3b8f155dd"
+      },
+      {
+        "file": "src/api/types.ts",
+        "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/api/types.ts",
+        "sha256": "9e321e1a79bd7ec385b8e2b9695f1d87507282ff33f9cfdafbe4e33aea5387ac"
+      },
+      {
+        "file": "src/media/media-download.ts",
+        "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/media/media-download.ts",
+        "sha256": "18e3968fc0b7a7e328ef0f5ac84eb4c1433ae96a467a6f5c702cd93cf8260cb1"
+      },
+      {
+        "file": "src/cdn/pic-decrypt.ts",
+        "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/cdn/pic-decrypt.ts",
+        "sha256": "49a9b08ced1b3ddb7c4d80dd279ba7d7f977febc999a9507f8f41c05976dceaa"
+      },
+      {
+        "file": "src/cdn/aes-ecb.ts",
+        "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/cdn/aes-ecb.ts",
+        "sha256": "3aff4fbef828f085db0e29a146ae76aebf338308c676c9c0a68ca4d22264e93a"
+      },
+      {
+        "file": "package.json",
+        "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/package.json",
+        "sha256": "89e9e2a5883ccf46cb579e76dccb80c4ce7e619a499352eaf07d1022cf56c813"
+      },
+      {
+        "file": "src/cdn/cdn-url.ts",
+        "url": "https://raw.githubusercontent.com/Tencent/openclaw-weixin/874637a0dbc24050f72d1385add4fc6170a2d726/src/cdn/cdn-url.ts",
+        "sha256": "d1f1e9eed76e8adb97c238a4d9967bea35d5460d2cb9bc3113a5ea1459b42646"
+      }
+    ]
+  },
+  "probe_self_tests": {
+    "run": 20,
+    "passed": 20,
+    "scope": "G01 prototype only"
+  },
+  "wechat_live_capture": "passed_download_decrypt_and_complete_decode",
+  "product_integration": "implemented_live_acceptance_in_progress",
+  "production_schema_migration": "verified_backup_and_upgraded_2_to_3",
+  "acceptance": {
+    "A01": "passed_random_marker_multiple_visual_features_unique_native_turn_owner_screenshot",
+    "A02": "passed_owner_desktop_enter_then_wechat_same_thread_unique_turns",
+    "A03": "deferred_by_owner_not_verified_not_required_for_single_image_delivery",
+    "A04": "passed_no_focus_owner_screenshot_and_delayed_target_freeze",
+    "A05": "passed_busy_native_fifo_image_digest_and_owner_screenshot",
+    "A06": "passed_queue_cancel_and_controlled_long_prompt_running_interrupt",
+    "A07": "passed_single_ack_then_controlled_exit_reconciled_without_replay",
+    "A08": "passed_offline_failure_paths_and_owner_visible_no_focus_refusal",
+    "A09": "passed_isolated_and_actual_verified_backup_upgrade",
+    "A10": "passed_full_offline_text_status_and_owner_question_with_settings_restored",
+    "A11": "passed_diff_links_and_sensitive_pattern_checks_not_full_audit",
+    "A12": "passed_single_image_delivery_owner_scope_adjustment_goal_complete"
+  },
+  "goal_status": "usageLimited",
+  "offline_regression": {
+    "run": 388,
+    "passed": 388,
+    "skipped": 0,
+    "command": ".venv/bin/python -m unittest discover -s tests -v"
+  },
+  "production_downloader": {
+    "real_saved_owner_image": true,
+    "same_plaintext_digest_as_probe": true,
+    "format": "JPEG",
+    "width": 1104,
+    "height": 742,
+    "bytes": 66445,
+    "native_submissions": 0,
+    "outbound_messages": 0
+  },
+  "current_daily_foreground": {
+    "status": "dedicated_acceptance_running",
+    "schema_version": 3,
+    "original_configuration_restoration_pending": true,
+    "old_unknown_tasks_not_replayed": true
+  },
+  "acceptance_preparation": {
+    "owned_windows": 1,
+    "owned_tabs": 2,
+    "visible_identities_verified": true,
+    "config_contains_only_two_temporary_fixture_roots": true,
+    "separate_git_repositories": true,
+    "activation_plan_saved": true,
+    "activation_plan_applied": false
+  },
+  "open_implementation_edges": [],
+  "pre_activation_checks": {
+    "checked_at_beijing": "2026-10-28 15:55",
+    "compileall": "passed",
+    "pip_check": "passed",
+    "diff_check": "passed",
+    "local_links": "passed",
+    "sensitive_pattern_scan": "no_matches_not_full_security_audit"
+  },
+  "desktop_followup": "owner_manually_submitted_once_native_completed",
+  "random_marker_probe": {
+    "native_matches": 1,
+    "native_status": "completed",
+    "user_messages": 1,
+    "native_image_items": 1,
+    "native_image_matches_attachment": true,
+    "tool_used": false,
+    "owner_screenshot_confirmed": true,
+    "inbound_item_types": [
+      "image"
+    ],
+    "associated_replies_accepted": 4
+  },
+  "fifo_timer": {
+    "single_intent": "completed",
+    "command_execution_observed": true,
+    "owner_inputs_during_timer": false,
+    "busy_fifo": "not_verified"
+  },
+  "fifo_live": {
+    "timer_active_when_queued": true,
+    "queue_positions": [
+      "image",
+      "text"
+    ],
+    "native_turn_order": [
+      "timer",
+      "image",
+      "text"
+    ],
+    "each_unique": true,
+    "all_completed": true,
+    "image_digest_matches": true,
+    "owner_confirmation": "screenshot_confirmed_both_in_order"
+  },
+  "queued_image_cancellation": {
+    "cancelled": true,
+    "native_queue_contains_client": false,
+    "native_history_matches": 0,
+    "single_final_reply_accepted": true,
+    "timer_still_active_when_verified": true
+  },
+  "fault_recovery": {
+    "fault_after_native_queue_ack_before_local_update": true,
+    "controlled_exit_code": 76,
+    "same_client_thread": true,
+    "recovered_state": "completed",
+    "native_turn_matches": 1,
+    "native_image_digest_matches": true,
+    "native_tools_used": false,
+    "automatic_replay": false
+  },
+  "running_interrupt_attempt": "two_images_completed_before_stop_second_command_missing_task_prefix_owner_screenshot_not_verified",
+  "route_switch_live": {
+    "controlled_delay_seconds": 75,
+    "image_target": "img-b",
+    "subsequent_text_target": "img-a",
+    "text_completed_before_image_ready": true,
+    "unique_native_turns": true,
+    "image_digest_matches": true,
+    "text_native_images": 0,
+    "owner_confirmation": "owner_reported_problem_details_pending"
+  },
+  "reported_test_wrapper_failure": {
+    "timestamp_beijing": "2026-10-28 21:59",
+    "cause": "test_only_delay_marker_created_exclusively_again_on_second_image",
+    "failed_task_no_native_submit": true,
+    "test_wrapper_no_longer_running": true,
+    "two_image_wrapper_regression_passed": true,
+    "normal_foreground_live_retest": {
+      "native_turns": 1,
+      "status": "completed",
+      "image_digest_matches": true,
+      "tools_used": false,
+      "replies_accepted": 4
+    },
+    "production_downloader_recheck": {
+      "real_saved_reference": true,
+      "digest_matches": true,
+      "native_submissions": 0,
+      "outbound": 0
+    }
+  },
+  "owner_question": {
+    "same_verified_subscription": true,
+    "questions": 2,
+    "owner_answer_received": true,
+    "interaction": "resolved",
+    "native_turn_unique": true,
+    "native_status": "completed",
+    "native_answer_matches_choices": true,
+    "reply_accepted": true,
+    "owner_screenshot_confirmed": true,
+    "original_thread_settings_restored": true
+  },
+  "continuity": {
+    "native_order": [
+      "wechat_image",
+      "desktop_followup",
+      "wechat_followup"
+    ],
+    "same_runtime_thread_model": true,
+    "each_unique_completed": true,
+    "no_tools": true,
+    "owner_screenshot_confirmed": true
+  },
+  "no_focus_live": {
+    "owner_screenshot_confirmed": true,
+    "tasks_created": 0,
+    "file_created": false,
+    "download_material_cleared": true,
+    "refusal_accepted": true
+  },
+  "running_interrupt": {
+    "wechat_image": true,
+    "test_only_extended_prompt": true,
+    "native_unique": true,
+    "status": "interrupted",
+    "image_digest_matches": true,
+    "no_tools": true,
+    "single_final_reply_accepted": true,
+    "owner_screenshot_confirmed": true
+  },
+  "daily_restore": {
+    "original_config_restored": true,
+    "foreground_running_at_check": true,
+    "original_focus_identity_restored": true,
+    "original_observer_state_restored": true,
+    "schema_version": 3,
+    "original_unknown_preserved": true,
+    "unsettled_replies": 0,
+    "merged_external_turn_startup_issue_fixed": true
+  },
+  "latest_recheck": {
+    "beijing": "2026-10-29 07:45",
+    "daily_foreground": "running",
+    "schema_version": 3,
+    "unsettled_replies": 0,
+    "active_task_not_interrupted": true,
+    "native_goal_status": "usageLimited"
+  },
+  "scope_decision": {
+    "date_beijing": "2026-10-29",
+    "owner_explicitly_deferred_same_message_caption": true,
+    "delivered_scope": "single_static_JPEG_PNG",
+    "A03_required_this_delivery": false,
+    "backlog": "ROADMAP.md"
+  },
+  "goal_final": {
+    "status": "complete",
+    "recorded_at_beijing": "2026-10-29 07:57",
+    "tokens_used": 140218,
+    "time_used_seconds": 1142,
+    "budget_set": false,
+    "accounting_not_cross_session_total": true
+  }
+}

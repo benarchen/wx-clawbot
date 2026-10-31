@@ -12,6 +12,7 @@ class Capabilities:
     queue: bool = False
     interrupt: bool = False
     shared_interactions: bool = False
+    image_input: bool = False
 
 
 @dataclass(frozen=True)

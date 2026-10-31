@@ -1,0 +1,205 @@
+{
+  "recorded_at": "2026-10-29T21:02:00+08:00",
+  "work": "bridge_supervision",
+  "status": "delivered",
+  "native_goal_created": false,
+  "scope": "Authorized recovery and user-level supervision before HOST01 app tests",
+  "offline": {
+    "tests": 443,
+    "result": "passed",
+    "seconds": 24.438,
+    "compileall": "passed",
+    "dependency_check": "passed",
+    "plist_lint": "passed"
+  },
+  "launchd_probe": {
+    "result": "passed",
+    "starts": 2,
+    "first_exit": 7,
+    "second_exit": 0,
+    "restart_gap_seconds": 30.054,
+    "normal_exit_observation_seconds": 35,
+    "native_calls": 0,
+    "wechat_calls": 0,
+    "business_process_signals": 0,
+    "owned_label_removed": true
+  },
+  "production_handoff": {
+    "status": "running",
+    "supervision": {
+      "state": "running",
+      "previous_exit_unobserved": false,
+      "last_exit_code": null
+    },
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "config_unchanged": true,
+    "tasks_unchanged": true,
+    "schema_unchanged": true,
+    "source_matches_tested": true,
+    "launchd_job_loaded": true,
+    "launchd_pid_matches_app": true,
+    "log_modes": {
+      "bridge.jsonl": "0o600"
+    },
+    "managed_record_mode": "0o600"
+  },
+  "owner_phone": {
+    "commands_after_managed_handoff": {
+      "/sessions": {
+        "delivery_states": {
+          "accepted": 2
+        },
+        "last_receipt_seconds": 0.903,
+        "owner_screenshot_confirmed": true
+      },
+      "/status": {
+        "delivery_states": {
+          "accepted": 1
+        },
+        "last_receipt_seconds": 0.559,
+        "owner_screenshot_confirmed": true
+      }
+    },
+    "tasks": {
+      "cancelled": 3,
+      "completed": 48,
+      "failed": 2,
+      "interrupted": 6,
+      "unknown": 2
+    },
+    "unsettled_replies": 0,
+    "status": "running",
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "supervision": {
+      "state": "running",
+      "previous_exit_unobserved": false,
+      "last_exit_code": null
+    }
+  },
+  "host01_completed": true,
+  "md01_started": false,
+  "machine_restart_tested": true,
+  "old_foreground_exit_reason": "unobserved; no persistent historical log",
+  "source_sha256": "1db4fed7bdce578553abfbf7221ee80fb24844cd3d766e6c46eade07778cc14b",
+  "machine_restart_observation": {
+    "boot_time_epoch": 1793279239,
+    "managed_started_after_boot": true,
+    "launchd_loaded": true,
+    "launchd_pid_matches_app": true,
+    "config_unchanged": true,
+    "source_unchanged": true,
+    "tasks_unchanged": true,
+    "schema_unchanged": true,
+    "runtime_status": "running",
+    "supervision": {
+      "state": "running",
+      "previous_exit_unobserved": false,
+      "last_exit_code": null
+    },
+    "components": {
+      "host": {
+        "state": "not_running",
+        "phase": "not_running"
+      },
+      "native": {
+        "state": "unavailable"
+      }
+    },
+    "phone_after_boot": "owner_confirmed; ledger accepted for all three static commands",
+    "owner_confirmed_static_replies": true,
+    "static_command_evidence": {
+      "commands": {
+        "/help": {
+          "delivery_states": {
+            "accepted": 1
+          }
+        },
+        "/projects": {
+          "delivery_states": {
+            "accepted": 1
+          }
+        },
+        "/status": {
+          "delivery_states": {
+            "accepted": 1
+          }
+        }
+      },
+      "bridge_identity_unchanged": true,
+      "consumer_always_running": true,
+      "task_counts_unchanged": true,
+      "app_launches_observed": 0,
+      "owner_confirmed_static_replies": true,
+      "app_absence_seconds": 61.12,
+      "last_components": {
+        "host": {
+          "state": "not_running",
+          "phase": "not_running"
+        },
+        "native": {
+          "state": "unavailable"
+        }
+      },
+      "result": "passed"
+    }
+  },
+  "host01_later_source_handoff": {
+    "at_beijing": "2026-10-29 23:47",
+    "full_suite": 450,
+    "loaded_source_sha256": "cad34fc893358e1bb5ea85e2475c8062abbf287245465226da65a4274dae9acd",
+    "normal_stop_exit_code": 0,
+    "config_schema_task_counts_preserved": true,
+    "original_codex_process_preserved": true,
+    "current_host_native_ready": true
+  },
+  "host01_final_daily_handoff": {
+    "at_beijing": "2026-10-30 07:43",
+    "full_suite_tests": 456,
+    "restoration": {
+      "normal_stop_exit_code": 0,
+      "single_consumer_running": true,
+      "daily_agent_exactly_restored": true,
+      "daily_config_projects": 2,
+      "config_credentials_global_unchanged": true,
+      "task_identity_state_client_unchanged": true,
+      "schema_version": 3,
+      "components": {
+        "host": {
+          "state": "ready",
+          "phase": "ready"
+        },
+        "native": {
+          "state": "ready"
+        }
+      },
+      "tasks": {
+        "cancelled": 4,
+        "completed": 59,
+        "failed": 3,
+        "interrupted": 8,
+        "unknown": 2
+      },
+      "loaded_source_matches": true,
+      "fixture_routes_cleared": true,
+      "phone_check_seq_before": 211,
+      "owner_phone_check": "passed"
+    },
+    "phone_check": "passed"
+  }
+}

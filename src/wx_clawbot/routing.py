@@ -32,6 +32,7 @@ class Dispatch:
     target: Target
     route_revision: int
     text: str
+    has_images: bool = False
 
 
 class Routes:
@@ -144,11 +145,11 @@ class Routes:
             self.observer = None
             self.revision += 1
 
-    def freeze(self, text: str, *, target: Target | None = None) -> Dispatch:
+    def freeze(self, text: str, *, target: Target | None = None, has_images=False) -> Dispatch:
         target = target if target is not None else self.target
         if target is None:
             raise RouteError("请先使用 /cd 或 /focus 选择执行目标。")
         if not isinstance(text, str) or not text.strip() or len(text) > 32000:
             raise RouteError("请提供不超过 32000 个字符的任务。")
         self.validate_target(target)
-        return Dispatch(target, self.revision, text)
+        return Dispatch(target, self.revision, text, has_images)

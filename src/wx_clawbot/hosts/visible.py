@@ -107,16 +107,25 @@ class VisibleStarter:
 class ItermWindowStarter:
     """Creates only a new owned window, or a tab in that explicitly owned window."""
 
-    def __init__(self, connection, owned_window_id=None):
+    def __init__(self, connection=None, owned_window_id=None, *, lifecycle=None):
         self.connection, self.owned_window_id = connection, owned_window_id
+        self.lifecycle, self.host_generation = lifecycle, None
 
     async def __call__(self, command):
+        if self.lifecycle is not None:
+            if self.host_generation != self.lifecycle.generation:
+                self.owned_window_id = None
+                self.host_generation = self.lifecycle.generation
+            return await self.lifecycle.call(lambda connection: self._create(connection, command))
+        return await self._create(self.connection, command)
+
+    async def _create(self, connection, command):
         import iterm2
 
-        app = await iterm2.async_get_app(self.connection)
+        app = await iterm2.async_get_app(connection)
         window = app.get_window_by_id(self.owned_window_id) if self.owned_window_id else None
         if window is None:
-            window = await iterm2.Window.async_create(self.connection, command=command)
+            window = await iterm2.Window.async_create(connection, command=command)
             if window is None:
                 raise LaunchError("New owned terminal ended before acknowledgement")
             self.owned_window_id = window.window_id
@@ -131,7 +140,7 @@ class ItermWindowStarter:
 
 async def reconcile_launch(registry, launch_id, directory, native):
     """Read-only host/native reconciliation followed by a proven ready record."""
-    from ..sessions import SessionBinding, verify_binding
+    from ..sessions import SessionBinding, SessionUnbound, verify_binding
 
     check_launch_id(launch_id)
     with private_lease(registry.root / (launch_id + ".lock")):
@@ -152,9 +161,9 @@ async def reconcile_launch(registry, launch_id, directory, native):
         if len(candidates) != 1:
             raise LaunchPending("No unique live Codex process matches the launcher receipt")
         endpoint = candidates[0]
-        if (record.get("terminal_id") not in {None, endpoint.terminal_id}
-                or Path(endpoint.process.executable).resolve() != Path(record["executable"])):
-            raise LaunchError("Visible terminal or executable identity changed")
+        endpoint_changed = record.get("terminal_id") not in {None, endpoint.terminal_id}
+        if Path(endpoint.process.executable).resolve() != Path(record["executable"]):
+            raise SessionUnbound("Visible executable identity changed")
         visible_id = await directory.current_thread_id(endpoint)
         if visible_id is None:
             raise LaunchPending("Current native thread ID is not displayed by the terminal")
@@ -173,11 +182,15 @@ async def reconcile_launch(registry, launch_id, directory, native):
                 or record.get("native_session_id") not in {None, thread["sessionId"]}
                 or record.get("runtime_identity") is not None
                 and tuple(record["runtime_identity"]) != native.runtime_identity):
-            raise LaunchError("Previously bound runtime or thread changed")
+            raise SessionUnbound("Previously bound runtime or thread changed")
+        if endpoint_changed and (record["phase"] != "ready" or record.get("thread_id") != thread["id"]
+                                or record.get("native_session_id") != thread["sessionId"]
+                                or tuple(record.get("runtime_identity") or ()) != native.runtime_identity):
+            raise SessionUnbound("Changed terminal requires the exact previously verified native identity")
         binding = SessionBinding(endpoint, Path(record["cwd"]), native.runtime_identity,
                                  thread["id"], thread["sessionId"])
         await verify_binding(binding, directory, native)
-        turns = (await native.read_turns(thread["id"]))["data"]
+        turns = (await native.read_turns(thread["id"], limit=1))["data"]
         if not turns or turns[0].get("status") != "completed":
             raise LaunchPending("Original visible handshake has not completed")
         user = [part.get("text", "") for item in turns[0].get("items", []) if item.get("type") == "userMessage"

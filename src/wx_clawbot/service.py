@@ -3,23 +3,18 @@
 import asyncio
 from pathlib import Path
 
-from .agents.codex import CodexConnection
-from .catalog import SessionCatalog
 from .channels.http import TransportError, WeixinHttp
 from .channels.private import load_credentials, private_directory
 from .channels.wechat import WechatApi
-from .commands import CommandError
-from .controller import Controller
+from .commands import CommandError, parse_command
 from .delivery import Sender
-from .execution import Execution
-from .hosts.connection import close_connection
-from .hosts.discovery import ItermDirectory
-from .hosts.launch import native_tui_command
+from .hosts.lifecycle import HostLifecycle
 from .hosts.visible import ItermWindowStarter, LaunchRegistry, VisibleStarter
 from .routing import RouteError
 from .runtime_state import RuntimeState
 from .operations import ForegroundInstance, StopRequested
 from .schema import UpgradeRequired
+from .runtime_lifecycle import BridgeRuntime
 
 
 class ComponentError(RuntimeError):
@@ -69,19 +64,33 @@ async def poll(controller, api, *, emit=None):
                 continue
             batch = await state.accept_batch(response, phase="runtime")
             for message in batch["accepted"]:
-                # Bound command concurrency; native model execution does not occupy a job.
-                if len(jobs) >= 32:
-                    done, _ = await asyncio.wait(jobs, return_when=asyncio.FIRST_COMPLETED)
-                    for job in done:
-                        jobs.remove(job)
-                        job.result()
+                completed = {job for job in jobs if job.done()}
+                for job in completed:
+                    jobs.remove(job)
+                    job.result()
+                # Do not stop receiving controls behind a full set of pending
+                # submissions. Reject overload before prepare can reserve a
+                # selection; static queries do not depend on native I/O.
+                try:
+                    name = parse_command(message.text).name if not getattr(message, "content", ()) else "message"
+                except CommandError:
+                    name = "invalid"
+                static = name in {"help", "projects", "status"}
+                urgent = name in {"stop", "approve", "deny", "answer"}
+                if not static and len(jobs) >= (40 if urgent else 32):
+                    await controller.reply(message, "当前待处理命令已达上限，本条操作未接收，请稍后重试。", priority=0)
+                    await state.handled(message.message_id)
+                    continue
                 try:
                     work = controller.prepare(message)
                 except (CommandError, RouteError) as exc:
                     await controller.reply(message, str(exc), priority=0)
                     await state.handled(message.message_id)
                 else:
-                    jobs.add(asyncio.create_task(work))
+                    if static:
+                        await work
+                    else:
+                        jobs.add(asyncio.create_task(work))
             completed = {job for job in jobs if job.done()}
             for job in completed:
                 jobs.remove(job)
@@ -93,45 +102,43 @@ async def poll(controller, api, *, emit=None):
 
 
 async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex_home: Path, *, emit=None):
-    import iterm2
-
-    native = host = state = http = instance = None
+    host = state = http = instance = None
     stage = "state"
     try:
         root = private_directory(state_dir.expanduser().absolute())
         credentials = load_credentials(root / "credentials.json")
-        stage = "agent"
-        executable, codex_home = executable.resolve(strict=True), codex_home.resolve(strict=True)
-        native_tui_command(executable, codex_home, projects[0].root)
-        native = await CodexConnection.connect(socket)
-        if Path(native.server_info["codexHome"]).resolve(strict=True) != codex_home:
-            raise ValueError("Native runtime belongs to another Codex home")
-        stage = "host"
-        host = await asyncio.wait_for(iterm2.Connection.async_create(), 8)
-        directory = ItermDirectory(host)
-        catalog = SessionCatalog(projects, directory, native)
-        starter = VisibleStarter(LaunchRegistry(root / "launches"), ItermWindowStarter(host))
-        stage = "state"
+        codex_home = codex_home.resolve(strict=True)
         state = await RuntimeState.open(root / "runtime.sqlite3", credentials)
         instance = ForegroundInstance(root)
-        stage = "agent"
-        controller = Controller(projects, catalog, state, starter, executable, codex_home)
-        engine = Execution(controller)
-        await controller.restore()
-        if not catalog.sessions:
-            await controller._refresh()
-        await engine.reconcile()
+        host = HostLifecycle()
+        starter = VisibleStarter(LaunchRegistry(root / "launches"), ItermWindowStarter(lifecycle=host))
+        last_health = None
+
+        def runtime_emit(report):
+            nonlocal last_health
+            if report.get("status") == "capabilities":
+                health = {key: report[key] for key in ("host", "native")}
+                if health == last_health:
+                    return
+                instance.health(health)
+                last_health = health
+            if emit:
+                emit(report)
+
+        runtime = BridgeRuntime(projects, state, starter, host, socket, executable, codex_home, emit=runtime_emit)
+        await runtime.initialize()
+        runtime_emit({"status": "capabilities", **runtime.report()})
         http = WeixinHttp()
         api = WechatApi(http)
         if emit:
             emit({"status": "foreground_ready", "project_count": len(projects),
-                  "server_version": native.server_version, "owner_only": True})
+                  "owner_only": True, "dependencies_recovering": True})
         try:
             async with asyncio.TaskGroup() as tasks:
-                tasks.create_task(component_task("channel_receive", poll(controller, api, emit=emit)))
+                tasks.create_task(component_task("channel_receive", poll(runtime, api, emit=emit)))
                 tasks.create_task(component_task("channel_send", Sender(state, api, emit=emit).run()))
-                tasks.create_task(component_task("agent", engine.run()))
-                tasks.create_task(component_task("maintenance", engine.maintain()))
+                tasks.create_task(component_task("agent", runtime.run()))
+                tasks.create_task(component_task("host", runtime.watch_host()))
                 tasks.create_task(component_task("lifecycle", instance.watch_stop()))
         except* StopRequested:
             pass
@@ -149,6 +156,4 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
             finally:
                 await state.close()
         if host:
-            await close_connection(host)
-        if native:
-            await native.close()
+            await host.close()

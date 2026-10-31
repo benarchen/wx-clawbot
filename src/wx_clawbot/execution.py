@@ -14,7 +14,10 @@ from .controller import target_record
 from .interactions import APPROVAL, QUESTION, InteractionBroker
 from .routing import Target
 from .sessions import SessionUnbound
-from .output import native_output, display_segments
+from .output import native_output, render_segments
+from .channels.media import ImageError
+from .images import ImagePreparer
+from .hosts.lifecycle import HostUnavailable
 
 
 TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
@@ -38,6 +41,45 @@ class Execution:
         self.interaction_targets = {}
         self.interaction_sizes = {}
         self.admission_gate = asyncio.Lock()
+        self.images = ImagePreparer(self.state)
+        self.image_jobs = {}
+        self.image_errors = []
+
+    def start_image_preparation(self, task):
+        if task["id"] in self.image_jobs:
+            return
+        job = asyncio.create_task(self.prepare_images(task))
+        self.image_jobs[task["id"]] = job
+        def done(completed):
+            self.image_jobs.pop(task["id"], None)
+            if not completed.cancelled() and completed.exception() is not None:
+                self.image_errors.append(completed.exception())
+        job.add_done_callback(done)
+
+    async def prepare_images(self, task):
+        try:
+            await self.images.prepare(task)
+        except ImageError as exc:
+            await self.state.task_finish(task["id"], "failed", f"图片任务未提交：{task['id']}。{exc}。")
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            await self.state.task_finish(task["id"], "failed", f"图片准备未确认（{type(exc).__name__}）：{task['id']}；没有提交原生任务。")
+
+    @staticmethod
+    def earlier_waiting(task, active):
+        for other in active:
+            if other["id"] == task["id"]:
+                break
+            if other["state"] == "received" and other["target"]["session_id"] == task["target"]["session_id"]:
+                return True
+        return False
+
+    async def close(self):
+        for job in tuple(self.image_jobs.values()):
+            job.cancel()
+        await asyncio.gather(*tuple(self.image_jobs.values()), return_exceptions=True)
+        await self.images.close()
 
     async def persist_interaction(self, record):
         target, expires_at = self.interaction_targets[record.public_id]
@@ -66,6 +108,15 @@ class Execution:
             self.queues[key] = NativeQueue(self.native, thread_id, cwd)
         return self.queues[key]
 
+    def verified_host(self, expected=None):
+        host = self.controller.host
+        if host is None:
+            return None
+        if host.state != "ready" or expected is not None and host.generation != expected:
+            raise HostUnavailable("changed")
+        host.connection  # A stopped SDK reader cannot grant new dispatch.
+        return host.generation
+
     async def submit(self, message_id, dispatch):
         # This lock is obtained before the first external await, preserving receive
         # order even if later endpoint verification takes different amounts of time.
@@ -75,8 +126,11 @@ class Execution:
                 await self._submit_locked(message_id, dispatch)
 
     async def _submit_locked(self, message_id, dispatch):
+        self.verified_host()
         if not self.native.capabilities.queue:
             raise CommandError("当前 Agent 未提供已验证的原生队列能力，任务未接收。")
+        if dispatch.has_images and not self.native.capabilities.image_input:
+            raise CommandError("当前原生运行时的图片输入尚未核验，任务未提交；不会更换模型或运行时。")
         if not (await self.state.admission_budget())["allowed"]:
             raise CommandError("待核对回执已达容量上限，新任务未接收；请先恢复通道并处理未知投递。")
         await self.catalog.discover()  # Include newly opened desktop sessions before repository admission.
@@ -93,8 +147,15 @@ class Execution:
             return  # A source native message is never submitted a second time.
         task = await self.state.tasks(task_id=task["id"])
         await self.state.task_update(task["id"], "received")
+        if task.get("input_items"):
+            self.start_image_preparation(task)
+            await self.state.queue_reply(task["id"] + "-preparing",
+                f"图片任务已接收，正在准备：{task['id']}；尚未进入原生队列。",
+                priority=2, task_id=task["id"], kind="progress")
+            return
         try:
-            reason = await conflict(task, active, self.catalog, self.controller.routes.projects)
+            reason = ("同会话的前序任务尚未准备就绪" if self.earlier_waiting(task, active) else
+                      await conflict(task, active, self.catalog, self.controller.routes.projects))
         except BaseException:
             await asyncio.shield(self.state.task_finish(task["id"], "failed",
                 f"仓库或桌面活动核验失败，任务未提交：{task['id']}。"))
@@ -112,11 +173,18 @@ class Execution:
         task_id, thread_id = task["id"], record["thread_id"]
         attempted = False
         try:
+            host_generation = self.verified_host()
             await self.controller.subscriptions.acquire(target, "task-" + task_id)
             await self.catalog.require(target)
-            await self.state.task_update(task_id, "dispatching")
+            content = await self.images.inputs(task) if task.get("input_items") else None
+            if not await self.state.task_update(task_id, "dispatching"):
+                await self.controller.subscriptions.release(target, "task-" + task_id)
+                return
+            self.verified_host(host_generation)
             attempted = True
-            receipt = await self.queue(thread_id, target.cwd).add(text, task["client_id"])
+            queue = self.queue(thread_id, target.cwd)
+            receipt = (await queue.add(text, task["client_id"], input_items=content) if content is not None
+                       else await queue.add(text, task["client_id"]))
             current = await self.state.tasks(task_id=task_id)
             if current["state"] not in TERMINAL:
                 await self.state.task_update(task_id, "queued", queue_id=receipt["id"])
@@ -125,6 +193,9 @@ class Execution:
                 priority=4, task_id=task_id, kind="accepted")
         except QueueFull:
             await self.state.task_finish(task_id, "failed", f"原生队列已满，任务未提交：{task_id}；请等待队列空位。")
+            await self.controller.subscriptions.release(target, "task-" + task_id)
+        except ImageError as exc:
+            await self.state.task_finish(task_id, "failed", f"图片任务未提交：{task_id}。{exc}。")
             await self.controller.subscriptions.release(target, "task-" + task_id)
         except BaseException:
             current = await self.state.tasks(task_id=task_id)
@@ -141,12 +212,18 @@ class Execution:
             raise
 
     async def drain_admission(self):
+        if not self.controller.native_ready:
+            return
+        if self.controller.host is not None and (self.controller.host.state != "ready" or self.controller.recovering):
+            return
         async with self.admission_gate:
             active = await self.state.tasks(active_only=True)
             if any(task["state"] == "received" for task in active):
                 await self.catalog.discover()
             for task in active:
                 if task["state"] != "received":
+                    continue
+                if self.earlier_waiting(task, active):
                     continue
                 target = restore_target(task["target"])
                 try:
@@ -158,10 +235,23 @@ class Execution:
                 except (SessionUnbound, ValueError):
                     await self.state.task_finish(task["id"], "failed", f"准入等待期间会话或仓库已变化，未提交任务：{task['id']}。")
                     continue
-                if await conflict(task, active, self.catalog, self.controller.routes.projects) is None:
+                if task.get("input_items"):
+                    rows = await self.state.attachments(task_id=task["id"])
+                    if not rows or any(row["state"] in {"failed", "released"} for row in rows):
+                        await self.state.task_finish(task["id"], "failed", f"图片准备不可用，未提交：{task['id']}。")
+                        continue
+                    if any(row["state"] != "ready" for row in rows):
+                        self.start_image_preparation(task)
+                        continue
+                reason = await conflict(task, active, self.catalog, self.controller.routes.projects)
+                if reason is None:
                     await self.state.supersede_reply(task["id"] + "-waiting")
                     await self.dispatch(task)
                     active = await self.state.tasks(active_only=True)
+                else:
+                    await self.state.queue_reply(task["id"] + "-waiting",
+                        f"任务已接收，等待准入：{task['id']}。{reason}；尚未进入原生队列。",
+                        priority=2, task_id=task["id"], kind="progress")
 
     async def turns(self, thread_id):
         cursor, seen = None, set()
@@ -192,6 +282,42 @@ class Execution:
                 return turn
         raise ValueError("Exact native turn is not in the bounded history")
 
+    async def reconcile_changed_session_terminal(self, task, target):
+        # A fresh full binding may prove historical completion after the runtime
+        # changes the stable session ID. It grants no route or dispatch authority.
+        candidates = [s for s in self.catalog.sessions.values()
+                      if s.target.session_id != target.session_id
+                      and s.target.project_alias == target.project_alias and s.target.cwd == target.cwd
+                      and s.binding.thread_id == task["thread_id"]]
+        if len(candidates) != 1:
+            return
+        try:
+            await self.catalog.require(candidates[0].target)
+        except SessionUnbound:
+            return
+        external = task["target"].get("source") == "external"
+        client = task["target"].get("native_client_id") if external else task["client_id"]
+        if not client or external and not task["turn_id"]:
+            return
+        linked = await self.state.tasks(client_id=client)
+        if linked is not None and linked["id"] != task["id"]:
+            return
+        found = None
+        async for turn in self.turns(task["thread_id"]):
+            users = [item for item in turn["items"] if item.get("type") == "userMessage"]
+            if not any(item.get("clientId") == client for item in users):
+                continue
+            if found is not None or len(users) != 1:
+                return
+            found = turn
+        if (found is not None and found.get("status") in {"completed", "failed", "interrupted"}
+                and (not external or found["id"] == task["turn_id"])):
+            try:
+                await self.catalog.require(candidates[0].target)
+            except SessionUnbound:
+                return
+            await self.complete(task["thread_id"], found)
+
     async def reconcile(self):
         """Only read the original runtime; this path never adds a native task."""
         tasks = [t for t in await self.state.tasks(active_only=True) if t["state"] == "unknown"]
@@ -201,6 +327,7 @@ class Execution:
             try:
                 session = await self.catalog.require(target)
             except SessionUnbound:
+                await self.reconcile_changed_session_terminal(task, target)
                 continue
             if session.binding.thread_id != task["thread_id"]:
                 raise ValueError("Stored task thread differs from current native identity")
@@ -208,6 +335,15 @@ class Execution:
             if task["target"].get("source") == "external":
                 if task["turn_id"]:
                     turn = await self.read_turn(task["thread_id"], task["turn_id"])
+                    users = [item for item in turn.get("items", []) if item.get("type") == "userMessage"]
+                    client = users[0].get("clientId") if len(users) == 1 else None
+                    expected = task["target"].get("native_client_id")
+                    linked = await self.state.tasks(client_id=client) if client else None
+                    if (len(users) != 1 or expected is not None and client != expected
+                            or linked is not None and linked["id"] != task["id"]):
+                        await self.state.queue_reply(task["id"] + "-ambiguous",
+                            f"桌面任务关联存在输入合并或身份冲突：{task['id']}；保持未知，请核对原终端。", priority=0)
+                        continue
                     if turn.get("status") in {"completed", "failed", "interrupted"}:
                         await self.complete(task["thread_id"], turn)
                     elif turn.get("status") == "inProgress":
@@ -311,10 +447,10 @@ class Execution:
                 key = hashlib.sha256((thread_id + turn["id"]).encode()).hexdigest()
                 text = f"观察：{observer.project_alias}｜{status}\n" + output
                 # Observation output uses the same bounded transport segmentation.
-                chunks = display_segments(text)
+                chunks = await asyncio.to_thread(render_segments, text,
+                    prefix=lambda i, n: f"〔观察：{observer.project_alias} {i}/{n}〕\n\n" if n > 1 else "")
                 for index, chunk in enumerate(chunks, 1):
-                    prefix = f"〔观察：{observer.project_alias} {index}/{len(chunks)}〕\n" if len(chunks) > 1 else ""
-                    await self.state.queue_reply(f"observe-{key}-{index - 1}", prefix + chunk, priority=2)
+                    await self.state.queue_reply(f"observe-{key}-{index - 1}", chunk, priority=2)
             self.observed_turns.discard((thread_id, turn["id"]))
         self.turn_tasks.pop((thread_id, turn["id"]), None)
         self.observed_turns.discard((thread_id, turn["id"]))
@@ -471,8 +607,13 @@ class Execution:
 
     async def maintain(self):
         while True:
+            if self.image_errors:
+                raise self.image_errors.pop(0)
             await self.expire_interactions()
-            await self.drain_admission()
+            try:
+                await self.drain_admission()
+            except HostUnavailable:
+                pass  # Frozen received tasks wait; existing native events continue.
             await self.prune_memory()
             await asyncio.sleep(1)
 
@@ -536,6 +677,8 @@ class Execution:
             if await self.state.task_finish(task["id"], "cancelled",
                     f"已撤销尚未提交的准入等待：{task['id']}；没有发送原生任务。",
                     only_if={"received"}, reply_priority=0):
+                if task["id"] in self.image_jobs:
+                    self.image_jobs[task["id"]].cancel()
                 return None
             task = await self.state.tasks(task_id=task["id"])
             if task["state"] in TERMINAL:

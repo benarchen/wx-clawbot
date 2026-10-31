@@ -75,6 +75,10 @@ class ForegroundInstance:
         path = root / "foreground.json"
         write_json(path, self.record, replace=path.exists())
 
+    def health(self, components):
+        self.record["components"] = components
+        write_json(self.root / "foreground.json", self.record, replace=True)
+
     async def watch_stop(self):
         while True:
             path = self.root / "foreground-stop.json"
@@ -105,6 +109,36 @@ def status(root):
     busy, instance = consumer_busy(root), live_instance(root)
     report = {"status": "running" if instance else ("consumer_unverified" if busy else "stopped"),
               "private_directory_mode": "0700", "credentials_mode": "0600", "consumer_busy": busy}
+    managed_path = root / "managed.json"
+    if managed_path.exists():
+        try:
+            managed = read_json(managed_path)
+            if (managed.get("version") != 1 or not isinstance(managed.get("state"), str)
+                    or managed["state"] not in {"running", "exited"}):
+                raise ProtocolError("Invalid managed record")
+            current = bool(instance and managed.get("process") == instance["process"])
+            report["supervision"] = {
+                "state": "running" if current and managed["state"] == "running" else
+                         ("exited" if managed["state"] == "exited" else "previous_exit_unobserved"),
+                "previous_exit_unobserved": managed.get("previous_exit_unobserved") is True,
+                "last_exit_code": managed.get("exit_code") if type(managed.get("exit_code")) is int
+                                  and 0 <= managed["exit_code"] <= 255 else None,
+            }
+        except (OSError, ProtocolError):
+            report["supervision"] = {"state": "unavailable"}
+    if instance:
+        # Return only the small known state vocabulary, never arbitrary private
+        # instance fields. running describes the consumer, not its dependencies.
+        components = instance.get("components", {})
+        report["components"] = {}
+        for name in ("host", "native"):
+            value = components.get(name, {})
+            state = value.get("state")
+            phase = value.get("phase")
+            allowed = {"not_running", "connecting", "verifying", "ready", "unavailable", "stopped"}
+            report["components"][name] = {"state": state if state in allowed else "unknown"}
+            if name == "host" and phase in allowed | {"launch", "authentication", "discover", "changed", "rpc", "reader", "process", "connect"}:
+                report["components"][name]["phase"] = phase
     path = root / "runtime.sqlite3"
     if not path.exists():
         report["ledger"] = "not_initialized"
@@ -132,7 +166,7 @@ def retry_delivery(root, event_id, *, apply=False, confirm_unknown=False):
     # Default inspection never opens RuntimeState: that would mutate unrelated
     # lifecycle states and stale pending interactions even without a retry.
     with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as db:
-        schema.validate(db, credentials, versions=(2,))
+        schema.validate(db, credentials, versions=(2, schema.VERSION))
         row = db.execute("SELECT state,kind,task_id FROM outbox WHERE id=?", (event_id,)).fetchone()
         if row is None:
             raise ProtocolError("Delivery event is absent")
@@ -141,7 +175,7 @@ def retry_delivery(root, event_id, *, apply=False, confirm_unknown=False):
               "kind": row[1], "attempt_count": count, "possible_duplicate": row[0] == "unknown", "applied": False}
     if apply:
         with private_lease(root / "channel-consumer.lock"), closing(sqlite3.connect(path, isolation_level=None, timeout=1)) as db:
-            schema.validate(db, credentials, versions=(2,))
+            schema.validate(db, credentials, versions=(2, schema.VERSION))
             number = prepare_reply_retry(db, credentials, event_id, confirm_unknown)
         report.update(status="retry_prepared", applied=True, next_attempt=number,
                       message="仅准备再次投递；启动前台后发送，不重新执行任务。")

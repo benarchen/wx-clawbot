@@ -7,7 +7,8 @@ from wx_clawbot.hosts.iterm2 import probe
 
 class HostProbeTests(unittest.IsolatedAsyncioTestCase):
     async def test_handshake_timeout_does_not_claim_api_disabled(self):
-        with patch("iterm2.Connection.async_create", new=AsyncMock(side_effect=TimeoutError)):
+        with patch("wx_clawbot.hosts.iterm2.ItermBackend.identity", new=AsyncMock(return_value="app")), \
+                patch("wx_clawbot.hosts.iterm2.ItermBackend.connect", new=AsyncMock(side_effect=TimeoutError)):
             result = await probe()
         self.assertEqual(result["phase"], "connect")
         self.assertEqual(result["status"], "unavailable")
@@ -15,7 +16,8 @@ class HostProbeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_list_timeout_reports_phase_and_closes_connection(self):
         connection = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
-        with patch("iterm2.Connection.async_create", new=AsyncMock(return_value=connection)), \
+        with patch("wx_clawbot.hosts.iterm2.ItermBackend.identity", new=AsyncMock(return_value="app")), \
+                patch("wx_clawbot.hosts.iterm2.ItermBackend.connect", new=AsyncMock(return_value=connection)), \
                 patch("iterm2.async_get_app", new=AsyncMock(side_effect=TimeoutError)):
             result = await probe()
         self.assertEqual(result["phase"], "list_sessions")

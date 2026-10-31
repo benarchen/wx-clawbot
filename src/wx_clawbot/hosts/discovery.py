@@ -48,10 +48,12 @@ async def inspect_terminal(session) -> TerminalEndpoint:
 
 
 class ItermDirectory:
-    def __init__(self, connection):
-        self.connection = connection
+    def __init__(self, connection=None, *, lifecycle=None):
+        self.connection, self.lifecycle = connection, lifecycle
 
     async def discover(self) -> list[TerminalEndpoint]:
+        if self.lifecycle is not None:
+            return await self.lifecycle.call(lambda connection: ItermDirectory(connection).discover())
         import iterm2
 
         app = await iterm2.async_get_app(self.connection)
@@ -68,6 +70,8 @@ class ItermDirectory:
                    for current in await self.discover())
 
     async def current_thread_id(self, endpoint: TerminalEndpoint) -> str | None:
+        if self.lifecycle is not None:
+            return await self.lifecycle.call(lambda connection: ItermDirectory(connection).current_thread_id(endpoint))
         import iterm2
         from .identity import footer_thread_id
 

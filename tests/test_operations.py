@@ -48,6 +48,33 @@ class OperatorTests(RuntimeFixture):
             instance.close()
             self.assertFalse((self.root / "foreground.json").exists())
 
+    async def test_managed_status_requires_same_foreground_and_stays_read_only(self):
+        with patch("wx_clawbot.operations.read_process", return_value=self.identity):
+            instance = ForegroundInstance(self.root)
+            self.addCleanup(instance.close)
+            path = self.root / "managed.json"
+            write_json(path, {"version": 1, "state": "running", "pid": os.getpid(),
+                              "process": asdict(self.identity),
+                              "previous_exit_unobserved": True, "token": "SECRET"})
+            before = path.read_bytes()
+            before_db = await self.state._call(lambda: list(self.state.db.iterdump()))
+            report = status(self.root)
+            self.assertEqual(report["supervision"]["state"], "running")
+            self.assertTrue(report["supervision"]["previous_exit_unobserved"])
+            self.assertNotIn("SECRET", json.dumps(report))
+            self.assertEqual(path.read_bytes(), before)
+            self.assertEqual(before_db, await self.state._call(lambda: list(self.state.db.iterdump())))
+            write_json(path, {"version": 1, "state": "running", "pid": os.getpid(),
+                              "process": asdict(ProcessIdentity(os.getpid(), (124, 456), "/fixture/python", 0))}, replace=True)
+            self.assertEqual(status(self.root)["supervision"]["state"], "previous_exit_unobserved")
+
+    async def test_malformed_managed_record_cannot_hide_bridge_status(self):
+        path = self.root / "managed.json"
+        write_json(path, {"version": 1, "state": []})
+        report = status(self.root)
+        self.assertEqual(report["status"], "consumer_unverified")
+        self.assertEqual(report["supervision"], {"state": "unavailable"})
+
     async def test_reused_pid_and_released_consumer_lock_refuse_stop(self):
         with patch("wx_clawbot.operations.read_process", return_value=self.identity):
             instance = ForegroundInstance(self.root)
@@ -103,15 +130,19 @@ class OperatorTests(RuntimeFixture):
 
 
 class DiscoveryAndFailureTests(unittest.IsolatedAsyncioTestCase):
-    async def test_launchd_template_has_explicit_argv_without_restart_or_secrets(self):
+    async def test_launchd_template_manages_only_bridge_with_bounded_failure_restart(self):
         import plistlib
         template = Path(__file__).resolve().parents[1] / "config" / "launchd.example.plist"
         value = plistlib.loads(template.read_bytes())
-        self.assertFalse(value["RunAtLoad"])
-        self.assertFalse(value["KeepAlive"])
-        self.assertEqual(value["ProgramArguments"][1:4], ["-m", "wx_clawbot", "serve"])
+        self.assertTrue(value["RunAtLoad"])
+        self.assertEqual(value["KeepAlive"], {"SuccessfulExit": False})
+        self.assertEqual(value["ThrottleInterval"], 30)
+        self.assertEqual(value["ExitTimeOut"], 120)
+        self.assertEqual(value["Umask"], 0o077)
+        self.assertEqual(value["ProgramArguments"][1:3], ["-m", "wx_clawbot.managed"])
         self.assertEqual(value["StandardOutPath"], "/dev/null")
-        self.assertNotIn("EnvironmentVariables", value)
+        self.assertEqual(value["StandardErrorPath"], "/dev/null")
+        self.assertEqual(set(value["EnvironmentVariables"]), {"PATH"})
 
     async def test_component_group_reports_only_safe_labels_and_types(self):
         async def bad():

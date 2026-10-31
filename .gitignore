@@ -13,6 +13,8 @@ dist/
 .vscode/
 .agents/
 .codex/
+/.codex-attachments/
+/md01*-copy.txt
 .claude/
 .env
 .env.*

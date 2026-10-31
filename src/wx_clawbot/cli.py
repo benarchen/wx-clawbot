@@ -44,7 +44,7 @@ def doctor(config: Path | None = None, *, iterm: bool = False) -> tuple[dict, bo
               "codex_version": version, "config": "not_checked"}
     ok = version is not None
     dependencies = {}
-    for name in ["iterm2", "protobuf", "websockets", "segno"]:
+    for name in ["iterm2", "protobuf", "websockets", "segno", "cryptography", "Pillow"]:
         try:
             dependencies[name] = package_version(name)
         except PackageNotFoundError:
@@ -178,17 +178,8 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             projects = load_projects(args.config)
-            if args.socket is None or args.codex_executable is None:
-                from .runtime_discovery import discover_runtime
-                try:
-                    socket, executable = discover_runtime(args.codex_home)
-                except Exception as exc:
-                    from .service import ComponentError
-                    raise ComponentError("agent_discovery", exc) from None
-            else:
-                socket, executable = args.socket, args.codex_executable
-            asyncio.run(serve(projects, args.state_dir, args.socket or socket,
-                              args.codex_executable or executable, args.codex_home, emit=emit))
+            asyncio.run(serve(projects, args.state_dir, args.socket,
+                              args.codex_executable, args.codex_home, emit=emit))
         except KeyboardInterrupt:
             emit({"status": "stopped", "native_terminals_preserved": True})
             return 130

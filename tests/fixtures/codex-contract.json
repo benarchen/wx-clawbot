@@ -91,6 +91,98 @@
           "threadId"
         ]
       }
+    },
+    "0.165.0": {
+      "v1/InitializeParams.json": {
+        "sha256": "b55124e7c0f36a1789396daa5578217a92be67f053903696236686e59f6f212e",
+        "required": [
+          "clientInfo"
+        ],
+        "properties": [
+          "capabilities",
+          "clientInfo"
+        ]
+      },
+      "v2/ThreadReadParams.json": {
+        "sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+        "required": [
+          "threadId"
+        ],
+        "properties": [
+          "includeTurns",
+          "threadId"
+        ]
+      },
+      "v2/ThreadQueueAddParams.json": {
+        "sha256": "60f25b7d3e3357c215bef9d2fe7047200f545e030dca9e00527ac0620cd0c88f",
+        "required": [
+          "clientUserMessageId",
+          "input",
+          "threadId"
+        ],
+        "properties": [
+          "clientUserMessageId",
+          "input",
+          "threadId"
+        ]
+      },
+      "v2/ServerRequestResolvedNotification.json": {
+        "sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+        "required": [
+          "requestId",
+          "threadId"
+        ],
+        "properties": [
+          "requestId",
+          "threadId"
+        ]
+      }
+    },
+    "0.166.0": {
+      "v1/InitializeParams.json": {
+        "sha256": "b55124e7c0f36a1789396daa5578217a92be67f053903696236686e59f6f212e",
+        "required": [
+          "clientInfo"
+        ],
+        "properties": [
+          "capabilities",
+          "clientInfo"
+        ]
+      },
+      "v2/ThreadReadParams.json": {
+        "sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+        "required": [
+          "threadId"
+        ],
+        "properties": [
+          "includeTurns",
+          "threadId"
+        ]
+      },
+      "v2/ThreadQueueAddParams.json": {
+        "sha256": "60f25b7d3e3357c215bef9d2fe7047200f545e030dca9e00527ac0620cd0c88f",
+        "required": [
+          "clientUserMessageId",
+          "input",
+          "threadId"
+        ],
+        "properties": [
+          "clientUserMessageId",
+          "input",
+          "threadId"
+        ]
+      },
+      "v2/ServerRequestResolvedNotification.json": {
+        "sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+        "required": [
+          "requestId",
+          "threadId"
+        ],
+        "properties": [
+          "requestId",
+          "threadId"
+        ]
+      }
     }
   }
 }
