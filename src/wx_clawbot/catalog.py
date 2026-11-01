@@ -31,14 +31,19 @@ class SessionCatalog:
     async def discover(self, keyword="") -> tuple[CatalogSession, ...]:
         if not isinstance(keyword, str) or len(keyword) > 4096:
             raise ValueError("Bounded session search required")
+        view = getattr(self.directory, "discovery_view", None)
+        directory = await view() if view is not None else self.directory
+        return await self._discover(keyword, directory)
+
+    async def _discover(self, keyword, directory):
         found, pages, unverified = {}, {}, []
-        endpoints = await self.directory.discover()
+        endpoints = await directory.discover()
         if len(endpoints) > 256:
             raise ValueError("Too many terminal endpoints for a bounded discovery")
         for endpoint in endpoints:
             if endpoint.classification != "codex_candidate":
                 continue
-            cwd = await self.directory.cwd(endpoint)
+            cwd = await directory.cwd(endpoint)
             project = self.project_for(cwd) if isinstance(cwd, Path) else None
             if project is None:
                 continue  # No footer/history reads in unregistered projects.
@@ -48,7 +53,7 @@ class SessionCatalog:
                     raise ValueError("Project session list exceeds supported bound")
                 pages[cwd] = {t["id"]: t for t in page["data"]
                               if t.get("status", {}).get("type") in {"idle", "active", "systemError"}}
-            visible_id = await self.directory.current_thread_id(endpoint)
+            visible_id = await directory.current_thread_id(endpoint)
             thread = pages[cwd].get(visible_id)
             if thread is None:
                 unverified.append({"terminal_id": endpoint.terminal_id, "project_alias": project.alias,
@@ -56,7 +61,7 @@ class SessionCatalog:
                 continue
             binding = SessionBinding(endpoint, cwd, self.agent.runtime_identity, thread["id"], thread["sessionId"])
             try:
-                await verify_binding(binding, self.directory, self.agent)
+                await verify_binding(binding, directory, self.agent)
             except SessionUnbound:
                 unverified.append({"terminal_id": endpoint.terminal_id, "project_alias": project.alias,
                                    "reason": "identity_changed"})

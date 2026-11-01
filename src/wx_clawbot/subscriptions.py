@@ -13,6 +13,7 @@ class Subscriptions:
         self.roles = {}
         self.bound = {}
         self.lock = asyncio.Lock()
+        self.releasing = {}
 
     async def acquire(self, target, role: str):
         if not isinstance(role, str) or not role or len(role) > 128:
@@ -49,7 +50,14 @@ class Subscriptions:
             shared = any(key != target.session_id and s.binding.thread_id == session.binding.thread_id
                          for key, s in self.bound.items())
             if not shared:
-                await self.catalog.agent.unsubscribe(session.binding.thread_id)
+                thread_id = session.binding.thread_id
+                finished = asyncio.Event()
+                self.releasing[thread_id] = finished
+                try:
+                    await self.catalog.agent.unsubscribe(thread_id)
+                finally:
+                    self.releasing.pop(thread_id, None)
+                    finished.set()
             del self.roles[target.session_id]
             del self.bound[target.session_id]
             return True
@@ -70,10 +78,13 @@ class Subscriptions:
         """
         if not isinstance(role, str) or not role.startswith(("interaction-r-", "task-")) or len(role) > 128:
             raise ValueError("Explicit native event retention role required")
-        async with self.lock:
-            session = self.event_session(target, thread_id)
-            self.roles[target.session_id].add(role)
-            return session
+        # Local retention has no external await and is atomic on this event loop.
+        # Wait only for this thread's unsubscribe, not another thread's slow RPC.
+        while (finished := self.releasing.get(thread_id)) is not None:
+            await finished.wait()
+        session = self.event_session(target, thread_id)
+        self.roles[target.session_id].add(role)
+        return session
 
     def has(self, target, role: str):
         return role in self.roles.get(target.session_id, ())

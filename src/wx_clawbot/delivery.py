@@ -38,6 +38,14 @@ class Sender:
         return True
 
     async def run(self):
+        changed = self.state.reply_changed
         while True:
+            # Clear before querying: a commit racing with the read/wait stays set.
+            changed.clear()
             if not await self.once():
-                await asyncio.sleep(.2)
+                # Read-only state calls do not signal; only commits that can
+                # produce work wake this consumer. The timer is a recovery guard.
+                try:
+                    await asyncio.wait_for(changed.wait(), 5)
+                except TimeoutError:
+                    pass

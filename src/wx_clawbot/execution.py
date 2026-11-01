@@ -14,10 +14,11 @@ from .controller import target_record
 from .interactions import APPROVAL, QUESTION, InteractionBroker
 from .routing import Target
 from .sessions import SessionUnbound
-from .output import native_output, render_segments
+from .output import native_output, render_segments, render_in_worker
 from .channels.media import ImageError
 from .images import ImagePreparer
 from .hosts.lifecycle import HostUnavailable
+from .results import ResultWork
 
 
 TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
@@ -44,6 +45,7 @@ class Execution:
         self.images = ImagePreparer(self.state)
         self.image_jobs = {}
         self.image_errors = []
+        self.results = None
 
     def start_image_preparation(self, task):
         if task["id"] in self.image_jobs:
@@ -447,7 +449,7 @@ class Execution:
                 key = hashlib.sha256((thread_id + turn["id"]).encode()).hexdigest()
                 text = f"观察：{observer.project_alias}｜{status}\n" + output
                 # Observation output uses the same bounded transport segmentation.
-                chunks = await asyncio.to_thread(render_segments, text,
+                chunks = await render_in_worker(text, renderer=render_segments, slots=self.state.render_slots,
                     prefix=lambda i, n: f"〔观察：{observer.project_alias} {i}/{n}〕\n\n" if n > 1 else "")
                 for index, chunk in enumerate(chunks, 1):
                     await self.state.queue_reply(f"observe-{key}-{index - 1}", chunk, priority=2)
@@ -488,7 +490,10 @@ class Execution:
         elif method == "turn/completed":
             turn_id = params.get("turn", {}).get("id")
             if turn_id:
-                await self.complete(thread_id, await self.read_turn(thread_id, turn_id))
+                if self.results is not None:
+                    self.results.enqueue(thread_id, turn_id)
+                else:
+                    await self.complete_turn(thread_id, turn_id)
         elif method in {APPROVAL, QUESTION}:
             task_id = self.turn_tasks.get((thread_id, turn_id))
             target = self.observed(thread_id)
@@ -592,15 +597,25 @@ class Execution:
             if not broker.records and thread_id not in bound_threads:
                 del self.brokers[thread_id]
 
+    async def complete_turn(self, thread_id, turn_id):
+        await self.complete(thread_id, await self.read_turn(thread_id, turn_id))
+
+    async def consume_events(self):
+        while True:
+            try:
+                event = await self.native.rpc.next_event(timeout=1)
+            except TimeoutError:
+                continue
+            await self.event(event)
+
     async def run(self):
+        self.results = ResultWork(self.complete_turn)
         try:
-            while True:
-                try:
-                    event = await self.native.rpc.next_event(timeout=1)
-                except TimeoutError:
-                    continue
-                await self.event(event)
+            async with asyncio.TaskGroup() as tasks:
+                tasks.create_task(self.results.run())
+                tasks.create_task(self.consume_events())
         finally:
+            self.results = None
             for broker in self.brokers.values():
                 broker.disconnect()
             await asyncio.shield(self.state.stale_interactions(self.generation))

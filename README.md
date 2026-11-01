@@ -2,6 +2,8 @@
 
 面向本机 iTerm2 Codex 原生会话的微信桥接项目。
 
+当前版本为 `0.1.0`，已在本机使用原托管入口运行。已有账本须通过显式备份升级到 schema 4，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)及[本机交付记录](docs/validation/local-release.md)。
+
 当前提供前台微信桥接：本人绑定、项目选择、原终端会话发现与切换、单次派发与持续聚焦、独立观察订阅，以及在 iTerm2 可见创建新 Codex 会话。任务通过原生 daemon 队列提交，回复区分入队、执行和最终结果。[实际行为与验证范围](docs/validation/w05.md) 说明各入口的范围。
 
 取消确认只发送一条；主动中断已订阅的桌面任务时，最终结果不再重复发送观察副本。最终正文保留原生最终回答及错误，不混入标记为 commentary 的进展；没有最终回答时明确说明。
@@ -105,6 +107,8 @@ codex queue --remote unix:///absolute/path/to/native-control.sock \
 
 ## 开发与文档
 
+性能优化已整合入 `0.1.0`；原候选的源码补丁、自动验证入口及历史测量见[PERF01 记录](docs/validation/performance-optimization.md)，整合验证与实际部署见[本机交付](docs/validation/local-release.md)。原补丁仅用于从准确基线重建，不能重复套用到已升级工作区。
+
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python -m compileall -q src tests
@@ -113,6 +117,6 @@ git diff --check
 
 [排版模块与自测](docs/wechat-markdown.md) · [项目规范](AGENTS.md) · [当前进度与阻塞](ROADMAP.md) · [产品设计](docs/product-design.md) · [架构](docs/architecture-design.md) · [技术决策](docs/technical-decisions.md) · [开发契约](docs/development-contracts.md) · [施工清单](goals/implementation-plan.md)
 
-本人可在已聚焦的原生会话中直接发送一张静态 JPEG／PNG，图片通过原队列处理，结果以文本返回；发送前使用 `/sessions` 和 `/focus <编号>` 选择目标。图片输入的原生版本准入为 0.165.0／0.166.0，已有账本须显式升级到 schema 3。详细操作与边界见 [图片输入指南](docs/image-input.md)。
+本人可在已聚焦的原生会话中直接发送一张静态 JPEG／PNG，图片通过原队列处理，结果以文本返回；发送前使用 `/sessions` 和 `/focus <编号>` 选择目标。图片输入的原生版本准入为 0.165.0／0.166.0，当前已有账本须显式升级到 schema 4（包含 IMG01 的附件结构）。详细操作与边界见 [图片输入指南](docs/image-input.md)。
 
 独立二维码登录、本人确认及指定口令文本诊断的操作入口见 [微信通道协议与联调说明](docs/wechat-protocol.md)。诊断命令不会执行 Agent 任务，只有已明确确认的本人绑定才能进行测试收发。

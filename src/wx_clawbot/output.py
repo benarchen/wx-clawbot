@@ -1,6 +1,9 @@
 """Bounded text rendering; task inputs and native protocol payloads never pass here."""
 
+import asyncio
+import json
 import re
+import sys
 import unicodedata
 from dataclasses import dataclass
 
@@ -98,6 +101,8 @@ def _prose_parser():
 
 def format_prose(text):
     """Change only identifiable prose; protect syntax, literals and raw errors."""
+    if not re.search(r"[\u3400-\u9fff—]", text):
+        return text
     lines = _lines(text)
     parser = _prose_parser()
     protected, processed = set(), set()
@@ -188,6 +193,9 @@ def _table_fields(raw):
 
 def _common_markdown(text):
     """Apply only source-mapped, observed client compatibility transformations."""
+    if ("]:" not in text and "~~~" not in text and "|" not in text
+            and not re.search(r"[^\n]\n[^\n]", text)):
+        return text
     parser = _parser()
     parser.options["store_labels"] = True
     # Preserve target spelling rather than URL-encoding Unicode or percent escapes.
@@ -315,6 +323,8 @@ def _common_markdown(text):
 
 def _parenthetical_links(text):
     """Keep exact complex HTTPS targets outside the client's broken ](...) form."""
+    if "]" not in text:
+        return text
     parser = _parser()
     parser.normalizeLink = lambda value: value
     tokens = parser.parse(text)
@@ -695,6 +705,95 @@ def render_segments(text, *, prefix=None):
 
 def display_segments(text, *, prefix=None):
     return [segment.text for segment in render_segments(text, prefix=prefix)]
+
+
+async def _render_process(text):
+    """One killable CPU worker; the protocol contains display data, never code."""
+    limit = 8 * 1024 * 1024
+    payload = json.dumps({"text": text}, ensure_ascii=False).encode()
+    if len(payload) > limit:
+        raise ValueError("Display worker input exceeds bound")
+    process = await asyncio.create_subprocess_exec(
+        sys.executable, "-I", "-m", "wx_clawbot.render_worker",
+        stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    async def write_input():
+        process.stdin.write(payload)
+        await process.stdin.drain()
+        process.stdin.close()
+        await process.stdin.wait_closed()
+    async def read_output():
+        chunks, size = [], 0
+        while chunk := await process.stdout.read(65536):
+            size += len(chunk)
+            if size > limit:
+                raise ValueError("Display worker output exceeds bound")
+            chunks.append(chunk)
+        return b"".join(chunks)
+    io = []
+    try:
+        async with asyncio.timeout(20):
+            io = [asyncio.create_task(write_input()), asyncio.create_task(read_output())]
+            _, raw = await asyncio.gather(*io)
+            if len(raw) > limit:
+                raise ValueError("Display worker output exceeds bound")
+            if await process.wait() != 0:
+                raise ValueError("Display worker failed")
+        value = json.loads(raw)
+        if not isinstance(value, dict) or set(value) != {"parts", "peak_rss_bytes"}:
+            raise ValueError("Invalid display worker envelope")
+        parts = value["parts"]
+        if not isinstance(parts, list) or not 1 <= len(parts) <= 2048:
+            raise ValueError("Invalid display worker segment count")
+        result = []
+        for item in parts:
+            if (not isinstance(item, dict) or set(item) != {"source", "before", "after"}
+                    or any(not isinstance(item[key], str) for key in item)):
+                raise ValueError("Invalid display worker segment")
+            part = DisplaySegment(**item)
+            if not part.text.strip() or len(part.text) > 8000:
+                raise ValueError("Invalid bounded display worker payload")
+            result.append(part)
+        if type(value["peak_rss_bytes"]) is not int or value["peak_rss_bytes"] <= 0:
+            raise ValueError("Invalid display worker memory metric")
+        return result, value["peak_rss_bytes"]
+    finally:
+        for job in io:
+            if not job.done():
+                job.cancel()
+        await asyncio.gather(*io, return_exceptions=True)
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+
+
+async def render_in_worker(text, *, renderer=None, slots=None, **kwargs):
+    """A cancelled owner retains its CPU lane until the actual renderer exits."""
+    if not isinstance(text, str) or not text or len(text) > 512000:
+        raise ValueError("Bounded nonempty display source required")
+    if len(text) >= 65536 and (renderer is None or renderer is render_segments):
+        prefix = kwargs.pop("prefix", None)
+        if kwargs:
+            raise ValueError("Unsupported display worker options")
+        async with (slots if slots is not None else asyncio.Semaphore(2)):
+            parts, _ = await _render_process(text)
+        result = []
+        for index, part in enumerate(parts, 1):
+            heading = prefix(index, len(parts)) if prefix else ""
+            if not isinstance(heading, str) or len(heading) > 384:
+                raise ValueError("Bounded display prefix required")
+            segment = DisplaySegment(part.source, heading + part.before, part.after)
+            if len(segment.text) > 8000:
+                raise ValueError("Display payload exceeds local transport bound")
+            result.append(segment)
+        return result
+    job = asyncio.create_task(asyncio.to_thread(renderer or render_segments, text, **kwargs))
+    try:
+        return await asyncio.shield(job)
+    except asyncio.CancelledError:
+        await job
+        raise
 
 
 def native_output(turn):

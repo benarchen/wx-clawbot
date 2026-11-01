@@ -1,0 +1,2178 @@
+diff --git a/src/wx_clawbot/agents/rpc.py b/src/wx_clawbot/agents/rpc.py
+--- a/src/wx_clawbot/agents/rpc.py
++++ b/src/wx_clawbot/agents/rpc.py
+@@ -27,0 +28,4 @@
++    # The bridge reads complete native turns, never these streaming text bodies.
++    # Keep unknown notifications and every server request, even with this method.
++    UNUSED_DELTAS = frozenset({"item/agentMessage/delta", "item/reasoning/textDelta",
++                              "item/reasoning/summaryTextDelta", "item/commandExecution/outputDelta"})
+@@ -124,0 +129,2 @@
++                    elif message["method"] in self.UNUSED_DELTAS:
++                        continue
+diff --git a/src/wx_clawbot/catalog.py b/src/wx_clawbot/catalog.py
+--- a/src/wx_clawbot/catalog.py
++++ b/src/wx_clawbot/catalog.py
+@@ -33,0 +34,5 @@
++        view = getattr(self.directory, "discovery_view", None)
++        directory = await view() if view is not None else self.directory
++        return await self._discover(keyword, directory)
++
++    async def _discover(self, keyword, directory):
+@@ -35 +40 @@
+-        endpoints = await self.directory.discover()
++        endpoints = await directory.discover()
+@@ -41 +46 @@
+-            cwd = await self.directory.cwd(endpoint)
++            cwd = await directory.cwd(endpoint)
+@@ -51 +56 @@
+-            visible_id = await self.directory.current_thread_id(endpoint)
++            visible_id = await directory.current_thread_id(endpoint)
+@@ -59 +64 @@
+-                await verify_binding(binding, self.directory, self.agent)
++                await verify_binding(binding, directory, self.agent)
+diff --git a/src/wx_clawbot/channels/state.py b/src/wx_clawbot/channels/state.py
+--- a/src/wx_clawbot/channels/state.py
++++ b/src/wx_clawbot/channels/state.py
+@@ -27,0 +28,2 @@
++        self.reply_changed = asyncio.Event()
++        self.render_slots = asyncio.Semaphore(2)
+@@ -39 +41 @@
+-    async def _call(self, fn, *args, closing=False):
++    async def _call(self, fn, *args, closing=False, wake=False):
+@@ -44 +46,9 @@
+-        future = asyncio.get_running_loop().run_in_executor(self.worker, fn, *args)
++        mutated = False
++        def invoke():
++            nonlocal mutated
++            before = self.db.total_changes if self.db is not None else 0
++            result = fn(*args)
++            if not closing and self.db is not None:
++                mutated = not self.db.in_transaction and self.db.total_changes != before
++            return result
++        future = asyncio.get_running_loop().run_in_executor(self.worker, invoke)
+@@ -49 +59,3 @@
+-                completed.exception()
++                if completed.exception() is None and mutated and wake:
++                    if not callable(wake) or wake(completed.result()):
++                        self.reply_changed.set()
+@@ -104 +116,2 @@
+-        return await self._call(self._accept_batch, response, phase)
++        return await self._call(self._accept_batch, response, phase,
++            wake=lambda batch: any(message.context_token for message in batch["accepted"]))
+diff --git a/src/wx_clawbot/controller.py b/src/wx_clawbot/controller.py
+--- a/src/wx_clawbot/controller.py
++++ b/src/wx_clawbot/controller.py
+@@ -16 +16 @@
+-from .output import render_segments
++from .output import render_segments, render_in_worker
+@@ -114 +114 @@
+-        chunks = await asyncio.to_thread(render_segments, text,
++        chunks = await render_in_worker(text, renderer=render_segments, slots=self.state.render_slots,
+diff --git a/src/wx_clawbot/delivery.py b/src/wx_clawbot/delivery.py
+--- a/src/wx_clawbot/delivery.py
++++ b/src/wx_clawbot/delivery.py
+@@ -40,0 +41 @@
++        changed = self.state.reply_changed
+@@ -41,0 +43,2 @@
++            # Clear before querying: a commit racing with the read/wait stays set.
++            changed.clear()
+@@ -43 +46,6 @@
+-                await asyncio.sleep(.2)
++                # Read-only state calls do not signal; only commits that can
++                # produce work wake this consumer. The timer is a recovery guard.
++                try:
++                    await asyncio.wait_for(changed.wait(), 5)
++                except TimeoutError:
++                    pass
+diff --git a/src/wx_clawbot/execution.py b/src/wx_clawbot/execution.py
+--- a/src/wx_clawbot/execution.py
++++ b/src/wx_clawbot/execution.py
+@@ -17 +17 @@
+-from .output import native_output, render_segments
++from .output import native_output, render_segments, render_in_worker
+@@ -20,0 +21 @@
++from .results import ResultWork
+@@ -46,0 +48 @@
++        self.results = None
+@@ -450 +452 @@
+-                chunks = await asyncio.to_thread(render_segments, text,
++                chunks = await render_in_worker(text, renderer=render_segments, slots=self.state.render_slots,
+@@ -491 +493,4 @@
+-                await self.complete(thread_id, await self.read_turn(thread_id, turn_id))
++                if self.results is not None:
++                    self.results.enqueue(thread_id, turn_id)
++                else:
++                    await self.complete_turn(thread_id, turn_id)
+@@ -594,0 +600,11 @@
++    async def complete_turn(self, thread_id, turn_id):
++        await self.complete(thread_id, await self.read_turn(thread_id, turn_id))
++
++    async def consume_events(self):
++        while True:
++            try:
++                event = await self.native.rpc.next_event(timeout=1)
++            except TimeoutError:
++                continue
++            await self.event(event)
++
+@@ -595,0 +612 @@
++        self.results = ResultWork(self.complete_turn)
+@@ -597,6 +614,3 @@
+-            while True:
+-                try:
+-                    event = await self.native.rpc.next_event(timeout=1)
+-                except TimeoutError:
+-                    continue
+-                await self.event(event)
++            async with asyncio.TaskGroup() as tasks:
++                tasks.create_task(self.results.run())
++                tasks.create_task(self.consume_events())
+@@ -603,0 +618 @@
++            self.results = None
+diff --git a/src/wx_clawbot/hosts/discovery.py b/src/wx_clawbot/hosts/discovery.py
+--- a/src/wx_clawbot/hosts/discovery.py
++++ b/src/wx_clawbot/hosts/discovery.py
+@@ -51,2 +51,25 @@
+-    def __init__(self, connection=None, *, lifecycle=None):
+-        self.connection, self.lifecycle = connection, lifecycle
++    def __init__(self, connection=None, *, lifecycle=None, _app=None):
++        self.connection, self.lifecycle, self._app = connection, lifecycle, _app
++
++    def _connected(self, connection):
++        if self._app is not None and connection is not self.connection:
++            from .lifecycle import HostUnavailable
++            raise HostUnavailable("changed")
++        return ItermDirectory(connection, _app=self._app)
++
++    async def _get_app(self):
++        if self._app is not None:
++            return self._app
++        import iterm2
++        return await iterm2.async_get_app(self.connection)
++
++    async def discovery_view(self):
++        # Only the caller's discovery owns this SDK list. Every target's PID,
++        # TTY and footer still comes from fresh RPC/process evidence.
++        if self.lifecycle is not None:
++            async def acquire(connection):
++                view = await ItermDirectory(connection).discovery_view()
++                view.lifecycle = self.lifecycle
++                return view
++            return await self.lifecycle.call(acquire)
++        return ItermDirectory(self.connection, _app=await self._get_app())
+@@ -56,4 +79,2 @@
+-            return await self.lifecycle.call(lambda connection: ItermDirectory(connection).discover())
+-        import iterm2
+-
+-        app = await iterm2.async_get_app(self.connection)
++            return await self.lifecycle.call(lambda connection: self._connected(connection).discover())
++        app = await self._get_app()
+@@ -69,2 +90,8 @@
+-        return any(current == endpoint and current.classification == "codex_candidate"
+-                   for current in await self.discover())
++        if self.lifecycle is not None:
++            return await self.lifecycle.call(lambda connection: self._connected(connection).validate(endpoint))
++        app = await self._get_app()
++        session = app.get_session_by_id(endpoint.terminal_id)
++        if session is None:
++            return False
++        current = await inspect_terminal(session)
++        return current == endpoint and current.classification == "codex_candidate"
+@@ -74,2 +101 @@
+-            return await self.lifecycle.call(lambda connection: ItermDirectory(connection).current_thread_id(endpoint))
+-        import iterm2
++            return await self.lifecycle.call(lambda connection: self._connected(connection).current_thread_id(endpoint))
+@@ -78 +104 @@
+-        app = await iterm2.async_get_app(self.connection)
++        app = await self._get_app()
+diff --git a/src/wx_clawbot/output.py b/src/wx_clawbot/output.py
+--- a/src/wx_clawbot/output.py
++++ b/src/wx_clawbot/output.py
+@@ -2,0 +3,2 @@
++import asyncio
++import json
+@@ -3,0 +6 @@
++import sys
+@@ -100,0 +104,2 @@
++    if not re.search(r"[\u3400-\u9fff—]", text):
++        return text
+@@ -190,0 +196,3 @@
++    if ("]:" not in text and "~~~" not in text and "|" not in text
++            and not re.search(r"[^\n]\n[^\n]", text)):
++        return text
+@@ -317,0 +326,2 @@
++    if "]" not in text:
++        return text
+@@ -699,0 +710,89 @@
++async def _render_process(text):
++    """One killable CPU worker; the protocol contains display data, never code."""
++    limit = 8 * 1024 * 1024
++    payload = json.dumps({"text": text}, ensure_ascii=False).encode()
++    if len(payload) > limit:
++        raise ValueError("Display worker input exceeds bound")
++    process = await asyncio.create_subprocess_exec(
++        sys.executable, "-I", "-m", "wx_clawbot.render_worker",
++        stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
++        stderr=asyncio.subprocess.DEVNULL,
++    )
++    async def write_input():
++        process.stdin.write(payload)
++        await process.stdin.drain()
++        process.stdin.close()
++        await process.stdin.wait_closed()
++    async def read_output():
++        chunks, size = [], 0
++        while chunk := await process.stdout.read(65536):
++            size += len(chunk)
++            if size > limit:
++                raise ValueError("Display worker output exceeds bound")
++            chunks.append(chunk)
++        return b"".join(chunks)
++    io = []
++    try:
++        async with asyncio.timeout(20):
++            io = [asyncio.create_task(write_input()), asyncio.create_task(read_output())]
++            _, raw = await asyncio.gather(*io)
++            if len(raw) > limit:
++                raise ValueError("Display worker output exceeds bound")
++            if await process.wait() != 0:
++                raise ValueError("Display worker failed")
++        value = json.loads(raw)
++        if not isinstance(value, dict) or set(value) != {"parts", "peak_rss_bytes"}:
++            raise ValueError("Invalid display worker envelope")
++        parts = value["parts"]
++        if not isinstance(parts, list) or not 1 <= len(parts) <= 2048:
++            raise ValueError("Invalid display worker segment count")
++        result = []
++        for item in parts:
++            if (not isinstance(item, dict) or set(item) != {"source", "before", "after"}
++                    or any(not isinstance(item[key], str) for key in item)):
++                raise ValueError("Invalid display worker segment")
++            part = DisplaySegment(**item)
++            if not part.text.strip() or len(part.text) > 8000:
++                raise ValueError("Invalid bounded display worker payload")
++            result.append(part)
++        if type(value["peak_rss_bytes"]) is not int or value["peak_rss_bytes"] <= 0:
++            raise ValueError("Invalid display worker memory metric")
++        return result, value["peak_rss_bytes"]
++    finally:
++        for job in io:
++            if not job.done():
++                job.cancel()
++        await asyncio.gather(*io, return_exceptions=True)
++        if process.returncode is None:
++            process.kill()
++            await process.wait()
++
++
++async def render_in_worker(text, *, renderer=None, slots=None, **kwargs):
++    """A cancelled owner retains its CPU lane until the actual renderer exits."""
++    if not isinstance(text, str) or not text or len(text) > 512000:
++        raise ValueError("Bounded nonempty display source required")
++    if len(text) >= 65536 and (renderer is None or renderer is render_segments):
++        prefix = kwargs.pop("prefix", None)
++        if kwargs:
++            raise ValueError("Unsupported display worker options")
++        async with (slots if slots is not None else asyncio.Semaphore(2)):
++            parts, _ = await _render_process(text)
++        result = []
++        for index, part in enumerate(parts, 1):
++            heading = prefix(index, len(parts)) if prefix else ""
++            if not isinstance(heading, str) or len(heading) > 384:
++                raise ValueError("Bounded display prefix required")
++            segment = DisplaySegment(part.source, heading + part.before, part.after)
++            if len(segment.text) > 8000:
++                raise ValueError("Display payload exceeds local transport bound")
++            result.append(segment)
++        return result
++    job = asyncio.create_task(asyncio.to_thread(renderer or render_segments, text, **kwargs))
++    try:
++        return await asyncio.shield(job)
++    except asyncio.CancelledError:
++        await job
++        raise
++
++
+diff --git a/src/wx_clawbot/render_worker.py b/src/wx_clawbot/render_worker.py
+new file mode 100644
+--- /dev/null
++++ b/src/wx_clawbot/render_worker.py
+@@ -0,0 +1,30 @@
++"""Bounded display-only subprocess; no credentials, native client or filesystem writes."""
++
++from dataclasses import asdict
++import json
++import resource
++import sys
++
++from .output import render_segments
++
++
++def main():
++    raw = sys.stdin.buffer.read(8 * 1024 * 1024 + 1)
++    if len(raw) > 8 * 1024 * 1024:
++        raise ValueError("Display worker input exceeds bound")
++    value = json.loads(raw)
++    if not isinstance(value, dict) or set(value) != {"text"}:
++        raise ValueError("Invalid display worker input")
++    parts = render_segments(value["text"])
++    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
++    if sys.platform != "darwin":
++        peak *= 1024
++    payload = json.dumps({"parts": [asdict(part) for part in parts], "peak_rss_bytes": peak},
++                         ensure_ascii=False).encode()
++    if len(payload) > 8 * 1024 * 1024:
++        raise ValueError("Display worker output exceeds bound")
++    sys.stdout.buffer.write(payload)
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/src/wx_clawbot/results.py b/src/wx_clawbot/results.py
+new file mode 100644
+--- /dev/null
++++ b/src/wx_clawbot/results.py
+@@ -0,0 +1,62 @@
++"""Bounded completion work; native control events never await result rendering."""
++
++import asyncio
++from collections import deque
++
++from .agents.rpc import ConnectionLost
++
++
++class ResultWork:
++    def __init__(self, complete, *, concurrency=2, limit=128):
++        self.complete = complete
++        self.concurrency, self.limit = concurrency, limit
++        self.pending = deque()
++        self.keys = set()
++        self.jobs = {}
++        self.changed = asyncio.Event()
++        self.closed = False
++
++    def enqueue(self, thread_id, turn_id):
++        if any(not isinstance(value, str) or not value or len(value) > 128 for value in (thread_id, turn_id)):
++            raise ConnectionLost("Bounded native completion identities required")
++        key = (thread_id, turn_id)
++        if self.closed:
++            raise ConnectionLost("Completion generation is closed")
++        if key in self.keys:
++            return
++        if len(self.keys) >= self.limit:
++            raise ConnectionLost("Completion work budget exceeded; reconcile native outcomes")
++        self.keys.add(key)
++        self.pending.append(key)
++        self.changed.set()
++
++    async def run(self):
++        try:
++            while True:
++                self.changed.clear()
++                for key, job in tuple(self.jobs.items()):
++                    if job.done():
++                        job.result()  # Storage/protocol failures must reach the supervisor.
++                        del self.jobs[key]
++                        self.keys.remove(key)
++                busy = {key[0] for key in self.jobs}
++                # Skip a busy thread without blocking an independent thread.
++                for _ in range(len(self.pending)):
++                    key = self.pending.popleft()
++                    if key[0] in busy or len(self.jobs) >= self.concurrency:
++                        self.pending.append(key)
++                        continue
++                    job = asyncio.create_task(self.complete(*key))
++                    self.jobs[key] = job
++                    busy.add(key[0])
++                    job.add_done_callback(lambda _: self.changed.set())
++                await self.changed.wait()
++        finally:
++            self.closed = True
++            jobs = tuple(self.jobs.values())
++            for job in jobs:
++                job.cancel()
++            await asyncio.gather(*jobs, return_exceptions=True)
++            self.jobs.clear()
++            self.pending.clear()
++            self.keys.clear()
+diff --git a/src/wx_clawbot/runtime_state.py b/src/wx_clawbot/runtime_state.py
+--- a/src/wx_clawbot/runtime_state.py
++++ b/src/wx_clawbot/runtime_state.py
+@@ -3 +2,0 @@
+-import asyncio
+@@ -17 +16 @@
+-from .output import DisplaySegment, render_segments
++from .output import DisplaySegment, render_segments, render_in_worker
+@@ -298 +297 @@
+-            if self.db.execute("SELECT count(*) FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
++            if self.db.execute("SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
+@@ -343 +342 @@
+-            if self.db.execute("SELECT count(*) FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
++            if self.db.execute("SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
+@@ -378 +377 @@
+-                rows = list(self.db.execute(query + " WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"))
++                rows = list(self.db.execute(query + " INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"))
+@@ -409 +408 @@
+-        chunks = [text] if isinstance(text, DisplaySegment) else await asyncio.to_thread(render_segments, text)
++        chunks = [text] if isinstance(text, DisplaySegment) else await render_in_worker(text, renderer=render_segments, slots=self.render_slots)
+@@ -422 +421 @@
+-        return await self._call(queue)
++        return await self._call(queue, wake=True)
+@@ -429 +428,8 @@
+-        chunks = await asyncio.to_thread(render_segments, text,
++        def eligible():
++            row = self.db.execute("SELECT state FROM tasks WHERE id=?", (task_id,)).fetchone()
++            if row is None:
++                raise ProtocolError("Task identity is missing")
++            return row[0] not in {"completed", "failed", "interrupted", "cancelled"} and (only_if is None or row[0] in only_if)
++        if not await self._call(eligible):
++            return False
++        chunks = await render_in_worker(text, renderer=render_segments, slots=self.render_slots,
+@@ -457 +463 @@
+-        return await self._call(finish)
++        return await self._call(finish, wake=True)
+@@ -511 +517 @@
+-        await self._call(finish)
++        await self._call(finish, wake=True)
+@@ -515 +521 @@
+-        return await self._call(prepare_reply_retry, self.db, self.credentials, event_id, confirm_unknown)
++        return await self._call(prepare_reply_retry, self.db, self.credentials, event_id, confirm_unknown, wake=True)
+diff --git a/src/wx_clawbot/schema.py b/src/wx_clawbot/schema.py
+--- a/src/wx_clawbot/schema.py
++++ b/src/wx_clawbot/schema.py
+@@ -16 +16 @@
+-VERSION = 3
++VERSION = 4
+@@ -60,0 +61,5 @@
++PERFORMANCE_UPGRADE = (
++    "CREATE INDEX reply_task_kind ON outbox(task_id,kind)",
++    "CREATE INDEX task_native_turn ON tasks(thread_id,turn_id)",
++    "CREATE INDEX task_active ON tasks(state) WHERE state NOT IN ('completed','failed','interrupted','cancelled')",
++)
+@@ -67 +72 @@
+-def validate(db, credentials, *, versions=(1, 2, VERSION)):
++def validate(db, credentials, *, versions=(1, 2, 3, VERSION)):
+@@ -90,0 +96,6 @@
++    if version >= 4:
++        indexes = {row[0]: row[1] for row in db.execute("SELECT name,sql FROM sqlite_master WHERE type='index'")}
++        for statement in PERFORMANCE_UPGRADE:
++            name = statement.split()[2]
++            if indexes.get(name) != statement:
++                raise ProtocolError("Runtime performance index differs from the verified schema")
+@@ -117 +128 @@
+-    if version not in (1, 2) or not db.in_transaction:
++    if version not in (1, 2, 3) or not db.in_transaction:
+@@ -121 +132 @@
+-    for statement in IMAGE_UPGRADE:
++    for statement in IMAGE_UPGRADE if version < 3 else ():
+@@ -122,0 +134,4 @@
++    for statement in PERFORMANCE_UPGRADE:
++        db.execute(statement)
++    db.execute("ANALYZE tasks")
++    db.execute("ANALYZE outbox")
+@@ -145 +160,3 @@
+-                           + (["inbox.content", "tasks.input_items"] if version < 3 else []), "data_deleted": False}
++                           + (["inbox.content", "tasks.input_items"] if version < 3 else []),
++            "add_indexes": [s.split()[2] for s in PERFORMANCE_UPGRADE] if version < VERSION else [],
++            "data_deleted": False}
+@@ -176 +193 @@
+-                tables = V1_COLUMNS | (V2_COLUMNS if source_version >= 2 else {})
++                tables = V1_COLUMNS | (V2_COLUMNS if source_version >= 2 else {}) | (V3_COLUMNS if source_version >= 3 else {})
+diff --git a/src/wx_clawbot/subscriptions.py b/src/wx_clawbot/subscriptions.py
+--- a/src/wx_clawbot/subscriptions.py
++++ b/src/wx_clawbot/subscriptions.py
+@@ -15,0 +16 @@
++        self.releasing = {}
+@@ -52 +53,8 @@
+-                await self.catalog.agent.unsubscribe(session.binding.thread_id)
++                thread_id = session.binding.thread_id
++                finished = asyncio.Event()
++                self.releasing[thread_id] = finished
++                try:
++                    await self.catalog.agent.unsubscribe(thread_id)
++                finally:
++                    self.releasing.pop(thread_id, None)
++                    finished.set()
+@@ -73,4 +81,7 @@
+-        async with self.lock:
+-            session = self.event_session(target, thread_id)
+-            self.roles[target.session_id].add(role)
+-            return session
++        # Local retention has no external await and is atomic on this event loop.
++        # Wait only for this thread's unsubscribe, not another thread's slow RPC.
++        while (finished := self.releasing.get(thread_id)) is not None:
++            await finished.wait()
++        session = self.event_session(target, thread_id)
++        self.roles[target.session_id].add(role)
++        return session
+diff --git a/tests/integration/performance.py b/tests/integration/performance.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/performance.py
+@@ -0,0 +1,243 @@
++"""Offline PERF01 baseline/candidate comparison. Never contacts a real service."""
++import argparse
++import ast
++import asyncio
++import hashlib
++import inspect
++import importlib.metadata
++import json
++import math
++import os
++from pathlib import Path
++import platform
++import random
++import resource
++import sqlite3
++import statistics
++import subprocess
++import sys
++import tempfile
++import textwrap
++import time
++from unittest.mock import patch
++
++PROJECT = Path(__file__).resolve().parents[2]
++BASELINE = '720cb073f62ee490d4c7fa53cdd00948d6f268f3'
++
++
++def digest(value):
++    return hashlib.sha256(value.encode() if isinstance(value, str) else value).hexdigest()
++
++
++def stats(values):
++    return {'samples': values, 'median': statistics.median(values),
++            'p95': sorted(values)[math.ceil(len(values)*.95)-1], 'max': max(values)}
++
++
++def output_path(value):
++    path = Path(value).absolute()
++    allowed = [PROJECT / '.tmp']
++    cwd = Path.cwd()
++    if (cwd/'pyproject.toml').exists() and 'name = "wx-clawbot"' in (cwd/'pyproject.toml').read_text():
++        allowed.append(cwd/'.tmp')
++    if not any(path.resolve().is_relative_to(root.resolve()) for root in allowed):
++        raise ValueError('Performance output must stay inside this project .tmp')
++    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
++    return path
++
++
++def source_hash(root):
++    return digest(b''.join(p.relative_to(root).as_posix().encode()+b'\0'+p.read_bytes()+b'\0'
++                          for p in sorted((root/'src').rglob('*.py'))))
++
++
++async def worker(args):
++    source = args.source_root.resolve(strict=True)
++    # Loading only a frozen source tree is intentional. No service CLI is invoked.
++    sys.path.insert(0, str(source/'src'))
++    from wx_clawbot.output import render_segments, display_text, RESULT_LIMIT, DisplaySegment
++    from wx_clawbot.runtime_state import RuntimeState
++    from wx_clawbot.channels.wechat import Credentials
++    from wx_clawbot import schema
++    from markdown_it import MarkdownIt
++    fixture = json.loads((source/'tests/fixtures/wechat-markdown.json').read_text())['cases']
++    report = {'scope': 'offline synthetic data; no WeChat/native/production database I/O',
++              'source_sha256': source_hash(source), 'baseline_commit': BASELINE,
++              'python': platform.python_version(), 'platform': platform.platform(), 'seed': 20261031,
++              'dependencies':{name:importlib.metadata.version(name) for name in ('markdown-it-py','mdurl','websockets','iterm2','cryptography','Pillow')},
++              'schema': schema.VERSION, 'render': {}, 'golden': {}, 'sql': {}}
++    def save():
++        args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2))
++    rng = random.Random(20261031)
++    texts = [(item['id'], item['text']) for item in fixture]
++    atoms = [x['text'] for x in fixture] + ['plain English。\n\n', 'x\r\ny\r\n', 'literal\rdata', '# ASCII\n\n',
++            '[label]: https://example.invalid/a(b)\n\n[label]', 'a\n---\nb', '中文x,y:1', 'one\ntwo\n', '    a\n']
++    texts += [(f'random-{i}', '\n\n'.join(rng.choices(atoms,k=rng.randint(1,6)))) for i in range(200)]
++    for name, raw in texts:
++        parts = render_segments(raw)
++        assert ''.join(p.source for p in parts) == display_text(raw)
++        report['golden'][name] = digest(json.dumps([p.text for p in parts], ensure_ascii=False))
++    plain = '汉字 English 123。\n\n'
++    mixed = fixture[-1]['text']+'\n\n'
++    examples = {'ordinary_2k': ('中文 English 内容。\n\n'*125),
++        'ordinary_48k': ('中文 English 内容。\n\n'*3000),
++        'maximum_plain': (plain*(RESULT_LIMIT//len(plain))),
++        'maximum_code': '```python\n'+'  value = "A\\B"  \n\n'*24000+'```\n',
++        'dense_small_blocks': '- 项目\n\n> 引用\n\n'*20000,
++        'mixed': mixed*(RESULT_LIMIT//len(mixed)),
++        'maximum_heading_expansion': '# x\n'*120000,
++        'unclosed_delimiters': '*`[_~~\\字'*40000}
++    for name, raw in examples.items():
++        raw = raw[:RESULT_LIMIT]
++        samples = []
++        for _ in range(1 + (15 if len(raw)<100000 else 5)):
++            before = time.perf_counter()
++            parts = render_segments(raw)
++            elapsed = time.perf_counter()-before
++            assert elapsed<20
++            samples.append(elapsed)
++        assert ''.join(p.source for p in parts) == display_text(raw)
++        assert all(0<len(p.text)<=8000 for p in parts)
++        report['render'][name] = {'characters': len(raw), 'source_sha256': digest(raw),
++            'payload_sha256': digest(json.dumps([p.text for p in parts], ensure_ascii=False)),
++            'seconds': stats(samples[1:]), 'segments': len(parts)}
++        save()
++        print(json.dumps({'case': name, 'median_seconds': report['render'][name]['seconds']['median']}), flush=True)
++    parse_calls = 0
++    original = MarkdownIt.parse
++    def counted(*a, **kw):
++        nonlocal parse_calls
++        parse_calls += 1
++        return original(*a, **kw)
++    with patch.object(MarkdownIt, 'parse', new=counted):
++        render_segments(examples['ordinary_48k'])
++    report['plain_48k_parse_calls'] = parse_calls
++    tree = ast.parse(textwrap.dedent(inspect.getsource(RuntimeState.claim_reply)))
++    claim = next(n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str) and 'SELECT o.id' in n.value)
++    active = "SELECT id FROM tasks" + (" INDEXED BY task_active" if schema.VERSION>=4 else "") + " WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"
++    native = 'SELECT id FROM tasks WHERE thread_id=? AND turn_id=?'
++    def measured(db, query, params=()):
++        values=[]
++        for _ in range(16):
++            before=time.perf_counter(); result=db.execute(query,params).fetchall()
++            values.append((time.perf_counter()-before)*1000)
++        return {'milliseconds':stats(values[1:]),'rows':len(result),
++                'plan':[row[3] for row in db.execute('EXPLAIN QUERY PLAN '+query,params)]}
++    with tempfile.TemporaryDirectory(prefix='ledger-',dir=args.output.parent) as tmp:
++        root=Path(tmp)
++        credentials=Credentials('synthetic-bot','synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic')
++        state=await RuntimeState.open(root/'runtime.sqlite3',credentials)
++        await state.close()
++        db=sqlite3.connect(root/'runtime.sqlite3')
++        prior=0
++        for size in (1000,10000,100000):
++            db.executemany("INSERT INTO outbox(id,text,priority,state,task_id,kind,created_at,body_sha256) VALUES(?,? ,1,'accepted',?,'final',0,?)",
++                ((f'old-{i}','x'*128,f'old-task-{i//5}','a'*64) for i in range(prior,size)))
++            db.executemany("INSERT INTO tasks(id,client_id,target,thread_id,input,state,created_at,updated_at,turn_id) VALUES(?,?,?,'historic-thread','synthetic','completed',?,0,?)",
++                ((f'task-{i}',f'client-{i}','{}',i,f'turn-{i}') for i in range(prior,size)))
++            db.execute("DELETE FROM outbox WHERE id LIKE 'new-%'")
++            db.executemany("INSERT INTO outbox(id,text,priority,state,task_id,kind,created_at,body_sha256) VALUES(?,'new',1,?,'new-task','final',1,?)",
++                ((f'new-{i}','unknown' if i==0 else 'pending','b'*64) for i in range(71)))
++            db.commit()
++            report['sql'][str(size)]={'blocked_claim':measured(db,claim), 'active':measured(db,active),
++                'native_turn':measured(db,native,('historic-thread',f'turn-{size-1}'))}
++            assert report['sql'][str(size)]['blocked_claim']['rows']==0
++            prior=size
++        db.close()
++        state=await RuntimeState.open(root/'runtime.sqlite3',credentials)
++        values=[]
++        for i in range(31):
++            before=time.perf_counter()
++            await state.queue_reply(f'control-{i}',DisplaySegment('synthetic control'),priority=0,kind='control')
++            values.append((time.perf_counter()-before)*1000)
++        report['write_milliseconds']=stats(values[1:])
++        await state.close()
++    report['process_peak_rss_bytes']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
++    report['completed']=True
++    save()
++
++
++async def runtime_worker(args):
++    source=args.source_root.resolve(strict=True)
++    sys.path.insert(0,str(source/'src'))
++    from wx_clawbot import output
++    cases={'maximum_plain':'汉字 English 123。\n\n'*28000,
++           'maximum_heading_expansion':'# x\n'*120000}
++    result={'scope':'fresh runtime renderer process; parent plus largest exited child is a conservative peak sum',
++            'source_sha256':source_hash(source),'cases':{}}
++    prefix=lambda i,n:f'〔{i}/{n}〕synthetic-task\n\n' if n>1 else ''
++    slots=asyncio.Semaphore(2)
++    for name,body in cases.items():
++        text='synthetic｜task｜completed\n'+body[:output.RESULT_LIMIT]
++        values=[]
++        for _ in range(6):
++            start=time.perf_counter()
++            if hasattr(output,'render_in_worker'):
++                parts=await output.render_in_worker(text,prefix=prefix,slots=slots)
++            else:
++                parts=await asyncio.to_thread(output.render_segments,text,prefix=prefix)
++            values.append(time.perf_counter()-start)
++        result['cases'][name]={'seconds':stats(values[1:]),'payload_sha256':digest(json.dumps([p.text for p in parts],ensure_ascii=False))}
++        print(json.dumps({'runtime_case':name,'median_seconds':statistics.median(values[1:])}),flush=True)
++    parent=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
++    child=resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
++    result.update(parent_peak_rss_bytes=parent,largest_child_peak_rss_bytes=child,
++                  conservative_total_peak_rss_bytes=parent+child,completed=True)
++    args.output.write_text(json.dumps(result,indent=2))
++
++
++def compare(args):
++    before=json.loads(args.baseline.read_text()); after=json.loads(args.candidate.read_text())
++    checks={'golden_equal':before['golden']==after['golden'],
++            'parse_calls_reduced_by_two':before['plain_48k_parse_calls']-after['plain_48k_parse_calls']>=2,
++            'rss_budget':after['process_peak_rss_bytes']<=before['process_peak_rss_bytes']*1.2,
++            'write_budget':after['write_milliseconds']['p95']<=max(before['write_milliseconds']['p95']*1.25,before['write_milliseconds']['p95']+2)}
++    for name,b in before['render'].items():
++        a=after['render'][name]
++        checks[name+'_payload_equal']=a['payload_sha256']==b['payload_sha256']
++        checks[name+'_budget']=a['seconds']['median']<=max(b['seconds']['median']*1.15,b['seconds']['median']+.02)
++    for name in ('maximum_plain','maximum_heading_expansion'):
++        checks[name+'_20_percent_faster']=after['render'][name]['seconds']['median']<=before['render'][name]['seconds']['median']*.8
++    q=after['sql']['100000']; old=before['sql']['100000']
++    checks['blocked_claim_budget']=q['blocked_claim']['milliseconds']['median']<=min(10,old['blocked_claim']['milliseconds']['median']*.1)
++    checks['active_budget']=q['active']['milliseconds']['median']<=2
++    checks['native_turn_budget']=q['native_turn']['milliseconds']['median']<=2
++    result={'checks':checks,'passed':all(checks.values()),'baseline_source_sha256':before['source_sha256'],'candidate_source_sha256':after['source_sha256']}
++    args.output.write_text(json.dumps(result,indent=2))
++    print(json.dumps(result,indent=2))
++    return 0 if result['passed'] else 1
++
++
++def main():
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('action',choices=('baseline','candidate','compare','runtime'))
++    parser.add_argument('--output',required=True,type=output_path)
++    parser.add_argument('--source-root',type=Path)
++    parser.add_argument('--baseline',type=Path)
++    parser.add_argument('--candidate',type=Path)
++    parser.add_argument('--worker',action='store_true',help=argparse.SUPPRESS)
++    args=parser.parse_args()
++    if args.action=='compare':
++        return compare(args)
++    if not args.worker:
++        source=args.source_root
++        if source is None and args.action=='baseline':
++            source=args.output.parent/'baseline-source'
++            if source.exists():
++                raise ValueError('Use --source-root for an existing verified baseline; never overwrite it')
++            files=subprocess.check_output(['git','ls-tree','-r','--name-only',BASELINE,'-z']).split(b'\0')
++            for raw in files:
++                if not raw: continue
++                name=Path(raw.decode())
++                if name.parts[0] not in ('src','tests') and name.name!='pyproject.toml': continue
++                path=source/name; path.parent.mkdir(parents=True,exist_ok=True)
++                path.write_bytes(subprocess.check_output(['git','show',BASELINE+':'+str(name)]))
++        source=(source or PROJECT).resolve(strict=True)
++        command=[sys.executable,str(Path(__file__).resolve()),args.action,'--worker','--source-root',str(source),'--output',str(args.output)]
++        return subprocess.run(command,env={**os.environ,'PYTHONPATH':str(source/'src')},timeout=600).returncode
++    asyncio.run(runtime_worker(args) if args.action=='runtime' else worker(args))
++    return 0
++
++
++if __name__=='__main__':
++    raise SystemExit(main())
+diff --git a/tests/integration/performance_checks.py b/tests/integration/performance_checks.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/performance_checks.py
+@@ -0,0 +1,77 @@
++"""PERF01 discovery counts, sender wake latency and optional read-only SDK view."""
++import argparse
++import asyncio
++import json
++from pathlib import Path
++import sys
++import tempfile
++import time
++from types import SimpleNamespace
++
++from performance import PROJECT, output_path, source_hash, stats
++from wx_clawbot.channels.wechat import Credentials
++from wx_clawbot.delivery import Sender
++from wx_clawbot.hosts.discovery import ItermDirectory
++from wx_clawbot.hosts.lifecycle import HostLifecycle
++from wx_clawbot.runtime_state import RuntimeState
++
++
++async def main(args):
++    sys.path.insert(0,str(PROJECT/'tests'))
++    from test_performance_discovery import discovery_counts
++    from test_wechat_state import message
++    report={'source_sha256':source_hash(PROJECT),'wechat_sends':0,'production_writes':0}
++    report['discovery']=[await discovery_counts(PROJECT,n) for n in (2,10,30,100)]
++    with tempfile.TemporaryDirectory(prefix='wake-',dir=args.output.parent) as tmp:
++        account=Credentials('fixture-bot','fixture-owner','https://ilinkai.weixin.qq.com/','synthetic')
++        state=await RuntimeState.open(Path(tmp)/'runtime.sqlite3',account)
++        await state.accept_batch({'ret':0,'msgs':[message()]},phase='runtime')
++        starts=asyncio.Queue()
++        async def send(*_,**kwargs):
++            starts.put_nowait(time.perf_counter())
++            return {'ret':0}
++        sender=asyncio.create_task(Sender(state,SimpleNamespace(send_text=send)).run())
++        values=[]
++        try:
++            for i in range(100):
++                await asyncio.sleep(.005)
++                start=time.perf_counter()
++                await state.queue_reply(f'wake-{i}','synthetic wake result')
++                # Includes render plus commit as well as the wake, a stricter
++                # start point than only measuring from after the commit.
++                values.append(((await asyncio.wait_for(starts.get(),1))-start)*1000)
++            report['wake_milliseconds']=stats(values)
++            assert report['wake_milliseconds']['p95']<=100
++        finally:
++            sender.cancel()
++            await asyncio.gather(sender,return_exceptions=True)
++            await state.close()
++    if args.sdk_read_only:
++        # Never launches an absent host, creates terminals, changes settings,
++        # reads screens, submits tasks, or answers requests.
++        host=HostLifecycle()
++        try:
++            await host.ensure(launch=False,explicit=False)
++            directory=ItermDirectory(lifecycle=host)
++            view=await directory.discovery_view()
++            endpoints=await view.discover()
++            candidates=[e for e in endpoints if e.classification=='codex_candidate']
++            checks=[await view.validate(e) for e in endpoints]
++            report['sdk_view']={'live_connection':True,'endpoints':len(endpoints),
++                'candidate_processes':len(candidates),
++                'exact_process_checks':checks,
++                'expected_candidate_flags':[e.classification=='codex_candidate' for e in endpoints],
++                'screens_read':0,'native_submissions':0,'terminal_writes':0}
++            assert checks==report['sdk_view']['expected_candidate_flags']
++        finally:
++            await host.close()
++    report['passed']=True
++    args.output.write_text(json.dumps(report,indent=2))
++    print(json.dumps(report,indent=2))
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output',required=True,type=output_path)
++    parser.add_argument('--sdk-read-only',action='store_true')
++    asyncio.run(main(parser.parse_args()))
+diff --git a/tests/integration/performance_flow.py b/tests/integration/performance_flow.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/performance_flow.py
+@@ -0,0 +1,238 @@
++"""Explicit offline Unix peer + actual bridge chain and 120-second soak. Zero external I/O."""
++import argparse
++import asyncio
++import gc
++import json
++from pathlib import Path
++import resource
++import tempfile
++import time
++import tracemalloc
++from types import SimpleNamespace
++from unittest.mock import AsyncMock, patch
++
++from websockets.asyncio.server import unix_serve
++from wx_clawbot.agents.codex import CodexConnection
++from wx_clawbot.catalog import CatalogSession
++from wx_clawbot.channels.wechat import Credentials
++from wx_clawbot.config import Project
++from wx_clawbot.controller import Controller
++from wx_clawbot.delivery import Sender
++from wx_clawbot.execution import Execution
++from wx_clawbot.hosts.visible import LaunchRegistry
++from wx_clawbot.interactions import QUESTION
++from wx_clawbot.routing import Target
++from wx_clawbot.runtime_state import RuntimeState
++from wx_clawbot.service import poll
++from performance import output_path, source_hash, PROJECT
++
++
++async def until(check, jobs, timeout=15):
++    async with asyncio.timeout(timeout):
++        while not await check():
++            for job in jobs:
++                if job.done(): job.result()
++            await asyncio.sleep(.005)
++
++
++async def main(args):
++    with tempfile.TemporaryDirectory(prefix='flow-',dir=args.output.parent) as tmp, \
++            tempfile.TemporaryDirectory(prefix='wx-flow-',dir='/tmp') as socktmp:
++        root=Path(tmp)
++        projects=tuple(Project(alias,root/alias) for alias in ('one','two'))
++        for project in projects: project.root.mkdir()
++        state=await RuntimeState.open(root/'state/runtime.sqlite3',Credentials('synthetic-bot','synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic'))
++        threads={f'thread-{p.alias}': {'id':f'thread-{p.alias}','sessionId':f'native-{p.alias}',
++            'cwd':str(p.root),'status':{'type':'idle'},'model':'synthetic','modelProvider':'synthetic'} for p in projects}
++        turns={}; clients={}; connections=[]; responses=[]
++        async def peer(ws):
++            connections.append(ws)
++            async for raw in ws:
++                message=json.loads(raw)
++                if 'method' not in message:
++                    responses.append(message['id'])
++                    await ws.send(json.dumps({'method':'serverRequest/resolved','params':{'threadId':'thread-one','requestId':message['id']}}))
++                    continue
++                method=message['method']; params=message.get('params',{})
++                if method=='initialized': continue
++                if method=='initialize':
++                    value={'userAgent':'synthetic/0.166.0','platformFamily':'unix','platformOs':'macos','codexHome':str(root)}
++                elif method in ('thread/read','thread/resume'):
++                    value={'thread':threads[params['threadId']]}
++                elif method=='thread/unsubscribe': value={'status':'unsubscribed'}
++                elif method=='thread/queue/list': value={'data':[],'nextCursor':None}
++                elif method=='thread/queue/add':
++                    tid=params['threadId']; client=params['clientUserMessageId']; turn='turn-'+client
++                    clients[client]=turn
++                    turns[tid]={'id':turn,'status':'inProgress','items':[{'type':'userMessage','clientId':client}]}
++                    threads[tid]['status']={'type':'active'}
++                    value={'queuedSubmission':{'id':'queue-'+client,'clientUserMessageId':client}}
++                    await ws.send(json.dumps({'id':message['id'],'result':value}))
++                    await ws.send(json.dumps({'method':'item/started','params':{'threadId':tid,'turnId':turn,'item':turns[tid]['items'][0]}}))
++                    continue
++                elif method=='thread/turns/list': value={'data':[turns[params['threadId']]],'nextCursor':None}
++                else: raise AssertionError(method)
++                await ws.send(json.dumps({'id':message['id'],'result':value}))
++        socket=Path(socktmp)/'peer.sock'
++        server=await unix_serve(peer,socket)
++        socket.chmod(0o600)
++        native=await CodexConnection.connect(socket)
++        sessions=[CatalogSession(Target('session-'+p.alias,p.alias,p.root),
++            SimpleNamespace(thread_id='thread-'+p.alias),'synthetic') for p in projects]
++        catalog=SimpleNamespace(agent=native,sessions={s.target.session_id:s for s in sessions},
++            managed_threads=set(),unverified=[],discover=AsyncMock(return_value=tuple(sessions)),
++            require=AsyncMock(side_effect=lambda target: next(s for s in sessions if s.target==target)))
++        controller=Controller(projects,catalog,state,SimpleNamespace(registry=LaunchRegistry(root/'launches')),Path('/synthetic/codex'),root)
++        engine=Execution(controller)
++        incoming=asyncio.Queue(); received=0; sent=0; claims=0
++        class Api:
++            async def updates(self,credentials,cursor):
++                return {'ret':0,'msgs':[await incoming.get()]}
++            async def send_text(self,*args,**kwargs):
++                nonlocal sent
++                sent+=1
++                return {'ret':0,'message_id':sent}
++        api=Api()
++        async def text(value):
++            nonlocal received
++            received+=1
++            await incoming.put({'message_id':received,'from_user_id':'synthetic-owner','to_user_id':'synthetic-bot',
++                'message_type':1,'message_state':2,'seq':received,'create_time_ms':received,
++                'context_token':'synthetic-context','item_list':[{'type':1,'text_item':{'text':value}}]})
++        async def notify(method,params,identity=None):
++            value={'method':method,'params':params}
++            if identity is not None:value['id']=identity
++            await connections[0].send(json.dumps(value))
++        latencies=[]; started={}; event=engine.event
++        first_question_overlap=None
++        questions_while_result_active=0
++        task_a_id=None
++        async def traced(value):
++            nonlocal first_question_overlap,questions_while_result_active
++            await event(value)
++            if value['method']==QUESTION:
++                overlap=(await state.tasks(task_id=task_a_id))['state']!='completed'
++                questions_while_result_active+=int(overlap)
++                if first_question_overlap is None:first_question_overlap=overlap
++                latencies.append((time.perf_counter()-started[value['id']])*1000)
++        engine.event=traced
++        jobs=[asyncio.create_task(fn) for fn in (poll(controller,api),Sender(state,api).run(),engine.run(),engine.maintain())]
++        async def answer_ready():
++            return bool(engine.brokers.get('thread-one') and any(r.state=='pending' for r in engine.brokers['thread-one'].records.values()))
++        render_patch=None
++        try:
++            await text('/sessions')
++            await until(lambda: asyncio.sleep(0,result=controller.routes.list is not None),jobs)
++            await text('/focus 2')
++            await until(lambda:asyncio.sleep(0,result=controller.routes.target==sessions[1].target),jobs)
++            await text('/attach 1')
++            await until(lambda:asyncio.sleep(0,result=controller.routes.observer==sessions[0].target),jobs)
++            await text('synthetic long result')
++            async def running():
++                return any(t['thread_id']=='thread-two' and t['state']=='running' for t in await state.tasks(active_only=True))
++            await until(running,jobs)
++            task=next(t for t in await state.tasks(active_only=True) if t['thread_id']=='thread-two')
++            task_a_id=task['id']
++            turns['thread-two']['status']='completed'
++            turns['thread-two']['items'].append({'type':'agentMessage','text':'# x\n'*120000})
++            threads['thread-two']['status']={'type':'idle'}
++            for i in range(10000):
++                await notify('item/agentMessage/delta',{'threadId':'thread-one','delta':'x'})
++                if i%100==0:await asyncio.sleep(0)
++            if args.control_only:
++                # Amplify actual maximum-input CPU work without changing payload.
++                # This is an explicit stress injection, not nominal render timing.
++                from wx_clawbot import output
++                original_render=output._render_process
++                async def busy_render(text):
++                    for index in range(5):
++                        before=time.perf_counter()
++                        result=await original_render(text)
++                        print(json.dumps({'stress_render':index+1,'seconds':time.perf_counter()-before}),flush=True)
++                    return result
++                render_patch=patch.object(output,'_render_process',side_effect=busy_render)
++                render_patch.start()
++            await notify('turn/completed',{'threadId':'thread-two','turn':{'id':turns['thread-two']['id']}})
++            for i in range(100):
++                identity=f'question-{i}'; started[identity]=time.perf_counter()
++                for _ in range(5):await notify('item/agentMessage/delta',{'threadId':'thread-one','delta':'x'})
++                await notify(QUESTION,{'threadId':'thread-one','turnId':'question-turn','itemId':identity,
++                    'questions':[{'id':'choice','question':'synthetic choice','options':[{'label':'A'},{'label':'B'}]}]},identity)
++                await until(answer_ready,jobs)
++                record=next(r for r in engine.brokers['thread-one'].records.values() if r.state=='pending')
++                await text('/answer '+record.public_id+' A')
++                await until(lambda:asyncio.sleep(0,result=record.state=='resolved'),jobs)
++            async def completed():return (await state.tasks(task_id=task['id']))['state']=='completed'
++            await until(completed,jobs,timeout=120 if args.control_only else 15)
++            latency={'samples':len(latencies),'p95_ms':sorted(latencies)[94],'max_ms':max(latencies)}
++            args.output.with_suffix('.control-metrics.json').write_text(json.dumps({
++                'latency':latency,'latencies_ms':latencies,'questions_while_result_active':questions_while_result_active,
++                'first_question_overlap':first_question_overlap},indent=2))
++            assert latency['p95_ms']<=250 and latency['max_ms']<=1000
++            assert native.rpc.failure is None and len(responses)==100
++            if args.control_only:
++                assert questions_while_result_active==100,'All controls must overlap result work, not be idle samples'
++                result={'scope':'Unix peer actual maximum-result/control overlap, no external I/O',
++                    'source_sha256':source_hash(PROJECT),'question_latency':latency,
++                    'first_question_before_a_completed':first_question_overlap,
++                    'questions_while_result_active':questions_while_result_active,'maximum_render_cpu_repetitions':5,
++                    'responses_exactly_once':len(responses)==len(set(responses))==100,'passed':True}
++                args.output.write_text(json.dumps(result,indent=2))
++                print(json.dumps(result,indent=2),flush=True)
++                return
++            # Only the performance phase above uses maximum output. Soak runs an
++            # equal steady workload; samples do not include retained raw messages.
++            tracemalloc.start()
++            memory=[]; end=time.monotonic()+args.seconds; last_sample=0
++            while time.monotonic()<end:
++                await text('/status')
++                for _ in range(20):await notify('item/agentMessage/delta',{'threadId':'thread-one','delta':'x'})
++                if time.monotonic()-last_sample>=10:
++                    await engine.prune_memory();gc.collect()
++                    memory.append({'at':time.monotonic(),'python_bytes':tracemalloc.get_traced_memory()[0]})
++                    last_sample=time.monotonic()
++                for job in jobs:
++                    if job.done():job.result()
++                await asyncio.sleep(.25)
++            async def drained():
++                return (await state.delivery_counts()).get('pending',0)==0
++            await until(drained,jobs)
++            await engine.prune_memory();gc.collect()
++            ending=tracemalloc.get_traced_memory()[0]
++            assert ending<=max(memory[0]['python_bytes']*1.1,memory[0]['python_bytes']+8*1024*1024)
++            counts=await state.delivery_counts()
++            claim=state.claim_reply
++            async def counted():
++                nonlocal claims
++                claims+=1
++                return await claim()
++            state.claim_reply=counted
++            await asyncio.sleep(60)
++            assert claims<=14,claims
++            result={'scope':'local Unix synthetic peer, actual poll/Execution/ledger/Sender; no external messages',
++                'source_sha256':source_hash(PROJECT),
++                'first_question_before_a_completed':first_question_overlap,
++                'question_latency':latency,'responses_exactly_once':len(responses)==len(set(responses))==100,
++                'native_failure':native.rpc.failure is not None,'soak_seconds':args.seconds,
++                'memory_samples':memory,'ending_python_bytes':ending,'idle_60_seconds_claims':claims,
++                'delivery_counts':counts,'input_messages':received,'fake_api_calls':sent,
++                'process_peak_rss_bytes':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'passed':True}
++            args.output.write_text(json.dumps(result,indent=2))
++            print(json.dumps(result,indent=2),flush=True)
++        finally:
++            tracemalloc.stop()
++            for job in jobs:job.cancel()
++            await asyncio.gather(*jobs,return_exceptions=True)
++            await engine.close();await native.close();await state.close()
++            if render_patch is not None:render_patch.stop()
++            server.close();await server.wait_closed()
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output',required=True,type=output_path)
++    parser.add_argument('--seconds',type=int,default=120)
++    parser.add_argument('--control-only',action='store_true')
++    args=parser.parse_args()
++    if not 120<=args.seconds<=600:raise ValueError('Soak must last 120 to 600 seconds')
++    asyncio.run(main(args))
+diff --git a/tests/integration/performance_migration.py b/tests/integration/performance_migration.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/performance_migration.py
+@@ -0,0 +1,72 @@
++"""Synthetic schema-3 to schema-4 migration with full business-row digests."""
++import argparse
++import asyncio
++import hashlib
++import json
++from pathlib import Path
++import sqlite3
++import tempfile
++import time
++
++from wx_clawbot import schema
++from wx_clawbot.channels.wechat import Credentials
++from wx_clawbot.runtime_state import RuntimeState
++from performance import output_path
++
++
++def snapshot(path):
++    with sqlite3.connect(path) as db:
++        tables=[r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
++        result={}
++        for table in tables:
++            digest=hashlib.sha256(); count=0
++            for row in db.execute('SELECT * FROM '+table+' ORDER BY rowid'):
++                digest.update(json.dumps(row,ensure_ascii=False,separators=(',',':')).encode()+b'\n')
++                count+=1
++            result[table]={'rows':count,'sha256':digest.hexdigest()}
++        return result
++
++
++async def main(args):
++    with tempfile.TemporaryDirectory(prefix='migration-',dir=args.output.parent) as tmp:
++        root=Path(tmp); path=root/'runtime.sqlite3'
++        credentials=Credentials('synthetic-bot','synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic')
++        state=await RuntimeState.open(path,credentials)
++        await state.close()
++        with sqlite3.connect(path) as db:
++            for statement in schema.PERFORMANCE_UPGRADE:db.execute('DROP INDEX '+statement.split()[2])
++            db.execute('PRAGMA user_version=3')
++            db.executemany("INSERT INTO tasks(id,client_id,target,thread_id,input,state,created_at,updated_at,turn_id) VALUES(?,?,?,'history','synthetic','completed',0,0,?)",
++                ((f'task-{i}',f'client-{i}','{}',f'turn-{i}') for i in range(100000)))
++            digest=hashlib.sha256(b'synthetic history').hexdigest()
++            db.executemany("INSERT INTO outbox(id,text,priority,state,task_id,kind,created_at,body_sha256) VALUES(?,'synthetic history',1,'accepted',?,'final',0,?)",
++                ((f'old-{i}',f'task-{i}',digest) for i in range(100000)))
++            db.commit()
++            assert schema.validate(db,credentials)==3
++        before=snapshot(path)
++        before_bytes=path.stat().st_size
++        started=time.perf_counter(); result=schema.upgrade(root,credentials)
++        seconds=time.perf_counter()-started
++        after=snapshot(path); backup=snapshot(root/result['backup'])
++        assert before==after==backup
++        assert seconds<60
++        with sqlite3.connect(path) as db:
++            assert schema.validate(db,credentials)==4
++            assert db.execute('PRAGMA quick_check').fetchall()==[('ok',)]
++            assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
++            index_bytes={name:db.execute('SELECT COALESCE(sum(pgsize),0) FROM dbstat WHERE name=?',(name,)).fetchone()[0]
++                         for name in ('reply_task_kind','task_native_turn','task_active')}
++        assert schema.upgrade(root,credentials)['status']=='current'
++        report={'scope':'synthetic ledger only','from_schema':3,'to_schema':4,
++                'seconds':seconds,'business_rows':before,'all_business_rows_and_backup_exact':True,
++                'database_bytes_before':before_bytes,'database_bytes_after':path.stat().st_size,
++                'new_index_bytes':index_bytes,
++                'integrity_ok':True,'repeat_noop':True,'passed':True}
++        args.output.write_text(json.dumps(report,indent=2))
++        print(json.dumps(report,indent=2))
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output',required=True,type=output_path)
++    asyncio.run(main(parser.parse_args()))
+diff --git a/tests/integration/performance_native.py b/tests/integration/performance_native.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/performance_native.py
+@@ -0,0 +1,333 @@
++"""Explicit PERF01 native smoke in two owned visible terminals; never uses WeChat."""
++import argparse
++import asyncio
++import copy
++import hashlib
++import json
++from pathlib import Path
++import time
++import uuid
++
++from wx_clawbot.agents.codex import CodexConnection
++from wx_clawbot.catalog import SessionCatalog
++from wx_clawbot.channels.private import private_directory, read_json, write_json
++from wx_clawbot.config import load_projects
++from wx_clawbot.hosts.discovery import ItermDirectory
++from wx_clawbot.hosts.lifecycle import HostLifecycle
++from wx_clawbot.hosts.visible import ItermWindowStarter, LaunchRegistry, VisibleStarter, LaunchPending, reconcile_launch
++from wx_clawbot.runtime_discovery import discover_runtime
++from wx_clawbot.agents.queue import NativeQueue
++from wx_clawbot.channels.wechat import Credentials
++from wx_clawbot.controller import Controller
++from wx_clawbot.delivery import Sender
++from wx_clawbot.execution import Execution
++from wx_clawbot.interactions import QUESTION
++from wx_clawbot.output import native_output
++from wx_clawbot.runtime_state import RuntimeState
++from wx_clawbot.commands import parse_command
++
++
++def settings(reply):
++    keys=('approvalPolicy','approvalsReviewer','sandbox','collaborationMode','activePermissionProfile')
++    if not isinstance(reply.get('collaborationMode'),dict) or not isinstance(reply.get('sandbox'),dict):
++        raise ValueError('Complete thread settings required')
++    return {key:reply.get(key) for key in keys}
++
++
++async def main(args):
++    import iterm2
++    workspace=Path.cwd().resolve()
++    if not (workspace/'AGENTS.md').exists() or not args.report_dir.resolve().is_relative_to(workspace/'.tmp'):
++        raise ValueError('Run only from this project, with a report directory inside its .tmp')
++    report=private_directory(args.report_dir.absolute())
++    path=report/'native-case.json'
++    if args.action=='report':
++        case=read_json(path)
++        print(json.dumps({'phase':case['phase'],'owned_terminals':len(case.get('fixtures',[])),
++                          'wechat_sends':0,'production_ledger_writes':0}))
++        return
++    if not args.confirm_dedicated:
++        raise ValueError('Explicit dedicated fixture confirmation required')
++    if args.action=='prepare' and path.exists():
++        raise FileExistsError('Existing fixture intent is not replayable')
++    if args.action!='prepare' and not path.exists():
++        raise ValueError('An existing owned fixture is required before host I/O')
++    home=Path.home()/'.codex'
++    runtime=Path.home()/'Library/Application Support/wx-clawbot'
++    protected=[runtime/'config.json',runtime/'credentials.json',home/'config.toml',
++               Path.home()/'Library/LaunchAgents/local.wx-clawbot.plist']
++    hashes=lambda:[hashlib.sha256(p.read_bytes()).hexdigest() for p in protected]
++    host=HostLifecycle()
++    native=None
++    try:
++        # Explicit dedicated smoke may start an absent host, never restart it.
++        await host.ensure(launch=True, explicit=True)
++        host.verified(host.generation)
++        socket,executable=await asyncio.to_thread(discover_runtime,home)
++        native=await CodexConnection.connect(socket)
++        directory=ItermDirectory(lifecycle=host)
++        if args.action=='run':
++            case=read_json(path)
++            if case['phase']!='ready' or hashes()!=case['protected_hashes'] or list(native.runtime_identity)!=case['runtime_identity']:
++                raise ValueError('Exact ready native fixture/config/runtime required; no replay')
++            projects=load_projects(runtime/'config.json')
++            catalog=SessionCatalog(projects,directory,native)
++            found=await catalog.discover()
++            owned=[]
++            for fixture in case['fixtures']:
++                matches=[s for s in found if s.target.session_id==fixture['session_id'] and s.binding.thread_id==fixture['thread_id']]
++                if len(matches)!=1:raise ValueError('Current full fixture identity changed')
++                await catalog.require(matches[0].target)
++                owned.append(matches[0])
++            a,b=owned
++            resumed=await native.rpc.request('thread/resume',{'threadId':b.binding.thread_id,'excludeTurns':True})
++            original=settings(resumed); plan=copy.deepcopy(original['collaborationMode']);plan['mode']='plan'
++            case.update(phase='plan_intent',original_settings=original,applied_collaboration_mode=plan)
++            write_json(path,case,replace=True)
++            await native.rpc.request('thread/settings/update',{'threadId':b.binding.thread_id,'collaborationMode':plan})
++            async with asyncio.timeout(5):
++                while True:
++                    current=await native.rpc.request('thread/resume',{'threadId':b.binding.thread_id,'excludeTurns':True})
++                    if settings(current)=={**original,'collaborationMode':plan}:break
++                    await asyncio.sleep(.1)
++            state=await RuntimeState.open(report/'isolated-ledger/runtime.sqlite3',Credentials('perf01-synthetic-bot','perf01-synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic'))
++            controller=Controller(projects,catalog,state,VisibleStarter(LaunchRegistry(report/'unused-launches'),None),executable,home,host=host)
++            engine=Execution(controller)
++            counter=0;fake_sends=[];jobs=[];questions=[]
++            class FakeApi:
++                async def send_text(self,*_,**kwargs):
++                    fake_sends.append(kwargs['client_id'])
++                    return {'ret':0,'message_id':len(fake_sends)}
++            async def command(text):
++                nonlocal counter
++                counter+=1
++                raw={'message_id':counter,'from_user_id':state.credentials.owner_id,'to_user_id':state.credentials.bot_id,
++                     'message_type':1,'message_state':2,'seq':counter,'create_time_ms':counter,'context_token':'synthetic',
++                     'item_list':[{'type':1,'text_item':{'text':text}}]}
++                batch=await state.accept_batch({'ret':0,'msgs':[raw]},phase='runtime')
++                await controller.prepare(batch['accepted'][0])
++            def healthy():
++                for job in jobs:
++                    if job.done():job.result()
++            async def wait_for(check,timeout=180):
++                async with asyncio.timeout(timeout):
++                    while not await check():
++                        healthy();await asyncio.sleep(.1)
++            event=engine.event
++            async def tracked(value):
++                await event(value)
++                if value['method']==QUESTION:questions.append((value['id'],time.monotonic()))
++            engine.event=tracked
++            try:
++                controller.routes.snapshot(tuple(s.target for s in owned))
++                jobs=[asyncio.create_task(job) for job in (engine.run(),engine.maintain(),Sender(state,FakeApi()).run())]
++                await command('/focus 1');await command('/attach 2')
++                prompt_a=('PERF01 只读原生输出验收。不要调用任何工具，不读取或修改任何文件。'
++                    '请依次输出 160 行，从 PERF01-LINE-000-abcdefghijkl 到 PERF01-LINE-159-abcdefghijkl，'
++                    '中间序号连续，每行一个，不省略；最后单独输出 PERF01-NATIVE-END。')
++                case['phase']='task_a_intent';write_json(path,case,replace=True)
++                await command(prompt_a)
++                tasks=[t for t in await state.tasks() if t['target'].get('source')!='external']
++                if len(tasks)!=1 or tasks[0]['state'] not in {'queued','running','waiting_interaction'}:
++                    raise ValueError('Native A submission not confirmed; never resubmit')
++                task_a=tasks[0];case['task_a']={'id':task_a['id'],'client_id':task_a['client_id']}
++                await catalog.require(b.target)
++                prompt_b=('PERF01 自动化原生追问验收。这一条只允许调用一次 request_user_input，不调用其他工具，'
++                    '不读取或修改文件。立即提出一个问题 id=choice，选项严格为 PERF01_ALPHA 和 PERF01_BETA，'
++                    '等待外部测试客户端的真实答复，不自行选择或重复提问；收到后只复述选中标记。')
++                client_b='perf01-native-'+uuid.uuid4().hex
++                case.update(phase='task_b_intent',client_b=client_b);write_json(path,case,replace=True)
++                receipt=await NativeQueue(native,b.binding.thread_id,b.target.cwd).add(prompt_b,client_b)
++                case.update(phase='running',queue_b=receipt['id']);write_json(path,case,replace=True)
++                await wait_for(lambda:asyncio.sleep(0,result=bool(questions)))
++                broker=engine.brokers[b.binding.thread_id]
++                pending=[r for r in broker.records.values() if r.state=='pending']
++                if len(pending)!=1:raise ValueError('Exactly one unanswered owned native question required')
++                request=pending[0]
++                qs=request.params['questions']
++                if len(qs)!=1 or qs[0]['id']!='choice' or [o['label'] for o in qs[0].get('options',[])]!=['PERF01_ALPHA','PERF01_BETA']:
++                    raise ValueError('Native question differs from frozen scope; no automatic answer')
++                turn=await engine.read_turn(b.binding.thread_id,request.turn_id)
++                users=[i for i in turn['items'] if i.get('type')=='userMessage']
++                if len(users)!=1 or users[0].get('clientId')!=client_b:
++                    raise ValueError('Question belongs to another native client')
++                case.update(phase='answer_intent',request_id=request.public_id,turn_b=request.turn_id)
++                write_json(path,case,replace=True)
++                await engine.control(parse_command('/answer '+request.public_id+' PERF01_BETA'))
++                case['phase']='answered';write_json(path,case,replace=True)
++                async def finished():
++                    task=await state.tasks(task_id=task_a['id'])
++                    records=await state.tasks(native_turn=(b.binding.thread_id,request.turn_id))
++                    return task['state']=='completed' and records is not None and records['state']=='completed' and request.state=='resolved'
++                await wait_for(finished)
++                turn_a=await engine.read_turn(a.binding.thread_id,(await state.tasks(task_id=task_a['id']))['turn_id'])
++                turn_b=await engine.read_turn(b.binding.thread_id,request.turn_id)
++                output_a=native_output(turn_a); output_b=native_output(turn_b)
++                assert 'PERF01-NATIVE-END' in output_a and 'PERF01_BETA' in output_b
++                tools=[i.get('type') for turn in (turn_a,turn_b) for i in turn['items'] if i.get('type') not in {'userMessage','agentMessage','reasoning','plan','tool'}]
++                forbidden={'commandExecution','fileChange','mcpToolCall','webSearch'}
++                assert not any(kind in forbidden for kind in tools)
++                await native.rpc.request('thread/settings/update',{'threadId':b.binding.thread_id,'collaborationMode':original['collaborationMode']})
++                async with asyncio.timeout(5):
++                    while True:
++                        restored=await native.rpc.request('thread/resume',{'threadId':b.binding.thread_id,'excludeTurns':True})
++                        if settings(restored)==original:break
++                        await asyncio.sleep(.1)
++                async def drained():return (await state.delivery_counts()).get('pending',0)==0
++                await wait_for(drained,15)
++                assert hashes()==case['protected_hashes']
++                assert len(fake_sends)==len(set(fake_sends))
++                case.update(phase='verified',settings_restored=True)
++                write_json(path,case,replace=True)
++                evidence={'phase':'verified','runtime_version':native.server_version,'owned_terminals':2,
++                    'candidate_sdk_identity_verified':True,'original_native_queue':True,
++                    'question_calls':len(questions),'resolved':request.state=='resolved','selected_marker':'PERF01_BETA',
++                    'real_native_long_result_end':True,'task_a_state':'completed','task_b_state':'completed',
++                    'settings_restored':True,'protected_configuration_unchanged':True,
++                    'fake_sends':len(fake_sends),'wechat_sends':0,'production_ledger_writes':0}
++                (report/'native-proof.json').write_text(json.dumps(evidence,indent=2))
++                print(json.dumps(evidence),flush=True)
++            finally:
++                for job in jobs:job.cancel()
++                await asyncio.gather(*jobs,return_exceptions=True)
++                await engine.close();await state.close()
++        elif args.action=='cleanup':
++            from wx_clawbot.hosts.discovery import inspect_terminal
++            case=read_json(path)
++            if case['phase']!='verified' or not case.get('settings_restored'):
++                raise ValueError('Only verified finished fixtures may close automatically')
++            registry=LaunchRegistry(report/'launches')
++            app=await iterm2.async_get_app(host.connection)
++            for fixture in case['fixtures']:
++                boot=read_json(registry.root/(fixture['launch_id']+'.boot.json'))
++                session=app.get_session_by_id(fixture['terminal_id'])
++                if session is None:raise ValueError('Inspect uncertain cleanup before retry')
++                endpoint=await inspect_terminal(session)
++                if endpoint.process is None or endpoint.process.pid!=boot['pid'] or list(endpoint.process.started)!=boot['started']:
++                    raise ValueError('Own fixture process changed')
++                if await directory.current_thread_id(endpoint)!=fixture['thread_id']:
++                    raise ValueError('Own terminal current native thread changed')
++                if (await native.inspect(fixture['thread_id'])).get('status',{}).get('type')!='idle':
++                    raise ValueError('Own fixture still has active native work')
++                if await NativeQueue(native,fixture['thread_id'],Path(fixture['cwd'])).list():
++                    raise ValueError('Own fixture still has queued work')
++                fixture['phase']='close_intent';write_json(path,case,replace=True)
++                await session.async_close(force=True)
++                fixture['phase']='closed';write_json(path,case,replace=True)
++            case['phase']='cleaned';write_json(path,case,replace=True)
++            print(json.dumps({'phase':'cleaned','owned_terminals_closed':2,'existing_user_terminal_inputs':0}),flush=True)
++        elif args.action=='retire-prepare':
++            from wx_clawbot.hosts.discovery import inspect_terminal
++            case=read_json(path)
++            if case['phase']!='starting':
++                raise ValueError('Only the incomplete preparation can be retired')
++            registry=LaunchRegistry(report/'launches')
++            app=await iterm2.async_get_app(host.connection)
++            for fixture in case['fixtures']:
++                boot=read_json(registry.root/(fixture['launch_id']+'.boot.json'))
++                session=app.get_session_by_id(fixture['terminal_id'])
++                if session is None:raise ValueError('Inspect an uncertain close before any retry')
++                endpoint=await inspect_terminal(session)
++                if endpoint.process is None or endpoint.process.pid!=boot['pid'] or list(endpoint.process.started)!=boot['started']:
++                    raise ValueError('Owned launcher process changed')
++                marker='WX-LAUNCH-'+fixture['launch_id']
++                page=await native.list_project_threads(Path(fixture['cwd']))
++                found=[t for t in page['data'] if t.get('preview','').startswith(marker)]
++                if len(found)!=1 or found[0].get('status',{}).get('type')!='idle':
++                    raise ValueError('Own handshake is not uniquely idle')
++                history=await native.read_turns(found[0]['id'],limit=1)
++                turns=history['data']
++                if history.get('nextCursor') or len(turns)!=1 or turns[0].get('status')!='completed':
++                    raise ValueError('Own handshake has additional or unfinished work')
++                answers=[i.get('text','') for i in turns[0]['items'] if i.get('type')=='agentMessage']
++                if not any(marker in answer for answer in answers):raise ValueError('Handshake output mismatch')
++                fixture['phase']='close_intent';write_json(path,case,replace=True)
++                await session.async_close(force=True)
++                fixture['phase']='closed';write_json(path,case,replace=True)
++            case['phase']='retired_missing_footer'
++            write_json(path,case,replace=True)
++            print(json.dumps({'phase':case['phase'],'owned_closed':len(case['fixtures']),
++                'user_terminal_inputs':0,'task_replays':0}),flush=True)
++        elif args.action=='inspect':
++            import re
++            from wx_clawbot.hosts.discovery import inspect_terminal
++            case=read_json(path)
++            registry=LaunchRegistry(report/'launches')
++            app=await iterm2.async_get_app(host.connection)
++            findings=[]
++            for fixture in case['fixtures']:
++                boot=read_json(registry.root/(fixture['launch_id']+'.boot.json'))
++                session=app.get_session_by_id(fixture['terminal_id'])
++                if session is None:
++                    findings.append({'phase':'terminal_missing'});continue
++                endpoint=await inspect_terminal(session)
++                if endpoint.process is None or endpoint.process.pid!=boot['pid'] or list(endpoint.process.started)!=boot['started']:
++                    findings.append({'phase':'process_changed'});continue
++                screen=await session.async_get_screen_contents()
++                lines=[screen.line(i).string.replace('\0',' ') for i in range(screen.number_of_lines)]
++                text='\n'.join(lines)
++                sanitized=re.sub(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}','<uuid>',text,flags=re.I)
++                sanitized=re.sub(r'/Users/[^\s]+','<local-path>',sanitized)
++                findings.append({'phase':'owned_screen_read','visible_thread':await directory.current_thread_id(endpoint) is not None,
++                    'screen_tail':sanitized[-2000:]})
++            print(json.dumps({'findings':findings,'wechat_sends':0},ensure_ascii=False),flush=True)
++        elif args.action=='prepare':
++            projects=load_projects(runtime/'config.json')
++            if {p.alias for p in projects}!={'guixu','wx-clawbot'}:
++                raise ValueError('Expected the two explicitly registered test projects')
++            app=await iterm2.async_get_app(host.connection)
++            case={'phase':'prepared','protected_hashes':hashes(),'fixtures':[],
++                  'before_terminal_ids':[s.session_id for w in app.windows for t in w.tabs for s in t.sessions],
++                  'runtime_identity':list(native.runtime_identity),'version':native.server_version}
++            write_json(path,case)
++            registry=LaunchRegistry(report/'launches')
++            creator=ItermWindowStarter(lifecycle=host)
++            starter=VisibleStarter(registry,creator)
++            for index,project in enumerate(sorted(projects,key=lambda p:p.alias)):
++                launch_id=uuid.uuid4().hex
++                fixture={'launch_id':launch_id,'project_alias':project.alias,'cwd':str(project.root),'phase':'starting'}
++                case['fixtures'].append(fixture)
++                case['phase']='starting'
++                write_json(path,case,replace=True)
++                await starter.start(launch_id,project,project.root,executable,home,f'PERF01-{index+1}-owned')
++                record=registry.load(launch_id)
++                fixture.update({key:record[key] for key in ('window_id','tab_id','terminal_id')})
++                write_json(path,case,replace=True)
++                async with asyncio.timeout(180):
++                    while True:
++                        try:
++                            binding=await reconcile_launch(registry,launch_id,directory,native)
++                            break
++                        except LaunchPending:
++                            await asyncio.sleep(.5)
++                fixture.update(phase='ready',thread_id=binding.thread_id,native_session_id=binding.native_session_id)
++                write_json(path,case,replace=True)
++            catalog=SessionCatalog(projects,directory,native)
++            found=await catalog.discover()
++            for fixture in case['fixtures']:
++                matches=[s for s in found if s.binding.thread_id==fixture['thread_id']]
++                if len(matches)!=1:
++                    raise ValueError('Owned terminal identity is not unique')
++                await catalog.require(matches[0].target)
++                fixture['session_id']=matches[0].target.session_id
++            assert len({f['window_id'] for f in case['fixtures']})==1
++            assert hashes()==case['protected_hashes']
++            case['phase']='ready'
++            write_json(path,case,replace=True)
++            print(json.dumps({'phase':'ready','owned_windows':1,'owned_terminals':2,
++                'runtime_version':native.server_version,'candidate_sdk_identity_verified':True,
++                'protected_configuration_unchanged':True,'wechat_sends':0,'production_ledger_writes':0}),flush=True)
++        else:
++            raise ValueError('Only prepared/report implemented; do not replay an existing case')
++    finally:
++        if native:
++            await native.close()
++        await host.close()
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('action',choices=('prepare','report','inspect','retire-prepare','run','cleanup'))
++    parser.add_argument('--report-dir',required=True,type=Path)
++    parser.add_argument('--confirm-dedicated',action='store_true')
++    asyncio.run(main(parser.parse_args()))
+diff --git a/tests/integration/performance_writes.py b/tests/integration/performance_writes.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/performance_writes.py
+@@ -0,0 +1,56 @@
++"""Pairable PERF01 task-admission and atomic final-write benchmark, synthetic only."""
++import argparse
++import asyncio
++import json
++from pathlib import Path
++import sqlite3
++import sys
++import tempfile
++import time
++
++from performance import output_path, source_hash, stats
++
++
++async def main(args):
++    source=args.source_root.resolve(strict=True)
++    sys.path.insert(0,str(source/'src'))
++    sys.path.insert(0,str(source/'tests'))
++    from wx_clawbot.channels.wechat import Credentials
++    from wx_clawbot.runtime_state import RuntimeState
++    from test_wechat_state import message
++    with tempfile.TemporaryDirectory(prefix='writes-',dir=args.output.parent) as tmp:
++        path=Path(tmp)/'runtime.sqlite3'
++        credentials=Credentials('fixture-bot','fixture-owner','https://ilinkai.weixin.qq.com/','synthetic')
++        state=await RuntimeState.open(path,credentials)
++        await state.close()
++        with sqlite3.connect(path) as db:
++            db.executemany("INSERT INTO tasks(id,client_id,target,thread_id,input,state,created_at,updated_at,turn_id) VALUES(?,?,?,'history','synthetic','completed',0,0,?)",
++                ((f'task-{i}',f'client-{i}','{}',f'turn-{i}') for i in range(100000)))
++            db.executemany("INSERT INTO outbox(id,text,priority,state,task_id,kind,created_at,body_sha256) VALUES(?,'synthetic history',1,'accepted',?,'final',0,?)",
++                ((f'old-{i}',f'task-{i}','a'*64) for i in range(100000)))
++        state=await RuntimeState.open(path,credentials)
++        admission=[];final=[]
++        try:
++            for i in range(31):
++                accepted=(await state.accept_batch({'ret':0,'msgs':[message(i+1,text='synthetic task')]},phase='runtime'))['accepted'][0]
++                start=time.perf_counter()
++                task=await state.task_intent(accepted.message_id,{'thread_id':'synthetic-thread'},accepted.text)
++                admission.append((time.perf_counter()-start)*1000)
++                await state.task_update(task['id'],'running',turn_id=f'new-turn-{i}')
++                start=time.perf_counter()
++                assert await state.task_finish(task['id'],'completed','synthetic final',turn_id=f'new-turn-{i}')
++                final.append((time.perf_counter()-start)*1000)
++            report={'source_sha256':source_hash(source),'scope':'100000 synthetic completed tasks and accepted final replies; no production I/O',
++                'admission_milliseconds':stats(admission[1:]),'atomic_final_milliseconds':stats(final[1:]),
++                'completed':True}
++            args.output.write_text(json.dumps(report,indent=2))
++            print(json.dumps({k:v for k,v in report.items() if k not in ('admission_milliseconds','atomic_final_milliseconds')}))
++        finally:
++            await state.close()
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--source-root',required=True,type=Path)
++    parser.add_argument('--output',required=True,type=output_path)
++    asyncio.run(main(parser.parse_args()))
+diff --git a/tests/test_codex_connection.py b/tests/test_codex_connection.py
+--- a/tests/test_codex_connection.py
++++ b/tests/test_codex_connection.py
+@@ -21 +21,4 @@
+-        self.socket = Path(self.temp.name) / "rpc.sock"
++        # macOS Unix socket addresses must stay short even in isolated checkouts.
++        self.socket_temp = tempfile.TemporaryDirectory(prefix="wx-sock-", dir="/tmp")
++        self.addCleanup(self.socket_temp.cleanup)
++        self.socket = Path(self.socket_temp.name) / "rpc.sock"
+diff --git a/tests/test_discovery.py b/tests/test_discovery.py
+--- a/tests/test_discovery.py
++++ b/tests/test_discovery.py
+@@ -40,4 +40,6 @@
+-        directory.discover = AsyncMock(return_value=[
+-            TerminalEndpoint("fixture-terminal", new, "codex_candidate")
+-        ])
+-        self.assertFalse(await directory.validate(endpoint))
++        from types import SimpleNamespace
++        app = SimpleNamespace(get_session_by_id=lambda _: object())
++        with patch('iterm2.async_get_app', new=AsyncMock(return_value=app)), \
++                patch('wx_clawbot.hosts.discovery.inspect_terminal', new=AsyncMock(return_value=
++                    TerminalEndpoint('fixture-terminal', new, 'codex_candidate'))):
++            self.assertFalse(await directory.validate(endpoint))
+@@ -50,2 +52,4 @@
+-        directory.discover = AsyncMock(return_value=[])
+-        self.assertFalse(await directory.validate(endpoint))
++        from types import SimpleNamespace
++        app = SimpleNamespace(get_session_by_id=lambda _: None)
++        with patch('iterm2.async_get_app', new=AsyncMock(return_value=app)):
++            self.assertFalse(await directory.validate(endpoint))
+diff --git a/tests/test_image_schema.py b/tests/test_image_schema.py
+--- a/tests/test_image_schema.py
++++ b/tests/test_image_schema.py
+@@ -40 +40 @@
+-        self.assertEqual((plan['from_version'], plan['to_version']), (2, 3))
++        self.assertEqual((plan['from_version'], plan['to_version']), (2, schema.VERSION))
+@@ -48 +48 @@
+-        self.assertEqual((report['from_version'], report['to_version']), (2, 3))
++        self.assertEqual((report['from_version'], report['to_version']), (2, schema.VERSION))
+@@ -50 +50 @@
+-            self.assertEqual(schema.validate(db, self.credentials), 3)
++            self.assertEqual(schema.validate(db, self.credentials), schema.VERSION)
+diff --git a/tests/test_performance.py b/tests/test_performance.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_performance.py
+@@ -0,0 +1,218 @@
++"""Performance regressions assert ordering and bounded work, not just elapsed time."""
++import asyncio
++import json
++import unittest
++import threading
++from unittest.mock import AsyncMock
++from types import SimpleNamespace
++
++import test_controller as fixtures
++from wx_clawbot.agents.rpc import JsonRpc
++from wx_clawbot.interactions import QUESTION
++from wx_clawbot.delivery import Sender
++
++
++class Peer:
++    def __init__(self):
++        self.messages = asyncio.Queue()
++
++    async def recv(self):
++        return await self.messages.get()
++
++    async def send(self, raw):
++        pass
++
++    async def close(self):
++        pass
++
++    async def emit(self, method, params, identity=None):
++        value = {'method': method, 'params': params}
++        if identity is not None:
++            value['id'] = identity
++        await self.messages.put(json.dumps(value))
++
++
++class PerformanceTests(unittest.IsolatedAsyncioTestCase):
++    asyncSetUp = fixtures.ControllerTests.asyncSetUp
++    incoming = fixtures.ControllerTests.incoming
++    command = fixtures.ControllerTests.command
++    select = fixtures.ControllerTests.select
++
++    async def test_result_wait_does_not_delay_other_thread_question(self):
++        await self.select()
++        await self.command('/attach 1')
++        await self.command('synthetic result')
++        task = (await self.state.tasks())[0]
++        peer = Peer()
++        rpc = JsonRpc(peer)
++        self.agent.rpc = rpc
++        entered, release, question_done = asyncio.Event(), asyncio.Event(), asyncio.Event()
++        finish = self.state.task_finish
++        async def delayed(*args, **kwargs):
++            entered.set()
++            await release.wait()
++            return await finish(*args, **kwargs)
++        self.state.task_finish = delayed
++        self.engine.read_turn = AsyncMock(return_value={'id': 'turn-result', 'status': 'completed',
++            'items': [{'type': 'userMessage', 'clientId': task['client_id']}, {'type': 'agentMessage', 'text': 'result'}]})
++        event = self.engine.event
++        async def traced(value):
++            await event(value)
++            if value['method'] == QUESTION:
++                question_done.set()
++        self.engine.event = traced
++        runner = asyncio.create_task(self.engine.run())
++        try:
++            await peer.emit('turn/completed', {'threadId': 'thread-two', 'turn': {'id': 'turn-result'}})
++            await asyncio.wait_for(entered.wait(), 1)
++            await peer.emit(QUESTION, {'threadId': 'thread-one', 'turnId': 'turn-question', 'itemId': 'question',
++                'questions': [{'id': 'choice', 'question': 'synthetic choice', 'options': [{'label': 'A'}, {'label': 'B'}]}]}, 'question-1')
++            await asyncio.wait_for(question_done.wait(), .5)
++            self.assertFalse(release.is_set())
++            self.assertTrue(await self.state.interaction_rows())
++        finally:
++            release.set()
++            runner.cancel()
++            await asyncio.gather(runner, return_exceptions=True)
++            await self.engine.close()
++            await rpc.close()
++
++    async def test_unused_deltas_cannot_fill_the_native_event_queue(self):
++        peer = Peer()
++        rpc = JsonRpc(peer)
++        try:
++            for i in range(10000):
++                await peer.emit('item/agentMessage/delta', {'threadId': 'synthetic', 'delta': 'x'})
++                if i % 100 == 0:
++                    await asyncio.sleep(0)
++            await asyncio.sleep(.01)
++            self.assertIsNone(rpc.failure)
++            self.assertEqual(rpc.events.qsize(), 0)
++        finally:
++            await rpc.close()
++
++    async def test_request_with_delta_method_and_unknown_notification_are_retained(self):
++        peer = Peer()
++        rpc = JsonRpc(peer)
++        try:
++            await peer.emit('item/agentMessage/delta', {'threadId': 'a'}, 'real-request')
++            await peer.emit('unknown/notification', {'threadId': 'a'})
++            self.assertEqual((await rpc.next_event())['id'], 'real-request')
++            self.assertEqual((await rpc.next_event())['method'], 'unknown/notification')
++            self.assertIsNone(rpc.failure)
++        finally:
++            await rpc.close()
++
++    async def test_sender_waits_without_read_wakeups_and_commits_wake_it(self):
++        await self.incoming('/help')
++        claims = []
++        claim = self.state.claim_reply
++        async def counted():
++            claims.append(1)
++            return await claim()
++        self.state.claim_reply = counted
++        sent = asyncio.Event()
++        async def send(*args, **kwargs):
++            sent.set()
++            return {'ret': 0}
++        runner = asyncio.create_task(Sender(self.state, SimpleNamespace(send_text=send)).run())
++        try:
++            await asyncio.sleep(.03)
++            await self.state.delivery_counts()
++            await self.state.tasks()
++            await asyncio.sleep(.03)
++            self.assertEqual(len(claims), 1)
++            await self.state.queue_reply('new-result', 'new result')
++            await asyncio.wait_for(sent.wait(), .5)
++        finally:
++            runner.cancel()
++            await asyncio.gather(runner, return_exceptions=True)
++
++    async def test_sender_cannot_miss_commit_between_empty_query_and_wait(self):
++        await self.incoming('/help')
++        claim = self.state.claim_reply
++        calls = 0
++        async def race():
++            nonlocal calls
++            calls += 1
++            value = await claim()
++            if calls == 1:
++                self.assertIsNone(value)
++                await self.state.queue_reply('race-result', 'raced result')
++            return value
++        self.state.claim_reply = race
++        sent = asyncio.Event()
++        async def send(*args, **kwargs):
++            sent.set()
++            return {'ret': 0}
++        runner = asyncio.create_task(Sender(self.state, SimpleNamespace(send_text=send)).run())
++        try:
++            await asyncio.wait_for(sent.wait(), .5)
++        finally:
++            runner.cancel()
++            await asyncio.gather(runner, return_exceptions=True)
++
++    async def test_slow_unsubscribe_does_not_block_another_thread_event_retention(self):
++        await self.select()
++        await self.command('/attach 1')
++        entered, release = asyncio.Event(), asyncio.Event()
++        async def slow(_):
++            entered.set()
++            await release.wait()
++        self.agent.unsubscribe.side_effect = slow
++        a,b = self.sessions
++        job = asyncio.create_task(self.controller.subscriptions.release(b.target,'route'))
++        try:
++            await asyncio.wait_for(entered.wait(), .5)
++            result = await asyncio.wait_for(self.controller.subscriptions.retain_event(
++                a.target,'thread-one','interaction-r-synthetic'),.5)
++            self.assertEqual(result.target,a.target)
++            self.assertFalse(job.done())
++        finally:
++            release.set()
++            await job
++
++    async def test_cancelled_caller_still_wakes_sender_after_actual_commit(self):
++        entered,release=threading.Event(),threading.Event()
++        def commit():
++            entered.set()
++            if not release.wait(2):raise AssertionError('worker release timeout')
++            return self.state._queue_reply('late-commit','synthetic',0)
++        self.state.reply_changed.clear()
++        job=asyncio.create_task(self.state._call(commit,wake=True))
++        await asyncio.wait_for(asyncio.to_thread(entered.wait),.5)
++        job.cancel()
++        with self.assertRaises(asyncio.CancelledError):await job
++        release.set()
++        await asyncio.wait_for(self.state.reply_changed.wait(),.5)
++        self.assertEqual((await self.state.delivery_counts()).get('pending'),1)
++
++    async def test_cursor_only_commit_and_failed_transaction_do_not_signal_ready_replies(self):
++        self.state.reply_changed.clear()
++        await self.state.accept_batch({'ret':0,'msgs':[],'get_updates_buf':'synthetic-next'},phase='runtime')
++        self.assertFalse(self.state.reply_changed.is_set())
++        def failed():
++            self.state.db.execute('BEGIN IMMEDIATE')
++            try:
++                self.state._queue_reply('rolled-back','synthetic',0)
++                raise ValueError('synthetic rollback')
++            finally:self.state.db.execute('ROLLBACK')
++        with self.assertRaises(ValueError):await self.state._call(failed,wake=True)
++        self.assertFalse(self.state.reply_changed.is_set())
++        self.assertEqual(await self.state.delivery_counts(),{})
++
++    async def test_new_context_wakes_already_pending_reply_without_duplicate_send(self):
++        await self.state.queue_reply('waiting-for-context','synthetic result')
++        sent=asyncio.Event(); calls=[]
++        async def send(*args,**kwargs):
++            calls.append(kwargs['client_id']);sent.set();return {'ret':0}
++        runner=asyncio.create_task(Sender(self.state,SimpleNamespace(send_text=send)).run())
++        try:
++            await asyncio.sleep(.03)
++            self.assertFalse(sent.is_set())
++            await self.incoming('/status')
++            await asyncio.wait_for(sent.wait(),.5)
++            await asyncio.sleep(.02)
++            self.assertEqual(len(calls),1)
++        finally:
++            runner.cancel();await asyncio.gather(runner,return_exceptions=True)
+diff --git a/tests/test_performance_discovery.py b/tests/test_performance_discovery.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_performance_discovery.py
+@@ -0,0 +1,83 @@
++import unittest
++from pathlib import Path
++from types import SimpleNamespace
++from unittest.mock import AsyncMock, patch
++
++from wx_clawbot.catalog import SessionCatalog
++from wx_clawbot.config import Project
++from wx_clawbot.hosts.discovery import ItermDirectory, TerminalEndpoint
++from wx_clawbot.hosts.process import ProcessIdentity
++from wx_clawbot.hosts.lifecycle import HostUnavailable
++
++
++async def discovery_counts(root, count):
++    endpoints = {f'terminal-{i}': TerminalEndpoint(f'terminal-{i}',
++        ProcessIdentity(i+1, (1, i), '/synthetic/codex', i+1), 'codex_candidate') for i in range(count)}
++    sessions = [SimpleNamespace(session_id=key) for key in endpoints]
++    app = SimpleNamespace(windows=[SimpleNamespace(tabs=[SimpleNamespace(sessions=sessions)])],
++        get_session_by_id=lambda key: next((s for s in sessions if s.session_id==key), None))
++    checks = []
++    async def inspect(session):
++        checks.append(session.session_id)
++        return endpoints[session.session_id]
++    directory = ItermDirectory(None)
++    threads = {'thread-'+key: {'id':'thread-'+key, 'sessionId':'session-'+key,
++        'cwd':str(root), 'status':{'type':'idle'}} for key in endpoints}
++    agent = SimpleNamespace(runtime_identity=(1,1),
++        list_project_threads=AsyncMock(return_value={'data':list(threads.values())}),
++        inspect=AsyncMock(side_effect=lambda key: threads[key]))
++    catalog = SessionCatalog((Project('synthetic',root),),directory,agent)
++    with patch('iterm2.async_get_app', new=AsyncMock(return_value=app)) as get_app, \
++            patch('wx_clawbot.hosts.discovery.inspect_terminal', side_effect=inspect), \
++            patch.object(ItermDirectory,'cwd',new=AsyncMock(return_value=root)), \
++            patch.object(ItermDirectory,'current_thread_id',new=AsyncMock(side_effect=lambda e:'thread-'+e.terminal_id)):
++        found = await catalog.discover()
++        discovery_checks = len(checks)
++        enumerations = get_app.await_count
++        checks.clear()
++        get_app.reset_mock()
++        await catalog.require(found[0].target)
++    return {'endpoints':count,'found':len(found),'discovery_endpoint_checks':discovery_checks,
++            'discovery_full_enumerations':enumerations,'require_fresh_enumerations':get_app.await_count,
++            'require_endpoint_checks':len(checks),'require_only_target':set(checks)=={found[0].binding.endpoint.terminal_id}}
++
++
++class PerformanceDiscoveryTests(unittest.IsolatedAsyncioTestCase):
++    async def test_discovery_is_linear_and_require_reads_only_the_target(self):
++        root = Path(__file__).resolve().parents[1]
++        for count in (2,10,30,100):
++            with self.subTest(count=count):
++                result = await discovery_counts(root,count)
++                self.assertEqual(result['found'],count)
++                self.assertLessEqual(result['discovery_endpoint_checks'],8*count+8)
++                self.assertLessEqual(result['discovery_full_enumerations'],2)
++                self.assertEqual(result['require_fresh_enumerations'],1)
++                self.assertLessEqual(result['require_endpoint_checks'],6)
++                self.assertTrue(result['require_only_target'])
++
++    async def test_discovery_view_cannot_cross_host_connection_generation(self):
++        original,replacement=object(),object()
++        lifecycle=SimpleNamespace()
++        async def call(work):
++            return await work(original)
++        lifecycle.call=call
++        app=SimpleNamespace(windows=[])
++        with patch('iterm2.async_get_app',new=AsyncMock(return_value=app)) as get_app:
++            directory=ItermDirectory(lifecycle=lifecycle)
++            view=await directory.discovery_view()
++            self.assertEqual(await view.discover(),[])
++            self.assertEqual(get_app.await_count,1)
++            async def changed(work):
++                return await work(replacement)
++            lifecycle.call=changed
++            with self.assertRaises(HostUnavailable):
++                await view.discover()
++            self.assertEqual(get_app.await_count,1)
++
++    async def test_new_discovery_view_refreshes_list_instead_of_reusing_previous_view(self):
++        with patch('iterm2.async_get_app',new=AsyncMock(return_value=SimpleNamespace(windows=[]))) as get_app:
++            directory=ItermDirectory(object())
++            first=await directory.discovery_view()
++            second=await directory.discovery_view()
++            self.assertIsNot(first,second)
++            self.assertEqual(get_app.await_count,2)
+diff --git a/tests/test_performance_schema.py b/tests/test_performance_schema.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_performance_schema.py
+@@ -0,0 +1,63 @@
++import sqlite3
++from contextlib import closing
++from unittest.mock import patch
++
++from test_runtime_state import RuntimeFixture
++from wx_clawbot import schema
++from wx_clawbot.channels.http import ProtocolError
++from wx_clawbot.runtime_state import RuntimeState
++
++
++class PerformanceSchemaTests(RuntimeFixture):
++    async def prepare_v3(self):
++        task = await self.admit()
++        await self.state.queue_reply('historic','frozen source\n')
++        await self.state.close()
++        with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            for statement in schema.PERFORMANCE_UPGRADE:
++                db.execute('DROP INDEX '+statement.split()[2])
++            db.execute('PRAGMA user_version=3')
++            db.commit()
++        return task
++
++    def rows(self, path=None):
++        with closing(sqlite3.connect(path or self.root/'runtime.sqlite3')) as db:
++            names=[row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
++            return {name:db.execute('SELECT * FROM '+name+' ORDER BY rowid').fetchall() for name in names}
++
++    async def test_v3_upgrade_preserves_every_business_row_and_backup(self):
++        await self.prepare_v3()
++        before = self.rows()
++        result=schema.upgrade(self.root,self.credentials)
++        self.assertEqual((result['from_version'],result['to_version']),(3,4))
++        self.assertEqual(self.rows(),before)
++        self.assertEqual(self.rows(self.root/result['backup']),before)
++        self.assertEqual(schema.upgrade(self.root,self.credentials)['status'],'current')
++        with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            self.assertEqual(schema.validate(db,self.credentials),4)
++
++    async def test_v3_failure_after_indexes_rolls_back_data_version_and_indexes(self):
++        await self.prepare_v3()
++        before = self.rows()
++        original=schema.apply_steps
++        def fail(db,credentials):
++            original(db,credentials)
++            raise sqlite3.OperationalError('synthetic after-DDL failure')
++        with patch.object(schema,'apply_steps',side_effect=fail), self.assertRaises(sqlite3.OperationalError):
++            schema.upgrade(self.root,self.credentials)
++        self.assertEqual(self.rows(),before)
++        with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            self.assertEqual(schema.validate(db,self.credentials),3)
++            self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='reply_task_kind'").fetchone())
++
++    async def test_runtime_never_opens_v3_as_v4_and_missing_index_is_not_accepted(self):
++        await self.prepare_v3()
++        before=self.rows()
++        with self.assertRaises(schema.UpgradeRequired):
++            await RuntimeState.open(self.root/'runtime.sqlite3',self.credentials)
++        self.assertEqual(self.rows(),before)
++        schema.upgrade(self.root,self.credentials)
++        with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            db.execute('DROP INDEX reply_task_kind')
++            with self.assertRaises(ProtocolError):
++                schema.validate(db,self.credentials)
+diff --git a/tests/test_render_worker.py b/tests/test_render_worker.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_render_worker.py
+@@ -0,0 +1,79 @@
++import asyncio
++import json
++import unittest
++from types import SimpleNamespace
++from unittest.mock import AsyncMock, patch
++
++from wx_clawbot.output import _render_process, render_segments, render_in_worker
++
++
++class RenderWorkerTests(unittest.IsolatedAsyncioTestCase):
++    async def test_actual_large_process_preserves_prefix_and_every_source_byte(self):
++        prefix=lambda i,n:f'〔{i}/{n}〕synthetic\n\n'
++        for raw in ('中文 English 内容。\n\n'*5000,
++                    '```text\n'+('  A\\B  \r\n'*7000)+'```\r\n',
++                    'literal\rdata'*6000):
++            with self.subTest(kind=raw[:10]):
++                expected=render_segments(raw,prefix=prefix)
++                actual=await render_in_worker(raw,prefix=prefix,slots=asyncio.Semaphore(2))
++                self.assertEqual(actual,expected)
++
++    def process(self, raw=None):
++        class Reader:
++            def __init__(self):self.raw=raw
++            async def read(self,_):
++                if self.raw is None:await asyncio.Event().wait()
++                value,self.raw=self.raw,b''
++                return value
++        writer=SimpleNamespace(write=lambda _:None,drain=AsyncMock(),close=lambda:None,wait_closed=AsyncMock())
++        process=SimpleNamespace(stdin=writer,stdout=Reader(),returncode=None,killed=False)
++        def kill():process.killed=True;process.returncode=-9
++        async def wait():
++            if process.returncode is None:process.returncode=0
++            return process.returncode
++        process.kill=kill;process.wait=wait
++        return process
++
++    async def test_cancelled_process_is_killed_reaped_and_releases_its_lane(self):
++        process=self.process();slots=asyncio.Semaphore(2)
++        with patch('wx_clawbot.output.asyncio.create_subprocess_exec',new=AsyncMock(return_value=process)):
++            job=asyncio.create_task(render_in_worker('x'*70000,slots=slots))
++            await asyncio.sleep(.01)
++            self.assertEqual(slots._value,1)
++            job.cancel()
++            with self.assertRaises(asyncio.CancelledError):await job
++        self.assertTrue(process.killed)
++        self.assertIsNotNone(process.returncode)
++        self.assertEqual(slots._value,2)
++
++    async def test_invalid_or_oversized_child_output_is_never_frozen(self):
++        for raw in (json.dumps({'parts':[],'peak_rss_bytes':1}).encode(),
++                    json.dumps({'parts':[{'source':'x','before':0,'after':''}],'peak_rss_bytes':1}).encode(),
++                    b'x'*(8*1024*1024+1)):
++            process=self.process(raw)
++            with self.subTest(size=len(raw)), \
++                    patch('wx_clawbot.output.asyncio.create_subprocess_exec',new=AsyncMock(return_value=process)), \
++                    self.assertRaises(ValueError):
++                await _render_process('x'*70000)
++
++    async def test_process_slots_are_global_to_the_state_not_released_by_waiting_cancel(self):
++        slots=asyncio.Semaphore(2);entered=0;maximum=0;release=asyncio.Event()
++        async def child(text):
++            nonlocal entered,maximum
++            entered+=1;maximum=max(maximum,entered)
++            try:await release.wait()
++            finally:entered-=1
++            return render_segments(text),1
++        with patch('wx_clawbot.output._render_process',side_effect=child):
++            jobs=[asyncio.create_task(render_in_worker('x'*70000,slots=slots)) for _ in range(4)]
++            try:
++                await asyncio.sleep(.01)
++                self.assertEqual(entered,2)
++                jobs[-1].cancel()
++                release.set()
++                await asyncio.gather(*jobs,return_exceptions=True)
++            finally:
++                for job in jobs:job.cancel()
++                await asyncio.gather(*jobs,return_exceptions=True)
++        self.assertEqual(maximum,2)
++        self.assertEqual(slots._value,2)
+diff --git a/tests/test_result_work.py b/tests/test_result_work.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_result_work.py
+@@ -0,0 +1,101 @@
++import asyncio
++import sqlite3
++import unittest
++import threading
++
++from wx_clawbot.agents.rpc import ConnectionLost
++from wx_clawbot.results import ResultWork
++from wx_clawbot.output import render_in_worker
++
++
++class ResultWorkTests(unittest.IsolatedAsyncioTestCase):
++    async def test_same_thread_order_cross_thread_progress_and_inflight_deduplication(self):
++        first, second, other = asyncio.Event(), asyncio.Event(), asyncio.Event()
++        release, finish = asyncio.Event(), asyncio.Event()
++        calls = []
++        async def complete(thread, turn):
++            calls.append((thread, turn))
++            if turn == 'first':
++                first.set()
++                await release.wait()
++            elif turn == 'second':
++                second.set()
++            else:
++                other.set()
++            await finish.wait()
++        work = ResultWork(complete)
++        for key in [('a', 'first'), ('a', 'second'), ('b', 'other'), ('a', 'first')]:
++            work.enqueue(*key)
++        runner = asyncio.create_task(work.run())
++        try:
++            await asyncio.wait_for(first.wait(), .5)
++            await asyncio.wait_for(other.wait(), .5)
++            self.assertFalse(second.is_set())
++            self.assertEqual(len(work.jobs), 2)
++            release.set()
++            finish.set()
++            await asyncio.wait_for(second.wait(), .5)
++            self.assertEqual(calls, [('a', 'first'), ('b', 'other'), ('a', 'second')])
++        finally:
++            runner.cancel()
++            await asyncio.gather(runner, return_exceptions=True)
++        self.assertTrue(work.closed)
++        self.assertEqual((len(work.jobs), len(work.pending), len(work.keys)), (0, 0, 0))
++
++    async def test_overload_fails_with_no_extra_work(self):
++        work = ResultWork(lambda *_: None, limit=3)
++        for i in range(3):
++            work.enqueue('thread', str(i))
++        with self.assertRaises(ConnectionLost):
++            work.enqueue('thread', 'fourth')
++        self.assertEqual(len(work.keys), 3)
++
++    async def test_completion_identity_memory_is_bounded_before_enqueue(self):
++        work=ResultWork(lambda *_:None)
++        for thread,turn in ((None,'one'),('','one'),('thread',''),('thread','x'*129)):
++            with self.subTest(thread=thread,turn_size=len(turn)),self.assertRaises(ConnectionLost):
++                work.enqueue(thread,turn)
++        self.assertEqual(len(work.keys),0)
++
++    async def test_worker_failure_reaches_supervisor_and_cancels_others(self):
++        stopped = asyncio.Event()
++        async def complete(thread, turn):
++            if thread == 'bad':
++                await asyncio.sleep(0)
++                raise sqlite3.OperationalError('synthetic storage failure')
++            try:
++                await asyncio.Event().wait()
++            finally:
++                stopped.set()
++        work = ResultWork(complete)
++        work.enqueue('bad', 'one')
++        work.enqueue('other', 'two')
++        with self.assertRaises(sqlite3.OperationalError):
++            await asyncio.wait_for(work.run(), .5)
++        self.assertTrue(stopped.is_set())
++        self.assertEqual(len(work.jobs), 0)
++
++    async def test_queued_duplicate_and_closed_generation_never_run(self):
++        work = ResultWork(lambda *_: None, limit=1)
++        work.enqueue('a', 'one')
++        work.enqueue('a', 'one')
++        self.assertEqual(len(work.pending), 1)
++        work.closed = True
++        with self.assertRaises(ConnectionLost):
++            work.enqueue('a', 'one')
++
++    async def test_cancelled_render_retains_its_lane_until_the_cpu_worker_exits(self):
++        entered,release=threading.Event(),threading.Event()
++        def renderer(text):
++            entered.set()
++            if not release.wait(2):raise AssertionError('worker release timeout')
++            return text
++        job=asyncio.create_task(render_in_worker('synthetic',renderer=renderer))
++        try:
++            await asyncio.wait_for(asyncio.to_thread(entered.wait),.5)
++            job.cancel()
++            await asyncio.sleep(.01)
++            self.assertFalse(job.done())
++        finally:
++            release.set()
++            with self.assertRaises(asyncio.CancelledError):await job
+diff --git a/tests/test_runtime_lifecycle.py b/tests/test_runtime_lifecycle.py
+--- a/tests/test_runtime_lifecycle.py
++++ b/tests/test_runtime_lifecycle.py
+@@ -62 +62,2 @@
+-        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])):
++        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])), \
++                patch("iterm2.async_get_app",new=AsyncMock(return_value=SimpleNamespace(windows=[]))):
+@@ -89 +90,2 @@
+-        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])):
++        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])), \
++                patch("iterm2.async_get_app",new=AsyncMock(return_value=SimpleNamespace(windows=[]))):

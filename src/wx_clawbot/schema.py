@@ -13,7 +13,7 @@ from .channels.private import private_directory, private_file, private_lease
 
 
 APPLICATION_ID = 0x57585254
-VERSION = 3
+VERSION = 4
 V1_COLUMNS = {
     "channel": {"id", "bot", "owner", "cursor"},
     "inbox": {"message_id", "text", "context", "created_ms", "seq", "received_at", "phase", "conflict"},
@@ -58,13 +58,18 @@ IMAGE_UPGRADE = (
         FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE SET NULL)""",
     "CREATE INDEX attachment_task ON attachments(task_id,state)",
 )
+PERFORMANCE_UPGRADE = (
+    "CREATE INDEX reply_task_kind ON outbox(task_id,kind)",
+    "CREATE INDEX task_native_turn ON tasks(thread_id,turn_id)",
+    "CREATE INDEX task_active ON tasks(state) WHERE state NOT IN ('completed','failed','interrupted','cancelled')",
+)
 
 
 class UpgradeRequired(ProtocolError):
     pass
 
 
-def validate(db, credentials, *, versions=(1, 2, VERSION)):
+def validate(db, credentials, *, versions=(1, 2, 3, VERSION)):
     if db.execute("PRAGMA application_id").fetchone()[0] != APPLICATION_ID:
         raise ProtocolError("Database is not this application's runtime ledger")
     version = db.execute("PRAGMA user_version").fetchone()[0]
@@ -88,6 +93,12 @@ def validate(db, credentials, *, versions=(1, 2, VERSION)):
         for table in ("inbox", "outbox"):
             if db.execute(f"SELECT 1 FROM {table} WHERE body_sha256 IS NULL OR length(body_sha256)<>64 LIMIT 1").fetchone():
                 raise ProtocolError("Runtime message digest is missing")
+    if version >= 4:
+        indexes = {row[0]: row[1] for row in db.execute("SELECT name,sql FROM sqlite_master WHERE type='index'")}
+        for statement in PERFORMANCE_UPGRADE:
+            name = statement.split()[2]
+            if indexes.get(name) != statement:
+                raise ProtocolError("Runtime performance index differs from the verified schema")
     return version
 
 
@@ -114,12 +125,16 @@ def _text_steps(db, credentials):
 def apply_steps(db, credentials):
     """Caller owns the transaction and has either a new file or a verified backup."""
     version = validate(db, credentials)
-    if version not in (1, 2) or not db.in_transaction:
+    if version not in (1, 2, 3) or not db.in_transaction:
         raise ProtocolError("A supported older schema and an explicit transaction required")
     if version == 1:
         _text_steps(db, credentials)
-    for statement in IMAGE_UPGRADE:
+    for statement in IMAGE_UPGRADE if version < 3 else ():
         db.execute(statement)
+    for statement in PERFORMANCE_UPGRADE:
+        db.execute(statement)
+    db.execute("ANALYZE tasks")
+    db.execute("ANALYZE outbox")
     db.execute(f"PRAGMA user_version={VERSION}")
     validate(db, credentials, versions=(VERSION,))
 
@@ -142,7 +157,9 @@ def inspect(root: Path, credentials):
             "to_version": VERSION, "row_counts": counts, "requires_stopped_consumer": True,
             "add_tables": (["routes", "interactions", "delivery_attempts"] if version == 1 else []) + (["attachments"] if version < 3 else []),
             "add_columns": (["inbox.body_sha256", "outbox.body_sha256"] if version == 1 else [])
-                           + (["inbox.content", "tasks.input_items"] if version < 3 else []), "data_deleted": False}
+                           + (["inbox.content", "tasks.input_items"] if version < 3 else []),
+            "add_indexes": [s.split()[2] for s in PERFORMANCE_UPGRADE] if version < VERSION else [],
+            "data_deleted": False}
 
 
 def upgrade(root: Path, credentials):
@@ -173,7 +190,7 @@ def upgrade(root: Path, credentials):
                 if target.execute("PRAGMA quick_check").fetchall() != [("ok",)]:
                     raise ProtocolError("Backup integrity check failed")
                 validate(target, credentials, versions=(source_version,))
-                tables = V1_COLUMNS | (V2_COLUMNS if source_version >= 2 else {})
+                tables = V1_COLUMNS | (V2_COLUMNS if source_version >= 2 else {}) | (V3_COLUMNS if source_version >= 3 else {})
                 for name in tables:
                     if target.execute(f"SELECT count(*) FROM {name}").fetchone() != db.execute(f"SELECT count(*) FROM {name}").fetchone():
                         raise ProtocolError("Backup row count differs from frozen source")

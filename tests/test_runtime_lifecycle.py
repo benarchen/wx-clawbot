@@ -59,7 +59,8 @@ class RuntimeLifecycleTests(RuntimeFixture):
             self.backend.identity.return_value = "application"
         self.backend.launch.side_effect = launched
         self.backend.connect.return_value = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
-        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])):
+        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])), \
+                patch("iterm2.async_get_app",new=AsyncMock(return_value=SimpleNamespace(windows=[]))):
             await self.command("/sessions")
         rows = await self.replies()
         self.assertEqual(len(rows), 2)  # Progress and final use distinct durable IDs.
@@ -86,7 +87,8 @@ class RuntimeLifecycleTests(RuntimeFixture):
         await self.runtime.initialize()
         self.backend.identity.return_value = "application"
         self.backend.connect.return_value = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
-        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])):
+        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])), \
+                patch("iterm2.async_get_app",new=AsyncMock(return_value=SimpleNamespace(windows=[]))):
             await self.command("/sessions")
         snapshot = await self.state.load_routes()
         self.assertEqual(snapshot["observer"], observer)

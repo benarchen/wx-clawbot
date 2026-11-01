@@ -37,18 +37,22 @@ class DiscoveryTests(unittest.IsolatedAsyncioTestCase):
         new = ProcessIdentity(100, (1, 101), "/opt/bin/codex", 101)
         endpoint = TerminalEndpoint("fixture-terminal", old, "codex_candidate")
         directory = ItermDirectory(None)
-        directory.discover = AsyncMock(return_value=[
-            TerminalEndpoint("fixture-terminal", new, "codex_candidate")
-        ])
-        self.assertFalse(await directory.validate(endpoint))
+        from types import SimpleNamespace
+        app = SimpleNamespace(get_session_by_id=lambda _: object())
+        with patch('iterm2.async_get_app', new=AsyncMock(return_value=app)), \
+                patch('wx_clawbot.hosts.discovery.inspect_terminal', new=AsyncMock(return_value=
+                    TerminalEndpoint('fixture-terminal', new, 'codex_candidate'))):
+            self.assertFalse(await directory.validate(endpoint))
 
     async def test_exited_terminal_invalidates_endpoint(self):
         endpoint = TerminalEndpoint("fixture-terminal",
                                     ProcessIdentity(100, (1, 100), "/opt/bin/codex", 101),
                                     "codex_candidate")
         directory = ItermDirectory(None)
-        directory.discover = AsyncMock(return_value=[])
-        self.assertFalse(await directory.validate(endpoint))
+        from types import SimpleNamespace
+        app = SimpleNamespace(get_session_by_id=lambda _: None)
+        with patch('iterm2.async_get_app', new=AsyncMock(return_value=app)):
+            self.assertFalse(await directory.validate(endpoint))
 
     async def test_invalid_host_pid_does_not_inspect_another_process(self):
         for value in (True, 100.5, float("inf"), "100.5", "invalid"):

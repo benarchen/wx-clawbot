@@ -37,7 +37,7 @@ class ImageSchemaTests(unittest.TestCase):
     def test_v2_plan_is_read_only_and_names_image_changes(self):
         before = self.path.read_bytes()
         plan = schema.inspect(self.root, self.credentials)
-        self.assertEqual((plan['from_version'], plan['to_version']), (2, 3))
+        self.assertEqual((plan['from_version'], plan['to_version']), (2, schema.VERSION))
         self.assertIn('attachments', plan['add_tables'])
         self.assertIn('tasks.input_items', plan['add_columns'])
         self.assertEqual(self.path.read_bytes(), before)
@@ -45,9 +45,9 @@ class ImageSchemaTests(unittest.TestCase):
 
     def test_v2_upgrade_preserves_legacy_routes_unknown_and_original_backup(self):
         report = schema.upgrade(self.root, self.credentials)
-        self.assertEqual((report['from_version'], report['to_version']), (2, 3))
+        self.assertEqual((report['from_version'], report['to_version']), (2, schema.VERSION))
         with closing(sqlite3.connect(self.path)) as db:
-            self.assertEqual(schema.validate(db, self.credentials), 3)
+            self.assertEqual(schema.validate(db, self.credentials), schema.VERSION)
             self.assertEqual(db.execute('SELECT state,input,input_items FROM tasks').fetchone(), ('unknown', 'old task', '[]'))
             self.assertEqual(db.execute('SELECT content FROM inbox').fetchone(), ('[]',))
             self.assertEqual(db.execute('SELECT snapshot FROM routes').fetchone(), ('{}',))

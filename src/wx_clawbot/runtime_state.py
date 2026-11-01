@@ -1,6 +1,5 @@
 """Private foreground ledger; native execution and delivery have separate outcomes."""
 
-import asyncio
 import json
 import hashlib
 import math
@@ -14,7 +13,7 @@ from .channels.private import private_file
 from .channels.state import ChannelState
 from .channels.messages import parse_message
 from . import schema
-from .output import DisplaySegment, render_segments
+from .output import DisplaySegment, render_segments, render_in_worker
 
 
 class RuntimeState(ChannelState):
@@ -295,7 +294,7 @@ class RuntimeState(ChannelState):
             row = self.db.execute("SELECT conflict,phase,content FROM inbox WHERE message_id=?", (message_id,)).fetchone()
             if row is None or row[:2] != (0, "runtime"):
                 raise ProtocolError("Task must originate from a fresh validated runtime message")
-            if self.db.execute("SELECT count(*) FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
+            if self.db.execute("SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
                 raise ProtocolError("Unresolved task admission bound reached")
             now = time.time()
             self.db.execute("BEGIN IMMEDIATE")
@@ -340,7 +339,7 @@ class RuntimeState(ChannelState):
                 if json.loads(row[0]) != destination:
                     raise ProtocolError("External native turn identity changed")
                 return "e-" + identity
-            if self.db.execute("SELECT count(*) FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
+            if self.db.execute("SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
                 raise ProtocolError("Unresolved task bound prevents adopting another external turn")
             now = time.time()
             # client_id is explicitly local for this external row, not a claimed
@@ -375,7 +374,7 @@ class RuntimeState(ChannelState):
                     raise ProtocolError("Native turn has multiple local task associations")
                 return self._task(rows[0]) if rows else None
             if active_only:
-                rows = list(self.db.execute(query + " WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"))
+                rows = list(self.db.execute(query + " INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"))
                 if len(rows) > 128:
                     raise ProtocolError("Unresolved task bound exceeded; do not use a partial admission view")
                 return [self._task(row) for row in rows]
@@ -406,7 +405,7 @@ class RuntimeState(ChannelState):
         return True
 
     async def queue_reply(self, event_id, text, *, priority=5, task_id=None, kind="reply"):
-        chunks = [text] if isinstance(text, DisplaySegment) else await asyncio.to_thread(render_segments, text)
+        chunks = [text] if isinstance(text, DisplaySegment) else await render_in_worker(text, renderer=render_segments, slots=self.render_slots)
         def queue():
             self.db.execute("BEGIN IMMEDIATE")
             try:
@@ -419,14 +418,21 @@ class RuntimeState(ChannelState):
             except BaseException:
                 self.db.execute("ROLLBACK")
                 raise
-        return await self._call(queue)
+        return await self._call(queue, wake=True)
 
     async def task_finish(self, task_id, state, text, *, turn_id=None, only_if=None, deliver=True, reply_priority=1):
         if state not in {"completed", "failed", "interrupted", "cancelled"}:
             raise ValueError("Explicit terminal native task state required")
         if not isinstance(text, str) or not text.strip() or len(text) > 512000:
             raise ValueError("Bounded native result required")
-        chunks = await asyncio.to_thread(render_segments, text,
+        def eligible():
+            row = self.db.execute("SELECT state FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if row is None:
+                raise ProtocolError("Task identity is missing")
+            return row[0] not in {"completed", "failed", "interrupted", "cancelled"} and (only_if is None or row[0] in only_if)
+        if not await self._call(eligible):
+            return False
+        chunks = await render_in_worker(text, renderer=render_segments, slots=self.render_slots,
             prefix=lambda i, n: f"〔{i}/{n}〕{task_id}\n\n" if n > 1 else "") if deliver else []
         def finish():
             self.db.execute("BEGIN IMMEDIATE")
@@ -454,7 +460,7 @@ class RuntimeState(ChannelState):
             finally:
                 if self.db.in_transaction:
                     self.db.execute("ROLLBACK")
-        return await self._call(finish)
+        return await self._call(finish, wake=True)
 
     async def claim_reply(self):
         def claim():
@@ -508,11 +514,11 @@ class RuntimeState(ChannelState):
             except BaseException:
                 self.db.execute("ROLLBACK")
                 raise
-        await self._call(finish)
+        await self._call(finish, wake=True)
 
     async def retry_reply(self, event_id, *, confirm_unknown=False):
         """Operator-only action; never called automatically by the sender."""
-        return await self._call(prepare_reply_retry, self.db, self.credentials, event_id, confirm_unknown)
+        return await self._call(prepare_reply_retry, self.db, self.credentials, event_id, confirm_unknown, wake=True)
 
     async def delivery_attempts(self, event_id):
         def read():

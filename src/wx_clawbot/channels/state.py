@@ -25,6 +25,8 @@ class ChannelState:
         self.closed = False
         self.db = None
         self.lock_fd = None
+        self.reply_changed = asyncio.Event()
+        self.render_slots = asyncio.Semaphore(2)
 
     @classmethod
     async def open(cls, path, credentials):
@@ -36,17 +38,27 @@ class ChannelState:
             await state.close()
             raise
 
-    async def _call(self, fn, *args, closing=False):
+    async def _call(self, fn, *args, closing=False, wake=False):
         await self.slot.acquire()
         if self.closed and not closing:
             self.slot.release()
             raise ChannelError("Channel state is closed")
-        future = asyncio.get_running_loop().run_in_executor(self.worker, fn, *args)
+        mutated = False
+        def invoke():
+            nonlocal mutated
+            before = self.db.total_changes if self.db is not None else 0
+            result = fn(*args)
+            if not closing and self.db is not None:
+                mutated = not self.db.in_transaction and self.db.total_changes != before
+            return result
+        future = asyncio.get_running_loop().run_in_executor(self.worker, invoke)
 
         def done(completed):
             self.slot.release()
             if not completed.cancelled():
-                completed.exception()
+                if completed.exception() is None and mutated and wake:
+                    if not callable(wake) or wake(completed.result()):
+                        self.reply_changed.set()
 
         future.add_done_callback(done)
         return await asyncio.shield(future)
@@ -101,7 +113,8 @@ class ChannelState:
     async def accept_batch(self, response, *, phase="diagnostic"):
         if phase not in {"diagnostic", "runtime"}:
             raise ValueError("Explicit receive phase required")
-        return await self._call(self._accept_batch, response, phase)
+        return await self._call(self._accept_batch, response, phase,
+            wake=lambda batch: any(message.context_token for message in batch["accepted"]))
 
     def _accept_batch(self, response, phase):
         validate_updates(response)

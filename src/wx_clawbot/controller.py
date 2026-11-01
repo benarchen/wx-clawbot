@@ -13,7 +13,7 @@ from .hosts.lifecycle import HostUnavailable
 from .routing import RouteError, Routes, Target
 from .sessions import SessionUnbound
 from .subscriptions import Subscriptions
-from .output import render_segments
+from .output import render_segments, render_in_worker
 
 
 HELP = ("## 项目与会话\n\n"
@@ -111,7 +111,7 @@ class Controller:
 
     async def reply(self, message, text, *, priority=2, suffix=""):
         key = hashlib.sha256(message.message_id.encode()).hexdigest()[:32]
-        chunks = await asyncio.to_thread(render_segments, text,
+        chunks = await render_in_worker(text, renderer=render_segments, slots=self.state.render_slots,
             prefix=lambda i, n: f"〔命令回执 {i}/{n}〕\n\n" if n > 1 else "")
         for index, chunk in enumerate(chunks, 1):
             write = asyncio.create_task(self.state.queue_reply(

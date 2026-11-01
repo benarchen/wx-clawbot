@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "work_package": "W08 context recovery closeout",
+  "scope_revision": "Owner explicitly deferred actual natural expiry trigger on 2026-11-01; deterministic failure/recovery remains required.",
+  "old_context_observation": {
+    "new_immediate_authorization": true,
+    "late_scheduled_retry": false,
+    "attempts": 1,
+    "api_state": "accepted",
+    "actual_source_age_hours": 183.0692862947591,
+    "intent_at_beijing": "2026-11-01 23:49:13",
+    "finished_at_beijing": "2026-11-01 23:49:14",
+    "owner_receipt_confirmed": false,
+    "automatic_retries": 0
+  },
+  "actual_fresh_recovery": {
+    "attempts": 0,
+    "reason": "Old context was accepted, so the rejection prerequisite never occurred."
+  },
+  "natural_expiry": {
+    "proven": false,
+    "status": "explicitly_deferred_nonblocking",
+    "fixed_ttl_inferred": false
+  },
+  "deterministic_verification": {
+    "full_suite_tests": 520,
+    "full_suite_seconds": 37.101,
+    "passed": true,
+    "log_sha256": "e6ea42d13496c0f43581c9eb02cf481fd02d9e4812266bd4405dad70a2c2dca3",
+    "new_tests": 8,
+    "covered": [
+      "Old record preservation and one-time intent",
+      "Changed source/credentials/prepared payload rejected",
+      "Late window and live waiter refuse sending",
+      "Unknown outcome never replays or recovers",
+      "Fresh recovery requires a distinct real owner context after rejection",
+      "Account expiry is not context-expiry evidence",
+      "Rejected frozen result survives restart",
+      "New inbound context alone does not retry rejected delivery",
+      "Explicit retry uses new owner context and identical original result, without changing tasks"
+    ]
+  },
+  "protection": {
+    "original_case_and_schedule_byte_unchanged": true,
+    "configuration_and_credentials_unchanged": true,
+    "production_schema": 3,
+    "production_tasks": {
+      "cancelled": 5,
+      "completed": 63,
+      "failed": 3,
+      "interrupted": 8,
+      "unknown": 2
+    },
+    "production_replies": {
+      "accepted": 455,
+      "superseded": 8
+    },
+    "production_ledger_aggregates_unchanged": true,
+    "wechat_ui_actions": 0,
+    "native_calls": 0,
+    "scheduled_services_installed": 0,
+    "production_ledger_writes": 0,
+    "git_commits_merges_pushes": 0
+  },
+  "checks": {
+    "compileall": true,
+    "diff_format": true,
+    "local_links_and_anchors_checked": 123,
+    "public_content_review": true
+  },
+  "remaining_scope": [
+    "Real natural expiry and real rejection-then-fresh recovery unobserved; deferred by owner.",
+    "First-version final audit and Git/public delivery are independent.",
+    "Future cross-day scheduling must pass durable restart recovery before use."
+  ]
+}

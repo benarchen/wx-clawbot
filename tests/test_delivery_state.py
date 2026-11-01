@@ -4,11 +4,31 @@ from unittest.mock import AsyncMock, patch
 
 from test_runtime_state import RuntimeFixture
 from wx_clawbot.channels.http import ProtocolError
-from wx_clawbot.channels.wechat import DeliveryUnknown
+from wx_clawbot.channels.wechat import BusinessError, DeliveryUnknown
 from wx_clawbot.delivery import Sender
 
 
 class DeliveryStateTests(RuntimeFixture):
+    async def test_rejected_result_survives_restart_and_explicit_retry_uses_new_owner_context(self):
+        from test_wechat_state import message
+        task = await self.admit()
+        await self.state.task_finish(task['id'], 'completed', 'frozen original result')
+        tasks = await self.state.tasks()
+        api = SimpleNamespace(send_text=AsyncMock(side_effect=[BusinessError(-2), {'ret': 0}]))
+        self.assertTrue(await Sender(self.state, api).once())
+        self.assertFalse(await Sender(self.state, api).once())
+        await self.restart()
+        await self.state.accept_batch({'ret': 0, 'msgs': [message(101, context='fresh-owner-context', created=200)]}, phase='runtime')
+        self.assertFalse(await Sender(self.state, api).once())
+        self.assertEqual(api.send_text.await_count, 1)
+        self.assertEqual(await self.state.tasks(), tasks)
+        await self.state.retry_reply(task['id'] + '-final-1')
+        self.assertTrue(await Sender(self.state, api).once())
+        self.assertEqual(api.send_text.call_args.kwargs['context_token'], 'fresh-owner-context')
+        self.assertEqual([c.kwargs['text'] for c in api.send_text.await_args_list], ['frozen original result'] * 2)
+        self.assertEqual(await self.state.tasks(), tasks)
+        self.assertEqual([a['state'] for a in await self.state.delivery_attempts(task['id'] + '-final-1')], ['rejected', 'accepted'])
+
     async def test_unknown_requires_explicit_retry_and_never_changes_execution(self):
         task = await self.admit()
         await self.state.task_finish(task["id"], "completed", "original result")

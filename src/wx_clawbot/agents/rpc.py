@@ -25,6 +25,10 @@ class JsonRpc:
     MAX_MESSAGE = 16 * 1024 * 1024
     MAX_SEND = 1024 * 1024
     MAX_EVENT_BYTES = 32 * 1024 * 1024
+    # The bridge reads complete native turns, never these streaming text bodies.
+    # Keep unknown notifications and every server request, even with this method.
+    UNUSED_DELTAS = frozenset({"item/agentMessage/delta", "item/reasoning/textDelta",
+                              "item/reasoning/summaryTextDelta", "item/commandExecution/outputDelta"})
 
     def __init__(self, transport: Any, *, event_limit: int = 256):
         self.transport = transport
@@ -122,6 +126,8 @@ class JsonRpc:
                         raise ConnectionLost("RPC method must be a string")
                     if "id" in message:
                         self.key(message["id"])
+                    elif message["method"] in self.UNUSED_DELTAS:
+                        continue
                     # Never silently drop an approval or terminal event on overload.
                     if self.event_bytes + size > self.MAX_EVENT_BYTES:
                         raise ConnectionLost("Native event byte budget exceeded")

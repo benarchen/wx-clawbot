@@ -18,7 +18,10 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         root.mkdir(parents=True, exist_ok=True)
         self.temp = tempfile.TemporaryDirectory(dir=root)
         self.addCleanup(self.temp.cleanup)
-        self.socket = Path(self.temp.name) / "rpc.sock"
+        # macOS Unix socket addresses must stay short even in isolated checkouts.
+        self.socket_temp = tempfile.TemporaryDirectory(prefix="wx-sock-", dir="/tmp")
+        self.addCleanup(self.socket_temp.cleanup)
+        self.socket = Path(self.socket_temp.name) / "rpc.sock"
         self.methods = []
         self.requests = []
         self.server_version = "0.164.0"
