@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "version": "0.1.0",
-  "phase": "deployed_git_delivery_pending",
+  "phase": "local_complete_publication_approval_required",
   "deployed": true,
   "git_delivered": false,
   "baseline_commit": "720cb073f62ee490d4c7fa53cdd00948d6f268f3",
@@ -81,7 +81,8 @@
     "pip_check": true,
     "validated_source_tests_byte_exact": true,
     "diff_check": true,
-    "links_json_and_privacy": true
+    "links_json_and_privacy": true,
+    "final_running_health_and_source_match": true
   },
   "integrated_measurements": {
     "baseline": {
@@ -1903,12 +1904,18 @@
     }
   },
   "git": {
-    "phase": "pending",
+    "phase": "local_main_dev_equal_remote_push_not_executed",
     "expected_default_branch": "main",
     "repository": "benarchen/wx-clawbot",
     "public": true,
     "force_push": false,
-    "tag_or_release": false
+    "tag_or_release": false,
+    "source_commit": "f5f7839bf2a5916ff69d80ceb73c1dc6a1ed9e5f",
+    "local_main_dev_equal": true,
+    "default_branch_confirmed_main": true,
+    "remote_push_executed": false,
+    "automatic_approval_rejected_public_push": true,
+    "required_confirmation": "Explicit authorization for the complete audited repository and reachable history to public benarchen/wx-clawbot main and dev."
   },
   "deferred": [
     "Actual natural context expiry and rejection-then-fresh recovery trigger",
@@ -1931,5 +1938,39 @@
     "history_privacy_hits": [],
     "passed": true
   },
-  "requirements_lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96"
+  "requirements_lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+  "privacy_postcommit": {
+    "candidate_files": 201,
+    "json_files": 20,
+    "local_links": 428,
+    "private_input_records_inspected": 1029,
+    "private_needles": 310,
+    "candidate_private_hits": [],
+    "candidate_secret_patterns": [],
+    "merge_markers": [],
+    "broken_links": [],
+    "history_objects": 896,
+    "history_blobs": 572,
+    "history_commits": 39,
+    "history_privacy_hits": [],
+    "passed": true
+  },
+  "final_local_check_at_beijing": "2026-11-02 00:49",
+  "resume_check": {
+    "at_beijing": "2026-11-02 21:11",
+    "version": "0.1.0",
+    "schema": 4,
+    "running": true,
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "validated_source_unchanged": true,
+    "publication_still_not_executed": true
+  }
 }
