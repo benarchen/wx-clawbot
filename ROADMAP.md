@@ -6,7 +6,7 @@
 
 当前首版版本为 `0.1.0`，已在本人 Mac 的原 wx-clawbot 托管入口加载，真实账本已带核验备份显式升级到 schema 4。PERF01 与上下文收尾整合后 545 项完整回归、性能／持续负载／迁移演练及实际本机健康核验通过；bridge／host／native 就绪，原任务、冻结回执和历史 unknown 2 保持。[本机交付记录](docs/validation/local-release.md)。
 
-W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验收。W08 本机上线与本地提交／稳定合并已完成，公开推送被自动审批要求具体确认，尚未执行；生产工作区保持 `dev`，稳定 `main` 由独立工作树合并，避免切分支影响运行。后置的自然失效触发、Mac 完整排版及同消息图文不改写为通过；不创建 tag 或 GitHub Release。
+W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验收。W08 必要范围已验收交付，本机上线及 dev／main 正常公开同步完成，原生 Goal 已完成；生产工作区保持 `dev`，稳定 `main` 由独立工作树合并，避免切分支影响运行。后置的自然失效触发、Mac 完整排版及同消息图文不改写为通过；不创建 tag 或 GitHub Release。
 
 | 工作包 | 当前状态 |
 | --- | --- |
@@ -18,18 +18,18 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 | W05 | 已验收：[施工记录](goals/20261025-0906-w05-project-routing.md)、[真实证据](docs/validation/w05.md) |
 | W06 | 已验收：[施工记录](goals/20261025-1702-w06-recovery-delivery.md)、[V07／V08 证据](docs/validation/w06.md) |
 | W07 | 已验收：[施工记录](goals/20261025-2134-w07-foreground-operations.md)、[前台操作证据](docs/validation/w07.md) |
-| W08 | 545 项整合、本机上线及本地 dev／main 提交合并完成；公开推送待具体确认，原生 Goal 尚未完成，自然失效触发本人明确后置：[施工记录](goals/20261025-2148-w08-product-acceptance.md)、[本轮证据](docs/validation/w08.md#2026-11-01-上下文收尾) |
+| W08 | 545 项整合、本机上线、稳定合并及远端公开交付完成，原生 Goal 已实际 complete，自然失效触发本人明确后置：[施工记录](goals/20261025-2148-w08-product-acceptance.md)、[本轮证据](docs/validation/w08.md#2026-11-01-上下文收尾) |
 | IMG01 | 单图范围已验收交付：[施工清单](goals/20261028-1135-image-input.md)，单图真机、388 项离线及交付检查通过，原生 Goal complete，A03 本人后置；[实际证据](docs/validation/image-input.md)、[使用指南](docs/image-input.md) |
 | HOST01 | 已验收交付，原生 Goal complete：[施工清单](goals/20261029-1038-host-lifecycle-recovery.md)，A01 至 A12、456 项回归通过，原日常配置已恢复；[证据](docs/validation/host-lifecycle-recovery.md) |
 | MD01 | Android 必要范围已验收交付，原生 Goal complete：[施工清单](goals/20261029-1217-wechat-markdown-rendering.md)、[证据](docs/validation/wechat-markdown.md)、[排版规则](docs/wechat-markdown.md)。G00 至 G06／T01 至 T23／A01 至 A12、512 项回归及最终真人闭环通过，日常状态恢复；Mac 完整要求本人后置 |
 | PERF01 | 隔离开发验收完成：[施工清单](goals/20261031-2132-performance-optimization.md)、[交付与数据](docs/validation/performance-optimization.md)。G00 至 G07／T01 至 T19／A01 至 A10、537 项回归及自动 SDK／原生通过；开发原生 Goal 已实际 complete，现已由 W08 整合至本机 `0.1.0`／schema 4 |
 
-## 进行中与阻塞
+## 交付状态与运行说明
 
-- W08：本人于 2026-11-01 同意将自然失效的真实触发后置为非阻塞观察，保留未验证记录；改为即时旧值观察和确定性发送失败／恢复检查。此前 23／36／59.940 小时 accepted 不改写为自然失效通过。本轮一次旧值观察 API accepted（实际 183.069 小时），520 项回归通过；上下文必要范围收尾完成，不触发旧发布步骤。[修订清单](goals/20261025-2148-w08-product-acceptance.md#2026-11-01-上下文收尾检查点)。
-- W08 的真实项目切换、七类双端交互、手机 FIFO／取消／中断已有分项证据；本机 `0.1.0` 已健康运行，本地 Git 合并已完成，公开推送待具体确认，自然失效为本人明确后置项。历史验收终端已退出，不沿用旧身份或重放消息；当前日常状态以 HOST01、MD01 和托管最新交付记录为准。
-- 远端已核对为空且默认 main；本地 dev／main 已完成正常提交／快进合并。自动审批在执行前拒绝向公共仓库 `benarchen/wx-clawbot` 推送，要求本人对具体仓库和完整 payload 明确确认；未绕过或推送，等本人方便时继续。W08 不提前完成。
-- 既有原生 hook code 7 告警按历史证据保留，原生 turn 完成与 hook 成功分别判断；本项目未修改全局 hook。
+- W00 至 W08、IMG01、HOST01、MD01 和 PERF01 共 13 个工作包均按本人确认的必要范围交付；没有仍阻塞首版的必要验收。下列三个明确后置项保留未验收，不冒充完整支持。
+- `0.1.0` 在本人 Mac 的原入口运行，生产工作区保持 `dev`；`main` 正常快进合并，两个分支已公开同步，默认分支 main。源码、测试、文档和历史均经公开内容检查，无强推、历史改写、tag 或 GitHub Release。
+- 初次公开推送曾被自动审批要求具体确认；本人随后明确授权公共目的地与完整内容，正常推送及远端核验成功。该门禁已解决，不再列为当前阻塞。
+- 历史 unknown 2 保留不重放；既有原生 hook code 7 告警按历史证据保留，原生 turn 完成与 hook 成功分别判断，本项目未修改全局 hook。实际本机状态及交付数据见[正式记录](docs/validation/local-release.md)。
 
 ## 待办事项
 
@@ -42,6 +42,8 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - IMG01 后续：同消息图文。本人于 2026-10-29 明确后置，不阻塞本次单图交付；当前客户端把一起发送的图片和文字拆为两条，只有解析覆盖，尚无单条图文真机证据。后续先确认可实际发送的客户端／协议形态，再验证一条原始消息对应一次带图文提交；不得用合成 inbox 或跨消息自动拼接冒充通过。[原 A03 要求](goals/20261028-1135-image-input.md)。
 
 ## 最近完成
+
+- 2026-11-02 21:20 W08 最终正式交付：本人明确公共仓库及完整内容授权后，获批 a6960eb 的 main／dev 正常原子推送成功，远端引用相同、默认 main；后续仅发布结果文档同步。545 项／本机 `0.1.0`／schema 4／原数据与配置保护通过，所有必要 D01 至 D07 完成，原生 Goal complete；三项后置范围保持。[交付记录](docs/validation/local-release.md)。
 
 - 2026-11-02 00:49 W08 本机 `0.1.0` 上线与本地交付完成：整合 545 项、性能／持续负载／迁移及完整隐私审查通过，原桥接正常停服 236.731 秒后健康恢复，真实 schema 3→4 备份／业务行精确，81 条任务／463 条回执与配置保持。源码提交并正常合并本地 main，运行工作区始终 dev；公开推送因自动审批要求具体确认未执行，W08 Goal 尚未完成。[实际记录](docs/validation/local-release.md)。
 
@@ -81,9 +83,9 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 
 - 2026-10-25 21:24 W06：P09 至 P11、P13 与 V07／V08 阶段验收通过；五处原生崩溃恢复不重投，真实结果重试前后原生执行均为 1；两会话各十条、二十条独立 FIFO、准确取消与中断、真实轮询恢复及本人长结果收件通过。[交付与范围](goals/20261025-1702-w06-recovery-delivery.md)。
 
-- 2026-10-25 16:55 W05：通过两份临时项目与本人微信的 P02 至 P06／V05 阶段验收；原终端、独立观察、受管复用、新可见会话的桌面到手机延续及边界拒绝均有原生记录与本人确认。[交付与限制](goals/20261025-0906-w05-project-routing.md)。
-
 ## 最近验证
+
+- 2026-11-02 21:20 最终公开交付核对：201 文件和所有历史与 313 个实际私密候选值／密钥格式核对无匹配；a6960eb 时 906 个可达对象、577 个 blob、40 个 commit 通过。SSH 读取远端 main／dev 均为获批提交，GitHub API 确认为 public、默认 main；运行源码摘要未变，后续纯交付文档再复核。[数据](docs/validation/local-release.json)。
 
 - 2026-11-02 00:49 首版最终本地复核：545 项（35.872 秒）、父／子包加载、编译／依赖、doctor 0.166.0、唯一托管消费者／host／native ready、schema 4／索引及原业务行通过；提交后 896 个可达对象／572 个 blob／39 个 commit 与实际私密值核对无匹配。未操作微信 UI、外发样例或派发原生任务，公共仓库推送未执行。[数据](docs/validation/local-release.json)。
 
@@ -122,5 +124,3 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - 2026-10-30 23:35 MD01 本人 Android 截图确认 M01 实收、内嵌围栏代码框及 END 可见；Mac 显示／37 字节复制仍未验证。本人新 status 正常 accepted、host ready／原生可用，上下文更新；未知命令来自 `/statu` 拼写，原两项历史 unknown 保留。批次未重试／续发，M02 拒绝和其余 4 条未尝试状态保持。[证据](docs/validation/wechat-markdown.md)。
 
 - 2026-10-30 23:17 MD01 单次授权批次：M01 API accepted、M02 业务码 -2 拒绝，其余 4 条没有发送意图；实际尝试 2 后停止、零重试／UI／原生任务／生产账本写入。原始 412 条冻结、任务／schema／私有配置／凭据保持。错误原因未确诊，已请本人手动新发 status 并核验 M01；不预填收件或自动续发。[证据](docs/validation/wechat-markdown.md)。
-
-- 2026-10-30 23:11 MD01 保留 Mac 完整范围：本人未接受复杂代码后置。磁盘表格字段兼容及代码错误标记隔离修正，完整 499 项回归通过（34.469 秒）；运行版仍为 22:11 的 v2，未加载。6 条独立语法小样的相同代码／目标和一次性发送边界已离线核对，尚未授权或发送；复杂代码、括号链接、表格及真实原生闭环继续验收，Goal 未完成。[证据](docs/validation/wechat-markdown.md)。

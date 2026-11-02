@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "version": "0.1.0",
-  "phase": "local_complete_publication_approval_required",
+  "phase": "complete",
   "deployed": true,
-  "git_delivered": false,
+  "git_delivered": true,
   "baseline_commit": "720cb073f62ee490d4c7fa53cdd00948d6f268f3",
   "managed_source_sha256": "1348b62c358b1e8c131e258bad4f7a08c092548a16dd5dfc8241758dbffb61e6",
   "benchmark_source_sha256": "4cc2a61ae221257ad0c8da5c8fee254f870ca264f651fdc4ad8552a9c73c387b",
@@ -82,7 +82,8 @@
     "validated_source_tests_byte_exact": true,
     "diff_check": true,
     "links_json_and_privacy": true,
-    "final_running_health_and_source_match": true
+    "final_running_health_and_source_match": true,
+    "postcommit_history_privacy_passed": true
   },
   "integrated_measurements": {
     "baseline": {
@@ -1904,7 +1905,7 @@
     }
   },
   "git": {
-    "phase": "local_main_dev_equal_remote_push_not_executed",
+    "phase": "published_verified",
     "expected_default_branch": "main",
     "repository": "benarchen/wx-clawbot",
     "public": true,
@@ -1913,9 +1914,17 @@
     "source_commit": "f5f7839bf2a5916ff69d80ceb73c1dc6a1ed9e5f",
     "local_main_dev_equal": true,
     "default_branch_confirmed_main": true,
-    "remote_push_executed": false,
+    "remote_push_executed": true,
     "automatic_approval_rejected_public_push": true,
-    "required_confirmation": "Explicit authorization for the complete audited repository and reachable history to public benarchen/wx-clawbot main and dev."
+    "approved_snapshot_commit": "a6960eb13a19a896983670620571125662a7a339",
+    "owner_explicit_publication_authorized": true,
+    "remote_main_dev_verified_at_commit": "a6960eb13a19a896983670620571125662a7a339",
+    "default_branch": "main",
+    "main_dev_equal_verified": true,
+    "normal_atomic_push": true,
+    "result_documentation_sync_authorized": true,
+    "publication_verified_at_beijing": "2026-11-02 21:20",
+    "publication_gate_resolved": true
   },
   "deferred": [
     "Actual natural context expiry and rejection-then-fresh recovery trigger",
