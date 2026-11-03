@@ -50,7 +50,7 @@ class SchemaTests(unittest.TestCase):
         before = self.path.read_bytes(), self.snapshot()
         report = schema.inspect(self.root, self.credentials)
         self.assertEqual(report["status"], "upgrade_available")
-        self.assertEqual(report["add_tables"], ["routes", "interactions", "delivery_attempts", "attachments", *schema.V5_COLUMNS])
+        self.assertEqual(report["add_tables"], ["routes", "interactions", "delivery_attempts", "attachments", *schema.V5_COLUMNS, *schema.V6_COLUMNS])
         self.assertEqual(report["row_counts"]["tasks"], 1)
         self.assertFalse((self.root / "backups").exists())
         self.assertEqual((self.path.read_bytes(), self.snapshot()), before)

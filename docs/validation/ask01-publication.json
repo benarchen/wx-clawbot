@@ -1,0 +1,33 @@
+{
+  "version": "0.1.2",
+  "runtime_schema": 6,
+  "phase": "prepublication_audit_passed",
+  "repository": "benarchen/wx-clawbot",
+  "visibility": "public",
+  "branches": [
+    "dev",
+    "main"
+  ],
+  "tag": "v0.1.2",
+  "annotated_tag": true,
+  "force_push": false,
+  "github_release_created": false,
+  "baseline_commit": "38debfb0aa8fb1610c49ab58766d7f3e15884b7b",
+  "running_source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+  "regression_tests": 625,
+  "validated_source_test_lock_files": 151,
+  "mit_included": true,
+  "submitted": false,
+  "pushed": false,
+  "runtime_restarted": false,
+  "wechat_test_sends": 0,
+  "public_audit": {
+    "files_checked": 235,
+    "existing_reachable_objects": 986,
+    "existing_history_blobs_checked": 636,
+    "private_values_checked": 1374,
+    "private_value_matches": 0,
+    "secret_patterns_matches": 0,
+    "json_and_local_links_passed": true
+  }
+}

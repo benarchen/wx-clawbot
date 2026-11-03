@@ -15,9 +15,10 @@ from .channels.messages import parse_message
 from . import schema
 from .output import DisplaySegment, render_segments, render_in_worker
 from .occupancy import OccupancyStore, ACTIVE_FROM, ACTIVE_WHERE, TASK_COLUMNS
+from .async_state import AsyncQuestionStore
 
 
-class RuntimeState(OccupancyStore, ChannelState):
+class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
     APPLICATION_ID = schema.APPLICATION_ID
     parse_message = staticmethod(parse_message)
 
@@ -282,6 +283,7 @@ class RuntimeState(OccupancyStore, ChannelState):
             for (identity,) in rows:
                 self.db.execute("UPDATE tasks SET state='unknown',updated_at=? WHERE id=?", (time.time(), identity))
                 self._occupancy_transition(identity, "holding", "native_unverified")
+            self._async_restart()
             self.db.execute("COMMIT")
         except BaseException:
             self.db.execute("ROLLBACK")

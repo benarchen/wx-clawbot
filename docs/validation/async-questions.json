@@ -1,0 +1,731 @@
+{
+  "goal": "ASK01",
+  "status": "complete",
+  "baseline_version": "0.1.1",
+  "baseline_schema": 5,
+  "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+  "isolated_baseline_files": 223,
+  "business_tables": 12,
+  "original_repro": {
+    "tests": 1,
+    "expected_product_failure": true,
+    "expected_prompts": 1,
+    "actual_prompts": 0
+  },
+  "sync_control": {
+    "tests": 2,
+    "passed": true
+  },
+  "production_code_changed": true,
+  "production_ledger_writes": "explicit_backed_up_schema_5_to_6_only_before_phone",
+  "global_config_writes": 0,
+  "wechat_sends": 0,
+  "native_gate_passed": true,
+  "acceptance": {
+    "A01": "passed_accepted_supplemental_boundary",
+    "A02": "passed_isolated_candidate",
+    "A03": "passed_isolated_candidate",
+    "A04": "passed_isolated_candidate",
+    "A05": "passed_isolated_candidate",
+    "A06": "passed_isolated_candidate",
+    "A07": "passed_isolated_candidate",
+    "A08": "passed_isolated_candidate",
+    "A09": "passed_isolated_and_real_native",
+    "A10": "passed_code_packaging_docs_and_public_audit",
+    "A11": "passed_real_phone_and_loaded_candidate",
+    "A12": "passed_goal_complete_recorded"
+  },
+  "native_version": "0.166.0",
+  "native_gate": {
+    "flows": [
+      {
+        "case": "choice2",
+        "phase": "verified",
+        "native_task_submissions": 1,
+        "turn_status": "completed",
+        "bridge_answer_calls": 1,
+        "wrong_turn_refused": null,
+        "completed_turn_refused": null,
+        "model_observed_test_answer": true,
+        "original_turn_preserved": true,
+        "user_messages": 2,
+        "answer_client_occurrences": 1
+      },
+      {
+        "case": "free",
+        "phase": "verified",
+        "native_task_submissions": 1,
+        "turn_status": "completed",
+        "bridge_answer_calls": 1,
+        "wrong_turn_refused": null,
+        "completed_turn_refused": null,
+        "model_observed_test_answer": true,
+        "original_turn_preserved": true,
+        "user_messages": 2,
+        "answer_client_occurrences": 1
+      },
+      {
+        "case": "multi",
+        "phase": "verified",
+        "native_task_submissions": 1,
+        "turn_status": "completed",
+        "bridge_answer_calls": 1,
+        "wrong_turn_refused": true,
+        "completed_turn_refused": true,
+        "model_observed_test_answer": true,
+        "original_turn_preserved": true,
+        "user_messages": 2,
+        "answer_client_occurrences": 1
+      },
+      {
+        "case": "foreign-first",
+        "phase": "observed_after_ack",
+        "native_task_submissions": 1,
+        "turn_status": "completed",
+        "bridge_answer_calls": 0,
+        "wrong_turn_refused": true,
+        "completed_turn_refused": null,
+        "initial_snapshot_missed_accepted_input": true,
+        "later_unique_foreign_answer_observed": true
+      },
+      {
+        "case": "visibility",
+        "phase": "verified",
+        "native_task_submissions": 1,
+        "turn_status": "completed",
+        "bridge_answer_calls": 0,
+        "wrong_turn_refused": true,
+        "completed_turn_refused": true,
+        "snapshots": [
+          {
+            "active_status": {
+              "type": "active",
+              "activeFlags": []
+            },
+            "turn_history_has_answer": false,
+            "thread_read_has_answer": false,
+            "queue_clients": [],
+            "queue_complete": true,
+            "notification_has_answer": false
+          },
+          {
+            "active_status": {
+              "type": "active",
+              "activeFlags": []
+            },
+            "turn_history_has_answer": false,
+            "thread_read_has_answer": false,
+            "queue_clients": [],
+            "queue_complete": true,
+            "notification_has_answer": false
+          },
+          {
+            "active_status": {
+              "type": "active",
+              "activeFlags": []
+            },
+            "turn_history_has_answer": false,
+            "thread_read_has_answer": false,
+            "queue_clients": [],
+            "queue_complete": true,
+            "notification_has_answer": false
+          },
+          {
+            "active_status": {
+              "type": "active",
+              "activeFlags": []
+            },
+            "turn_history_has_answer": true,
+            "thread_read_has_answer": true,
+            "queue_clients": [],
+            "queue_complete": true,
+            "notification_has_answer": true
+          },
+          {
+            "active_status": {
+              "type": "active",
+              "activeFlags": []
+            },
+            "turn_history_has_answer": true,
+            "thread_read_has_answer": true,
+            "queue_clients": [],
+            "queue_complete": true,
+            "notification_has_answer": true
+          }
+        ]
+      },
+      {
+        "case": "conflict",
+        "phase": "verified",
+        "native_task_submissions": 1,
+        "turn_status": "completed",
+        "bridge_answer_calls": 1,
+        "wrong_turn_refused": true,
+        "completed_turn_refused": true,
+        "two_opposite_answers_accepted": true,
+        "user_messages": 3,
+        "model_reported_answer_conflict": true
+      }
+    ],
+    "real_question_tasks": 6,
+    "owned_terminals": 2,
+    "original_tasks_replayed": 0,
+    "question_level_atomic_first_answer": false,
+    "question_specific_resolved_signal_verified": false,
+    "reply_transport": "turn/steer with exact expectedTurnId; adds supplemental user input",
+    "official_schema": {
+      "generated_files": 467,
+      "turn_steer_fields": [
+        "additionalContext",
+        "clientUserMessageId",
+        "expectedTurnId",
+        "input",
+        "responsesapiClientMetadata",
+        "responsesapiClientMetadataPatch",
+        "threadId"
+      ],
+      "turn_steer_required": [
+        "expectedTurnId",
+        "input",
+        "threadId"
+      ],
+      "question_specific_client_methods": [],
+      "schema_sha256": "0fedfae5919181b6cdf532b0d155813522418c2c1a93214df6760bf6bd77123a",
+      "native_version": "0.166.0"
+    },
+    "decision_pending": false,
+    "passed_under_accepted_supplemental_boundary": true,
+    "additional_cases": {
+      "sequence_two_questions": {
+        "passed": true,
+        "user_messages": 3,
+        "model_observed_both": true
+      },
+      "lifecycle": {
+        "passed": true,
+        "closed_connection_refused": true,
+        "same_runtime_reconnected": true,
+        "no_answer_replayed": true,
+        "interrupted_turn_refused": true
+      },
+      "initial_lifecycle_harness_failure": {
+        "retained": true,
+        "terminal_verified": "completed",
+        "original_client_once": true,
+        "not_replayed": true
+      }
+    }
+  },
+  "baseline_regression": {
+    "tests": 580,
+    "seconds": 36.448,
+    "passed": true,
+    "expected_failure_test_reported_separately": true,
+    "log_sha256": "849408b19dac793f4e3d734ad2cc0c9d092bb00b9da2082c15f68b0d8a072ad5"
+  },
+  "cleanup": {
+    "owned_native_and_phone_test_terminals_remaining": 0,
+    "original_selection_restored": true,
+    "original_observer_restored": true,
+    "user_terminals_closed": 0,
+    "wechat_ui_operations": 0,
+    "additional_test_messages_after_phone": 0,
+    "native_tasks_replayed": 0,
+    "runtime_schema6_backup_retained": true,
+    "original_label_start_calls": 2,
+    "reasons": [
+      "load_new_code_and_schema",
+      "restore_pretest_selection_after_phone"
+    ]
+  },
+  "protection": {
+    "root_source_unchanged": true,
+    "root_source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+    "protected_configuration_unchanged": true,
+    "baseline_workspace_files_preserved": 221,
+    "business_tables_unchanged": 12,
+    "schema": 5,
+    "production_writes": 0
+  },
+  "implementation_started": true,
+  "production_deployed": true,
+  "association_review": {
+    "recorded_at": "2026-11-03 12:47",
+    "existing_guard_tests": 4,
+    "passed": true,
+    "included_in_580_baseline": true,
+    "log_sha256": "dfe13e3de5cdd297c763c93b1a523ca2d360971dc54d4448de2d2f168c3b9287",
+    "new_feature_tests_passed": false,
+    "reviewed_entrypoints": [
+      "map_turn",
+      "complete",
+      "event:userMessage",
+      "reconcile_results",
+      "reconcile_changed_session_terminal",
+      "sync_external",
+      "terminal_evidence"
+    ],
+    "product_decision_pending": true
+  },
+  "native_goal_status": "complete",
+  "blocked_audit": {
+    "recorded_at": "2026-11-03 12:49",
+    "consecutive_goal_turns": 3,
+    "reason": "G01 requires product decision on native non-atomic cross-client answers; no dependent implementation authorized",
+    "independent_work_exhausted": true
+  },
+  "product_decision": "user_accepted_async_supplemental_mode",
+  "candidate_version": "0.1.2",
+  "candidate_schema": 6,
+  "candidate_source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+  "regression": {
+    "tests": 625,
+    "seconds": 37.65170179097913,
+    "passed": true,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323"
+  },
+  "native_candidate": {
+    "passed": true,
+    "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+    "native_version": "0.166.0",
+    "schema": 6,
+    "original_task_submissions": 1,
+    "answer_submissions": 1,
+    "original_client_occurrences": 1,
+    "answer_client_occurrences": 1,
+    "user_messages": 2,
+    "original_turn_preserved": true,
+    "question_delivered_before_answer": true,
+    "answer_observed": true,
+    "model_observed_answer": true,
+    "task_status": "completed",
+    "protected_files_unchanged": true,
+    "wechat_sends": 0,
+    "production_ledger_writes": 0
+  },
+  "build": {
+    "version": "0.1.2",
+    "build_backend": "setuptools 80.9.0",
+    "artifacts": {
+      "wx_clawbot-0.1.2.tar.gz": "1f67d5db2bb3bad00a142d494d9a3f9226f505f7fe966582809ff534908837c7",
+      "wx_clawbot-0.1.2-py3-none-any.whl": "aefa496bd0e7ea7208e49e47f3fde6d4bb4eed1faeefb0fb50b57bb6bc383424"
+    },
+    "source_bytes_match": true,
+    "mit_files_preserved": true,
+    "private_paths_excluded": true
+  },
+  "install": {
+    "isolated_install": true,
+    "version": "0.1.2",
+    "schema": 6,
+    "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+    "module_path_verified": true,
+    "metadata_version": "0.1.2"
+  },
+  "service_unix_fake_wechat_e2e": true,
+  "load": {
+    "status": "passed",
+    "seed": 20261103,
+    "seconds": 120.0028614999901,
+    "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+    "registration": {
+      "samples": 100,
+      "p95_ms": 2.186541008995846,
+      "max_ms": 3.6065409949515015
+    },
+    "control": {
+      "samples": 3952,
+      "p95_ms": 4.142458987189457,
+      "max_ms": 12.519042007625103
+    },
+    "duplicate_events": 3952,
+    "unrelated_events": 3952,
+    "answer_calls": 101,
+    "answer_client_unique": true,
+    "answer_responses": 101,
+    "refused_duplicate_commands": 788,
+    "original_task_submissions": 1,
+    "task_rows": 1,
+    "disconnect_injected": true,
+    "production_writes": 0,
+    "wechat_sends": 0,
+    "final_active_question_rows": 0,
+    "deadline_cache": 0,
+    "sqlite_reopened": true,
+    "rss_peak_bytes": 53313536,
+    "cpu_user_seconds": 22.932643,
+    "cpu_system_seconds": 11.400236,
+    "retained_question_rows": 101,
+    "outbox_rows": 105
+  },
+  "deployment": {
+    "version": "0.1.2",
+    "schema": 6,
+    "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+    "loaded_source_matches": true,
+    "old_frozen_replies_preserved": 530,
+    "old_unknown_results_preserved": 2,
+    "async_questions_before_phone": 0,
+    "protected_files_unchanged": true,
+    "host": "ready",
+    "native": "ready",
+    "consumer_busy": true,
+    "schema_integrity": true,
+    "original_label_start_calls": 1,
+    "wechat_test_sends": 0,
+    "phone_pending": true,
+    "downtime_seconds": 305.36375284194946
+  },
+  "phone": {
+    "passed": true,
+    "version": "0.1.2",
+    "schema": 6,
+    "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+    "project": "guixu",
+    "question_count": 1,
+    "original_client_occurrences": 1,
+    "answer_client_occurrences": 1,
+    "original_turn_preserved": true,
+    "user_messages": 2,
+    "answer_state": "observed",
+    "task_status": "completed",
+    "model_repeated_actual_answer": true,
+    "question_api_accepted_before_owner_answer": true,
+    "answer_text_exactly_preserved": true,
+    "owner_answer_had_literal_wrapper": true,
+    "owner_answer_before_native_completion": true,
+    "final_frozen_render_exact": true,
+    "authorized_reply_budget": 8,
+    "actual_replies": 8,
+    "all_replies_api_accepted": true,
+    "owner_confirmed_phone_received_and_answered": true,
+    "old_frozen_replies_preserved": 530,
+    "old_unknown_results_preserved": 2,
+    "protected_files_unchanged": true,
+    "occupancy_released": true,
+    "single_authorized_wait_command": true,
+    "wechat_ui_operations": 0
+  },
+  "root_targeted_recheck": {
+    "tests": 45,
+    "passed": true,
+    "included_in_full_625": true
+  },
+  "public_audit": {
+    "checked_files": 34,
+    "local_links_passed": true,
+    "public_private_value_matches": 0,
+    "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+    "promoted_files_match_candidate": 16,
+    "mit_and_lock_preserved": true,
+    "external_urls_requeried": false
+  },
+  "build_delivery": {
+    "version": "0.1.2",
+    "source_bytes_match": true,
+    "readme_current": true,
+    "mit_files_preserved": true,
+    "artifacts": {
+      "wx_clawbot-0.1.2.tar.gz": "2952265459cbf1eb6fee9b381aead03f5b19bb71cc9749dea321faad4090927c",
+      "wx_clawbot-0.1.2-py3-none-any.whl": "5ed27d685b9b842f1480d30270e7b23c8a3bb6722c0289a8cbdeed6ade4cbc25"
+    }
+  },
+  "promoted_files": [
+    "src/wx_clawbot/__init__.py",
+    "src/wx_clawbot/async_questions.py",
+    "src/wx_clawbot/async_state.py",
+    "src/wx_clawbot/execution.py",
+    "src/wx_clawbot/runtime_state.py",
+    "src/wx_clawbot/schema.py",
+    "src/wx_clawbot/retention.py",
+    "pyproject.toml",
+    "tests/test_async_questions.py",
+    "tests/test_async_question_repro.py",
+    "tests/test_async_service.py",
+    "tests/test_schema.py",
+    "tests/test_admission_ops.py",
+    "tests/test_performance_schema.py",
+    "tests/integration/async_questions_native.py",
+    "tests/integration/async_questions_load.py"
+  ],
+  "final_live": {
+    "version": "0.1.2",
+    "schema": 6,
+    "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+    "loaded_source_matches": true,
+    "host": "ready",
+    "native": "ready",
+    "consumer_busy": true,
+    "old_frozen_replies_preserved": 530,
+    "old_unknown_results_preserved": 2,
+    "authorized_phone_replies": 8,
+    "actual_phone_replies": 8,
+    "all_replies_settled": true,
+    "original_selection_restored": true,
+    "original_observer_restored": true,
+    "remaining_owned_test_terminals": 0,
+    "source_and_configuration_protected": true,
+    "promoted_files_match_candidate": 16,
+    "startup_calls": 2,
+    "startup_reasons": [
+      "load_new_code_and_schema",
+      "restore_pretest_selection_and_retire_phone_fixture"
+    ],
+    "final_cleanup_seconds": 150.54624199867249,
+    "wechat_ui_operations": 0
+  },
+  "git_state": {
+    "branch": "dev",
+    "head": "38debfb0aa8fb1610c49ab58766d7f3e15884b7b",
+    "committed": false,
+    "pushed": false,
+    "tags_created": false,
+    "mit_work_preserved": true
+  },
+  "test_matrix": {
+    "T01": {
+      "result": "passed",
+      "evidence": [
+        "test_async_question_repro.py",
+        "original_repro"
+      ]
+    },
+    "T02": {
+      "result": "passed",
+      "evidence": [
+        "test_controller.py",
+        "sync_control",
+        "regression"
+      ]
+    },
+    "T03": {
+      "result": "passed",
+      "evidence": [
+        "native_gate.official_schema",
+        "native_gate.flows"
+      ]
+    },
+    "T04": {
+      "result": "passed",
+      "evidence": [
+        "native_gate.flows",
+        "native_candidate"
+      ]
+    },
+    "T05": {
+      "result": "passed",
+      "evidence": [
+        "native_gate.additional_cases.sequence_two_questions",
+        "native_gate.flows"
+      ]
+    },
+    "T06": {
+      "result": "passed",
+      "evidence": [
+        "native_gate.flows",
+        "test_async_questions.py"
+      ]
+    },
+    "T07": {
+      "result": "passed",
+      "evidence": [
+        "native_candidate",
+        "test_async_questions.py"
+      ]
+    },
+    "T08": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py"
+      ]
+    },
+    "T09": {
+      "result": "passed",
+      "evidence": [
+        "test_async_question_repro.py",
+        "test_async_questions.py"
+      ]
+    },
+    "T10": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py"
+      ]
+    },
+    "T11": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "phone"
+      ]
+    },
+    "T12": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "test_sessions.py"
+      ]
+    },
+    "T13": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py"
+      ]
+    },
+    "T14": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "test_output.py"
+      ]
+    },
+    "T15": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py"
+      ]
+    },
+    "T16": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py"
+      ]
+    },
+    "T17": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "native_gate.additional_cases.lifecycle"
+      ]
+    },
+    "T18": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "test_wechat_state.py"
+      ]
+    },
+    "T19": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py"
+      ]
+    },
+    "T20": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "native_candidate"
+      ]
+    },
+    "T21": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "test_controller.py"
+      ]
+    },
+    "T22": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "phone",
+        "test_admission_recovery.py"
+      ]
+    },
+    "T23": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py"
+      ]
+    },
+    "T24": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "native_gate.additional_cases.lifecycle"
+      ]
+    },
+    "T25": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "load"
+      ]
+    },
+    "T26": {
+      "result": "passed",
+      "evidence": [
+        "test_schema.py",
+        "test_image_schema.py",
+        "test_performance_schema.py",
+        "test_admission_ops.py",
+        "test_async_questions.py"
+      ]
+    },
+    "T27": {
+      "result": "passed",
+      "evidence": [
+        "test_schema.py",
+        "test_async_questions.py"
+      ]
+    },
+    "T28": {
+      "result": "passed",
+      "evidence": [
+        "test_async_questions.py",
+        "test_retention.py",
+        "cleanup"
+      ]
+    },
+    "T29": {
+      "result": "passed",
+      "evidence": [
+        "test_async_service.py"
+      ]
+    },
+    "T30": {
+      "result": "passed",
+      "evidence": [
+        "load"
+      ]
+    },
+    "T31": {
+      "result": "passed",
+      "evidence": [
+        "regression",
+        "build_delivery",
+        "install",
+        "public_audit",
+        "root_targeted_recheck"
+      ]
+    },
+    "T32": {
+      "result": "passed",
+      "evidence": [
+        "phone",
+        "final_live"
+      ]
+    }
+  },
+  "goal_completion": {
+    "status": "complete",
+    "recorded_at_beijing": "2026-11-03 21:31",
+    "tokens_used": 592210,
+    "elapsed_seconds_recorded_by_goal": 2651,
+    "token_budget": null,
+    "all_required_checks_passed": true
+  },
+  "completion_audit": {
+    "result": "passed",
+    "checkpoints": 10,
+    "test_scenarios": 32,
+    "acceptance_criteria": 12,
+    "public_files_checked": 35,
+    "private_value_matches": 0,
+    "pending_required_items": 0
+  }
+}

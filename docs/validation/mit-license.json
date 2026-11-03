@@ -1,0 +1,261 @@
+{
+  "checked_at_beijing": "2026-11-03 09:49",
+  "scope": "MIT license and packaging metadata only; no runtime deployment or publication",
+  "source_baseline": "38debfb0aa8fb1610c49ab58766d7f3e15884b7b",
+  "copyright": {
+    "year": 2026,
+    "holder": "benarchen",
+    "basis": "sole existing Git author; public spelling retained"
+  },
+  "build": {
+    "status": "passed",
+    "version": "0.1.1",
+    "source_modules_identical": 54,
+    "sdist_metadata": {
+      "metadata_version": "2.4",
+      "license_expression": "MIT",
+      "license_files": [
+        "LICENSE",
+        "THIRD_PARTY_NOTICES.md"
+      ],
+      "requires_dist": [
+        "iterm2==2.30",
+        "websockets==17.3",
+        "segno==1.6.6",
+        "cryptography==50.0.2",
+        "Pillow==13.0.0",
+        "markdown-it-py==4.2.0"
+      ]
+    },
+    "wheel_metadata": {
+      "metadata_version": "2.4",
+      "license_expression": "MIT",
+      "license_files": [
+        "LICENSE",
+        "THIRD_PARTY_NOTICES.md"
+      ],
+      "requires_dist": [
+        "iterm2==2.30",
+        "websockets==17.3",
+        "segno==1.6.6",
+        "cryptography==50.0.2",
+        "Pillow==13.0.0",
+        "markdown-it-py==4.2.0"
+      ]
+    },
+    "isolated_install": "passed",
+    "bundled_runtime_dependencies": false,
+    "private_artifacts_found": false,
+    "artifacts": [
+      {
+        "name": "wx_clawbot-0.1.1.tar.gz",
+        "sha256": "8dbe2fe7159b861b7e06b0ad0a55e900f35bdff4272388370d66a6da94fb7e22",
+        "bytes": 217824
+      },
+      {
+        "name": "wx_clawbot-0.1.1-py3-none-any.whl",
+        "sha256": "7d1dd52d6bb31e955ccf9dddd118a48e2522952da0f496c7988fbfd7dbe3f756",
+        "bytes": 139803
+      }
+    ]
+  },
+  "checks": {
+    "unittest": {
+      "tests": 580,
+      "seconds": 35.976,
+      "result": "OK"
+    },
+    "compileall": "passed",
+    "pip_check": "passed",
+    "git_diff_check": "passed",
+    "runtime_sources_tests_lock_unchanged": true,
+    "local_document_links": {
+      "checked": 149,
+      "missing": 0
+    },
+    "new_file_private_path_and_key_pattern_check": "passed"
+  },
+  "runtime_dependencies": [
+    {
+      "name": "cffi",
+      "version": "2.1.1",
+      "license_expression": "MIT-0",
+      "license": null,
+      "classifiers": [],
+      "license_files": [
+        {
+          "path": "cffi-2.1.1.dist-info/licenses/LICENSE",
+          "sha256": "5ba24ddc57067f9249add644c3afc41a5d6dc37e23433ef759d95df370b0af63",
+          "bytes": 1123
+        }
+      ]
+    },
+    {
+      "name": "cryptography",
+      "version": "50.0.2",
+      "license_expression": "Apache-2.0 OR BSD-3-Clause",
+      "license": null,
+      "classifiers": [],
+      "license_files": [
+        {
+          "path": "cryptography-50.0.2.dist-info/licenses/LICENSE",
+          "sha256": "3e0c7c091a948b82533ba98fd7cbb40432d6f1a9acbf85f5922d2f99a93ae6bb",
+          "bytes": 197
+        },
+        {
+          "path": "cryptography-50.0.2.dist-info/licenses/LICENSE.APACHE",
+          "sha256": "aac73b3148f6d1d7111dbca32099f68d26c644c6813ae1e4f05f6579aa2663fe",
+          "bytes": 11360
+        },
+        {
+          "path": "cryptography-50.0.2.dist-info/licenses/LICENSE.BSD",
+          "sha256": "602c4c7482de6479dd2e9793cda275e5e63d773dacd1eca689232ab7008fb4fb",
+          "bytes": 1532
+        }
+      ]
+    },
+    {
+      "name": "iterm2",
+      "version": "2.30",
+      "license_expression": null,
+      "license": "GPLv2",
+      "classifiers": [
+        "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)"
+      ],
+      "license_files": []
+    },
+    {
+      "name": "markdown-it-py",
+      "version": "4.2.0",
+      "license_expression": null,
+      "license": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "license_files": [
+        {
+          "path": "markdown_it_py-4.2.0.dist-info/licenses/LICENSE",
+          "sha256": "4a2260d6e2cd0f5a151a1e86dbfe7d3ed552b1e2beabf9941c1ba5c49cbce484",
+          "bytes": 1078
+        },
+        {
+          "path": "markdown_it_py-4.2.0.dist-info/licenses/LICENSE.markdown-it",
+          "sha256": "792c48c5a849a15fdf9e37e8bcf9e6d1dd13b32b46c642a748a0a46a9919d473",
+          "bytes": 1073
+        }
+      ]
+    },
+    {
+      "name": "mdurl",
+      "version": "0.1.2",
+      "license_expression": null,
+      "license": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "license_files": [
+        {
+          "path": "mdurl-0.1.2.dist-info/LICENSE",
+          "sha256": "7c605df6e28667a9603118e98274f64a49ce3eed0d26fccce9534a345e0ef955",
+          "bytes": 2338
+        }
+      ]
+    },
+    {
+      "name": "pillow",
+      "version": "13.0.0",
+      "license_expression": "MIT-CMU",
+      "license": null,
+      "classifiers": [],
+      "license_files": [
+        {
+          "path": "pillow-13.0.0.dist-info/licenses/LICENSE",
+          "sha256": "dda12a98c1979cf3d94df1cff45d27a4cb3f04a60c76f76902ac54cac03ec0ce",
+          "bytes": 70307
+        }
+      ]
+    },
+    {
+      "name": "protobuf",
+      "version": "7.36.2",
+      "license_expression": null,
+      "license": "3-Clause BSD License",
+      "classifiers": [],
+      "license_files": [
+        {
+          "path": "protobuf-7.36.2.dist-info/LICENSE",
+          "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d",
+          "bytes": 1732
+        }
+      ]
+    },
+    {
+      "name": "pycparser",
+      "version": "3.12",
+      "license_expression": "BSD-3-Clause",
+      "license": null,
+      "classifiers": [],
+      "license_files": [
+        {
+          "path": "pycparser-3.12.dist-info/licenses/LICENSE",
+          "sha256": "0a9e78156ae8b96caf1b4f11ac2df424b83de29736f9e757630548a6272fdf90",
+          "bytes": 1543
+        }
+      ]
+    },
+    {
+      "name": "segno",
+      "version": "1.6.6",
+      "license_expression": null,
+      "license": null,
+      "classifiers": [
+        "License :: OSI Approved :: BSD License"
+      ],
+      "license_files": [
+        {
+          "path": "segno-1.6.6.dist-info/licenses/LICENSE",
+          "sha256": "de6c85fccf5d52902aa13dfe2dc6d2a2a106fc3419ed438f3460f0d4b76a6935",
+          "bytes": 1503
+        }
+      ]
+    },
+    {
+      "name": "websockets",
+      "version": "17.3",
+      "license_expression": "BSD-3-Clause",
+      "license": null,
+      "classifiers": [],
+      "license_files": [
+        {
+          "path": "websockets-17.3.dist-info/licenses/LICENSE",
+          "sha256": "3d6a0c050d8bec52fabad502e45fb25bd02bcadbd70dea34d447b6a0ff4e6da8",
+          "bytes": 1514
+        }
+      ]
+    }
+  ],
+  "sdk_evidence": {
+    "version": "2.30",
+    "license_metadata": "GPLv2 / GPLv2+ classifier",
+    "sdk_specific_exception_confirmed": false,
+    "upstream_commit": "0139844e77721d2d5e1412a946d9ce9b0f8d260e",
+    "sdist_entries": 70,
+    "sdist_contains_independent_license_file": false,
+    "sdist_setup_matches_fixed_source": true,
+    "sha256": {
+      "sdist": "eaa814b64f11d58984dfa02e790016983e7c4eb4f41cceae174ba361708200ec",
+      "sdk_setup_py": "9dbef2d0268c30e8b11689174b143580ed6df550326f8c4174d32327e7c8128f",
+      "upstream_LICENSE": "990f1da86e9f58355fc82b5cd486b70aaeb53ae0ba9722424a0270ff0d458de9",
+      "upstream_COPYING": "e8623589e5af3639c9725d7b3307c726c0e4428684d3c5a3c0f5fbdd98be8efd"
+    }
+  },
+  "project_license_file_sha256": {
+    "LICENSE": "eea2654d4de44b9761b1e66c125ba08ea4ded10df2992a8cad1cf533852f9a88",
+    "THIRD_PARTY_NOTICES.md": "44ccfd946ce6b3ba9e5545b58e209e4cf1bc83bda45d26b73f511351e5a3f094"
+  },
+  "runtime_code_changed": false,
+  "dependency_versions_changed": false,
+  "service_restarted": false,
+  "git_committed": false,
+  "published": false
+}

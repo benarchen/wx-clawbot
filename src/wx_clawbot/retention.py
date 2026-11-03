@@ -12,7 +12,7 @@ from .channels.private import private_file, private_lease
 
 TERMINAL = "('completed','failed','interrupted','cancelled')"
 SETTLED = "('accepted','superseded')"
-SAFE_TASK = f"state IN {TERMINAL} AND NOT EXISTS(SELECT 1 FROM outbox WHERE task_id=tasks.id AND state NOT IN {SETTLED})"
+SAFE_TASK = f"state IN {TERMINAL} AND NOT EXISTS(SELECT 1 FROM outbox WHERE task_id=tasks.id AND state NOT IN {SETTLED}) AND NOT EXISTS(SELECT 1 FROM async_questions WHERE task_id=tasks.id)"
 
 
 def operations(now):
@@ -24,6 +24,7 @@ def operations(now):
         ("settled_reply_bodies", "outbox", f"created_at<? AND state IN {SETTLED} AND (text<>'' OR context IS NOT NULL)", body, "UPDATE outbox SET text='',context=NULL"),
         ("handled_interaction_bodies", "interactions", "updated_at<? AND state IN ('resolved','stale') AND (params<>'{}' OR target<>'{}')", body, "UPDATE interactions SET params='{}',target='{}'"),
         ("settled_reply_summaries", "outbox", f"created_at<? AND state IN {SETTLED} AND NOT EXISTS(SELECT 1 FROM tasks WHERE tasks.id=outbox.task_id AND tasks.state NOT IN {TERMINAL})", summary, "DELETE FROM outbox"),
+        ("closed_async_questions", "async_questions", f"closed_at<? AND state IN ('stale','refused','observed') AND (task_id IS NULL OR EXISTS(SELECT 1 FROM tasks WHERE tasks.id=async_questions.task_id AND tasks.state IN {TERMINAL} AND NOT EXISTS(SELECT 1 FROM outbox WHERE outbox.task_id=tasks.id AND outbox.state NOT IN {SETTLED})))", summary, "DELETE FROM async_questions"),
         ("terminal_task_summaries", "tasks", f"updated_at<? AND {SAFE_TASK}", summary, "DELETE FROM tasks"),
         ("handled_interaction_summaries", "interactions", "updated_at<? AND state IN ('resolved','stale')", summary, "DELETE FROM interactions"),
     )

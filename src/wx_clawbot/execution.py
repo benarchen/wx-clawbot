@@ -20,6 +20,7 @@ from .images import ImagePreparer
 from .hosts.lifecycle import HostUnavailable
 from .results import ResultWork
 from .admission_recovery import AdmissionRecovery
+from .async_questions import AsyncQuestions
 
 
 TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
@@ -50,6 +51,7 @@ class Execution:
         self.inflight = set()
         self.recovery = AdmissionRecovery(self)
         self.history_cursor = ''
+        self.async_questions = AsyncQuestions(self)
 
     def start_image_preparation(self, task):
         if task["id"] in self.image_jobs:
@@ -289,6 +291,11 @@ class Execution:
                 return turn
         raise ValueError("Exact native turn is not in the bounded history")
 
+    async def business_users(self, thread_id, turn, task=None):
+        users = [i for i in turn.get('items', []) if i.get('type') == 'userMessage']
+        return (await self.state.async_business_users(thread_id, turn['id'], users, task)
+                if len(users) > 1 else users)
+
     async def reconcile_changed_session_terminal(self, task, target):
         # A fresh full binding may prove historical completion after the runtime
         # changes the stable session ID. It grants no route or dispatch authority.
@@ -311,7 +318,7 @@ class Execution:
             return
         found = None
         async for turn in self.turns(task["thread_id"]):
-            users = [item for item in turn["items"] if item.get("type") == "userMessage"]
+            users = await self.business_users(task['thread_id'], turn, task)
             if not any(item.get("clientId") == client for item in users):
                 continue
             if found is not None or len(users) != 1:
@@ -354,7 +361,7 @@ class Execution:
             if task["target"].get("source") == "external":
                 if task["turn_id"]:
                     turn = await self.read_turn(task["thread_id"], task["turn_id"])
-                    users = [item for item in turn.get("items", []) if item.get("type") == "userMessage"]
+                    users = await self.business_users(task['thread_id'], turn, task)
                     client = users[0].get("clientId") if len(users) == 1 else None
                     expected = task["target"].get("native_client_id")
                     linked = await self.state.tasks(client_id=client) if client else None
@@ -375,7 +382,7 @@ class Execution:
             matches = {c: [] for c in clients}
             # Keep only identity/status metadata, not hundreds of historical outputs.
             async for turn in self.turns(thread_id):
-                users = [i for i in turn["items"] if i.get("type") == "userMessage"]
+                users = await self.business_users(thread_id, turn)
                 for user in users:
                     client = user.get("clientId")
                     if client in matches:
@@ -398,7 +405,7 @@ class Execution:
                 # Absence within this bounded window is not proof of non-execution.
 
     async def map_turn(self, thread_id, turn):
-        users = [item for item in turn.get("items", []) if item.get("type") == "userMessage"]
+        users = await self.business_users(thread_id, turn)
         matches = []
         for user in users:
             if user.get("clientId"):
@@ -413,6 +420,11 @@ class Execution:
                     await self.state.task_update(task["id"], "unknown", turn_id=turn["id"])
             raise ValueError("Native turn merged separate inputs; cannot claim independent completion")
         if len(matches) == 1:
+            # An answer for another task must not be hidden by the generic history view.
+            if len(await self.business_users(thread_id, turn, matches[0])) != 1:
+                if matches[0]['state'] not in TERMINAL:
+                    await self.state.task_update(matches[0]['id'], 'unknown', turn_id=turn['id'])
+                raise ValueError('Native turn contains an answer for a different task')
             self.turn_tasks[(thread_id, turn["id"])] = matches[0]["id"]
             return matches[0]
         task = await self.state.tasks(native_turn=(thread_id, turn["id"]))
@@ -442,12 +454,16 @@ class Execution:
         async for turn in self.turns(thread_id):
             if turn.get("status") != "inProgress":
                 return
-            users = [i for i in turn["items"] if i.get("type") == "userMessage"]
+            users = await self.business_users(thread_id, turn)
             if len(users) == 1 and await self.map_turn(thread_id, turn) is None:
                 await self.adopt_external(target, thread_id, turn["id"], users[0])
             return  # Only the latest currently running turn, never historic adoption.
 
     async def complete(self, thread_id, turn):
+        for item in turn.get('items', []):
+            if item.get('type') == 'userMessage':
+                await self.state.async_user(thread_id, turn['id'], item)
+        await self.state.async_close(thread_turn=(thread_id, turn['id']), reason='turn_ended')
         task = await self.map_turn(thread_id, turn)
         status = turn.get("status")
         if status not in {"completed", "failed", "interrupted"}:
@@ -499,6 +515,8 @@ class Execution:
             if turn_id and self.observed(thread_id):
                 self.observed_turns.add((thread_id, turn_id))
         elif method == "item/started" and params.get("item", {}).get("type") == "userMessage":
+            if await self.state.async_user(thread_id, turn_id, params['item']):
+                return  # A durable exact supplement is never a new desktop task.
             task = await self.map_turn(thread_id, {"id": turn_id, "items": [params["item"]]})
             if task is None and (target := self.controlled_target(thread_id)):
                 task = await self.adopt_external(target, thread_id, turn_id, params["item"])
@@ -515,10 +533,15 @@ class Execution:
         elif method == "turn/completed":
             turn_id = params.get("turn", {}).get("id")
             if turn_id:
+                await self.state.async_close(thread_turn=(thread_id, turn_id), reason='turn_ended')
                 if self.results is not None:
                     self.results.enqueue(thread_id, turn_id)
                 else:
                     await self.complete_turn(thread_id, turn_id)
+        elif method == 'item/completed' and params.get('item', {}).get('type') == 'agentMessage':
+            item = params['item']
+            if item.get('delivery') == 'async' and item.get('questions') is not None:
+                await self.async_questions.register(thread_id, turn_id, item)
         elif method in {APPROVAL, QUESTION}:
             task_id = self.turn_tasks.get((thread_id, turn_id))
             target = self.observed(thread_id)
@@ -539,7 +562,8 @@ class Execution:
                 return  # No approval is synthesized for an unobserved desktop task.
             self.trim_interactions()
             size = len(json.dumps(params, ensure_ascii=False).encode())
-            if len(self.interaction_targets) >= 256 or sum(self.interaction_sizes.values()) + size > 16 * 1024 * 1024:
+            shared_count, shared_size = await self.state.async_budget()
+            if shared_count >= 256 or shared_size + size > 16 * 1024 * 1024:
                 key = hashlib.sha256(json.dumps([thread_id, event.get("id")]).encode()).hexdigest()
                 await self.state.queue_reply("interaction-limit-" + key,
                     "交互记录已达容量上限，请在原终端处理本次请求；没有发送自动答复。", priority=0)
@@ -655,12 +679,14 @@ class Execution:
             for broker in self.brokers.values():
                 broker.disconnect()
             await asyncio.shield(self.state.stale_interactions(self.generation))
+            await asyncio.shield(self.state.async_close(generation=self.generation, reason='disconnected'))
 
     async def maintain(self):
         while True:
             if self.image_errors:
                 raise self.image_errors.pop(0)
             await self.expire_interactions()
+            await self.async_questions.expire()
             try:
                 await self.drain_admission()
             except HostUnavailable:
@@ -670,6 +696,10 @@ class Execution:
 
     async def control(self, command):
         name = command.name
+        if name == 'answer' and command.argument.startswith('q-'):
+            return await self.async_questions.answer(command.argument, command.text)
+        if name in {'approve','deny'} and command.argument.startswith('q-'):
+            raise CommandError('这是异步补充问题，不是审批；请使用 /answer。')
         if name in {"approve", "deny", "answer"}:
             if not self.native.capabilities.shared_interactions:
                 raise CommandError("当前 Agent 不支持共享交互，未发送答复。")
@@ -709,6 +739,7 @@ class Execution:
             return (f"执行目标：{describe(routes.target)}\n观察订阅：{describe(routes.observer)}\n"
                     + ("\n".join(active[:20]) or "暂无未结束任务。")
                     + ("\n" + "\n".join(interactions[:20]) if interactions else "")
+                    + ('\n' + await self.async_questions.status())
                     + f"\n历史未知且已释放占用：{occupancy.get('released_unknown', 0)} 条；结果未改写。"
                     + f"\n回执：待发 {delivery.get('pending', 0)}，投递未知 {delivery.get('unknown', 0)}，拒绝 {delivery.get('rejected', 0)}。")
         if command.argument:
@@ -723,7 +754,8 @@ class Execution:
         if task is None:
             raise CommandError("任务不存在。")
         if name == "status":
-            return f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。\n" + await self.state.describe_admission(task)
+            return (f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。\n"
+                    + await self.state.describe_admission(task) + '\n' + await self.async_questions.status(task['id']))
         if task["state"] in TERMINAL:
             return f"任务已结束：{task['id']}｜{task['state']}。"
         if task["state"] == "received":

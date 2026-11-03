@@ -193,3 +193,11 @@ launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/local.wx-clawbot.
 7. 同步真实交付记录和 ROADMAP，保留备份和所有旧冻结回执；API accepted 与本人实际收件分别报告。
 
 失败恢复：迁移事务失败保留 schema 4 并核对原版可运行；迁移已到 5 时不能直接用只支持 4 的旧程序。优先修复候选加载，保留库和备份；已产生新写入时禁止覆盖旧备份，不自动降级或回放。需要数据恢复时单列具体方案及授权，不把“恢复服务”作为覆盖新数据的理由。
+
+## ASK01：异步答复与 schema 6
+
+`/status <原任务 ID>` 显示 q 请求、状态和本地期限。accepted 只表示原生接收补充；observed 只表示准确输入可见；unknown 不自动重试，conflict 表示已观察到跨端竞争。旧轮次结束后的答案拒绝，不会自动新建任务；必须审批的动作仍走同步请求。详见[使用及边界](async-questions.md)。
+
+旧库须先正常停止本项目唯一消费者，用 `migrate-state` 只读核对，再明确执行 `migrate-state --apply`；支持旧版本到 6，验证私有备份及旧业务／冻结回执。已有新版本写入后不直接覆盖旧备份，也不让 0.1.1 读 schema 6。恢复应保留现状并使用兼容 schema 6 的代码；不能通过清库解决。
+
+本机 ASK01 已按前述 stop／kickstart 路径一次恢复原 Label，未改 plist／凭据／全局配置，不重启 Codex 或 iTerm2。自动原生测试使用专用可核验会话，输出原始 ID／答案只存私有证据；额外微信验收须有具体条数与内容授权。实际加载与手机状态见[本机记录](validation/local-release.md)和 ROADMAP。

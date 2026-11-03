@@ -13,7 +13,7 @@ from .channels.private import private_directory, private_file, private_lease
 
 
 APPLICATION_ID = 0x57585254
-VERSION = 5
+VERSION = 6
 V1_COLUMNS = {
     "channel": {"id", "bot", "owner", "cursor"},
     "inbox": {"message_id", "text", "context", "created_ms", "seq", "received_at", "phase", "conflict"},
@@ -85,19 +85,38 @@ OCCUPANCY_INDEXES = (
     "CREATE INDEX task_unknown_history ON tasks(id) WHERE state='unknown'",
 )
 
+V6_COLUMNS = {"async_questions": {"public_id", "source", "thread_id", "turn_id", "item_id", "revision",
+    "questions", "question_sha256", "target", "task_id", "generation", "state", "reason", "expires_at",
+    "answer_client", "answer_text", "answer_sha256", "created_at", "updated_at", "closed_at"}}
+ASYNC_UPGRADE = (
+    """CREATE TABLE async_questions (public_id TEXT PRIMARY KEY,source TEXT NOT NULL,thread_id TEXT NOT NULL,
+        turn_id TEXT NOT NULL,item_id TEXT NOT NULL,revision INTEGER NOT NULL CHECK(revision>=1),
+        questions TEXT NOT NULL,question_sha256 TEXT NOT NULL,target TEXT NOT NULL,task_id TEXT,
+        generation TEXT NOT NULL,state TEXT NOT NULL CHECK(state IN
+        ('pending','sending','accepted','observed','stale','refused','unknown','conflict')),
+        reason TEXT NOT NULL,expires_at REAL NOT NULL,answer_client TEXT UNIQUE,answer_text TEXT,
+        answer_sha256 TEXT,created_at REAL NOT NULL,updated_at REAL NOT NULL,closed_at REAL,
+        UNIQUE(source,thread_id,turn_id,item_id),FOREIGN KEY(task_id) REFERENCES tasks(id))""",
+)
+ASYNC_INDEXES = (
+    "CREATE INDEX async_turn ON async_questions(thread_id,turn_id)",
+    "CREATE INDEX async_active ON async_questions(state,expires_at) WHERE closed_at IS NULL",
+    "CREATE INDEX async_task ON async_questions(task_id)",
+)
+
 
 class UpgradeRequired(ProtocolError):
     pass
 
 
-def validate(db, credentials, *, versions=(1, 2, 3, 4, VERSION)):
+def validate(db, credentials, *, versions=(1, 2, 3, 4, 5, VERSION)):
     if db.execute("PRAGMA application_id").fetchone()[0] != APPLICATION_ID:
         raise ProtocolError("Database is not this application's runtime ledger")
     version = db.execute("PRAGMA user_version").fetchone()[0]
     if version not in versions:
         raise ProtocolError("Unsupported runtime schema version")
     tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
-    columns_by_table = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {}) | (V5_COLUMNS if version >= 5 else {})
+    columns_by_table = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {}) | (V5_COLUMNS if version >= 5 else {}) | (V6_COLUMNS if version >= 6 else {})
     expected = set(columns_by_table)
     if tables != expected:
         raise ProtocolError("Runtime tables differ from the verified schema")
@@ -116,7 +135,7 @@ def validate(db, credentials, *, versions=(1, 2, 3, 4, VERSION)):
                 raise ProtocolError("Runtime message digest is missing")
     if version >= 4:
         indexes = {row[0]: row[1] for row in db.execute("SELECT name,sql FROM sqlite_master WHERE type='index'")}
-        for statement in PERFORMANCE_UPGRADE + (OCCUPANCY_INDEXES if version >= 5 else ()):
+        for statement in PERFORMANCE_UPGRADE + (OCCUPANCY_INDEXES if version >= 5 else ()) + (ASYNC_INDEXES if version >= 6 else ()):
             name = statement.split()[2]
             if indexes.get(name) != statement:
                 raise ProtocolError("Runtime performance index differs from the verified schema")
@@ -151,7 +170,7 @@ def _text_steps(db, credentials):
 def apply_steps(db, credentials):
     """Caller owns the transaction and has either a new file or a verified backup."""
     version = validate(db, credentials)
-    if version not in (1, 2, 3, 4) or not db.in_transaction:
+    if version not in (1, 2, 3, 4, 5) or not db.in_transaction:
         raise ProtocolError("A supported older schema and an explicit transaction required")
     if version == 1:
         _text_steps(db, credentials)
@@ -159,11 +178,14 @@ def apply_steps(db, credentials):
         db.execute(statement)
     for statement in PERFORMANCE_UPGRADE if version < 4 else ():
         db.execute(statement)
-    for statement in OCCUPANCY_UPGRADE + OCCUPANCY_INDEXES:
+    for statement in OCCUPANCY_UPGRADE + OCCUPANCY_INDEXES if version < 5 else ():
         db.execute(statement)
-    db.execute("""INSERT INTO task_occupancy(task_id,state,revision,reason,evidence,updated_at)
+    if version < 5:
+        db.execute("""INSERT INTO task_occupancy(task_id,state,revision,reason,evidence,updated_at)
         SELECT id,CASE WHEN state IN ('prepared','received') THEN 'waiting' ELSE 'holding' END,
         0,'legacy_unverified','{}',updated_at FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')""")
+    for statement in ASYNC_UPGRADE + ASYNC_INDEXES:
+        db.execute(statement)
     db.execute("ANALYZE tasks")
     db.execute("ANALYZE outbox")
     db.execute(f"PRAGMA user_version={VERSION}")
@@ -182,14 +204,14 @@ def inspect(root: Path, credentials):
     root = _root(root)
     with closing(sqlite3.connect((root / "runtime.sqlite3").as_uri() + "?mode=ro", uri=True)) as db:
         version = validate(db, credentials)
-        tables = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {}) | (V5_COLUMNS if version >= 5 else {})
+        tables = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {}) | (V5_COLUMNS if version >= 5 else {}) | (V6_COLUMNS if version >= 6 else {})
         counts = {name: db.execute(f"SELECT count(*) FROM {name}").fetchone()[0] for name in tables}
     return {"status": "current" if version == VERSION else "upgrade_available", "from_version": version,
             "to_version": VERSION, "row_counts": counts, "requires_stopped_consumer": True,
-            "add_tables": (["routes", "interactions", "delivery_attempts"] if version == 1 else []) + (["attachments"] if version < 3 else []) + (list(V5_COLUMNS) if version < 5 else []),
+            "add_tables": (["routes", "interactions", "delivery_attempts"] if version == 1 else []) + (["attachments"] if version < 3 else []) + (list(V5_COLUMNS) if version < 5 else []) + (list(V6_COLUMNS) if version < 6 else []),
             "add_columns": (["inbox.body_sha256", "outbox.body_sha256"] if version == 1 else [])
                            + (["inbox.content", "tasks.input_items"] if version < 3 else []),
-            "add_indexes": ([s.split()[2] for s in PERFORMANCE_UPGRADE] if version < 4 else []) + ([s.split()[2] for s in OCCUPANCY_INDEXES] if version < 5 else []),
+            "add_indexes": ([s.split()[2] for s in PERFORMANCE_UPGRADE] if version < 4 else []) + ([s.split()[2] for s in OCCUPANCY_INDEXES] if version < 5 else []) + ([s.split()[2] for s in ASYNC_INDEXES] if version < 6 else []),
             "data_deleted": False}
 
 
@@ -221,7 +243,7 @@ def upgrade(root: Path, credentials):
                 if target.execute("PRAGMA quick_check").fetchall() != [("ok",)]:
                     raise ProtocolError("Backup integrity check failed")
                 validate(target, credentials, versions=(source_version,))
-                tables = V1_COLUMNS | (V2_COLUMNS if source_version >= 2 else {}) | (V3_COLUMNS if source_version >= 3 else {})
+                tables = V1_COLUMNS | (V2_COLUMNS if source_version >= 2 else {}) | (V3_COLUMNS if source_version >= 3 else {}) | (V5_COLUMNS if source_version >= 5 else {})
                 for name in tables:
                     if target.execute(f"SELECT count(*) FROM {name}").fetchone() != db.execute(f"SELECT count(*) FROM {name}").fetchone():
                         raise ProtocolError("Backup row count differs from frozen source")

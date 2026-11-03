@@ -14,6 +14,7 @@ class PerformanceSchemaTests(RuntimeFixture):
         await self.state.queue_reply('historic','frozen source\n')
         await self.state.close()
         with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
+            db.execute('DROP TABLE async_questions')
             db.execute('DROP INDEX task_unknown_history')
             for name in ('admission_waits','occupancy_audit','task_occupancy'):
                 db.execute('DROP TABLE '+name)
@@ -35,7 +36,7 @@ class PerformanceSchemaTests(RuntimeFixture):
         self.assertEqual((result['from_version'],result['to_version']),(3,schema.VERSION))
         after = self.rows()
         self.assertEqual({k:after[k] for k in before},before)
-        self.assertEqual(set(after)-set(before),set(schema.V5_COLUMNS))
+        self.assertEqual(set(after)-set(before),set(schema.V5_COLUMNS)|set(schema.V6_COLUMNS))
         self.assertEqual(len(after['task_occupancy']),1)
         self.assertEqual(after['task_occupancy'][0][1],'waiting')
         self.assertEqual(self.rows(self.root/result['backup']),before)

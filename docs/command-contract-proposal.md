@@ -33,3 +33,7 @@
 施工契约：/status 与 /status <task-id> 分别显示任务结果和占用，等待项列出具体阻塞者、最后核验和下一步；离线显示最后记录及失效说明，不冒充刚刚核验。/stop 对 received 保留本地撤销，不能将 unknown 直接当未提交取消。
 
 计划本地 CLI admission-report 与 admission-release：默认只读，release 的 apply 必须准确任务、处置理由和报告 revision／确认摘要；消费者维护锁下执行原生只读核验和审计。无活动证据不足时拒绝，不提供全量解锁或 force；释放不改写 unknown、不调用原生执行、不发微信。实际实现及上线状态见 ROADMAP。
+
+## ASK01 已确认施工契约
+
+ASK01 的 `q-` 请求使用显式 `/answer`，与同步 `r-` 请求分流；状态含义、单题／多题格式及跨端冲突边界见[异步答复契约](async-questions.md)。

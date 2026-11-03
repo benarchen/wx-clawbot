@@ -4,7 +4,11 @@
 
 ## 当前阶段
 
-当前本机版本为 `0.1.1`／schema 5，REC01 修复已在原 wx-clawbot 托管入口加载。580 项完整回归、真实 SDK／原生、持续负载、迁移、构建及项目检查通过；bridge／host／native 就绪。旧两条 unknown 结果保留、准确原生证据已释放其占用，原等待任务按原目标唯一执行并 completed，最终回执 API accepted。[本机交付记录](docs/validation/local-release.md)。
+当前本机版本为 `0.1.2`／schema 6，ASK01 修复在原托管入口健康运行。625 项回归、120 秒负载、真实原生、构建／安装和一次 Android 手机双向验收通过；原路由恢复、测试终端归零、旧冻结／unknown／配置保持。原生 Goal 已实际 complete，本轮必要交接完成；[本机记录](docs/validation/local-release.md)。
+
+本人已选定 MIT，自有代码和文档的许可证、包元数据、第三方清单及隔离制品验证已落实到本地工作区；此次许可变更已纳入本人新授权的 0.1.2 提交／公开推送范围，实际结果见[发布记录](docs/validation/ask01-publication.md)。第三方依赖保持原授权，完整组合产品的闭源发行边界不因自有 MIT 声明改变。[许可落实记录](docs/validation/mit-license.md)。
+
+ASK01 已验收交付，原生 Goal 于 2026-11-03 21:31 实际 complete。G00 至 G09、T01 至 T32、A01 至 A12 按本人接受的异步补充模式通过；跨端可能同时被接受，桥接单次提交和冲突提示，不承诺暂停或全局首答独占。[使用契约](docs/async-questions.md)、[交付证据](docs/validation/async-questions.md)。
 
 W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验收。W08 必要范围已验收交付，本机上线及 dev／main 正常公开同步完成，原生 Goal 已完成；生产工作区保持 `dev`，稳定 `main` 由独立工作树合并，避免切分支影响运行。后置的自然失效触发、Mac 完整排版及同消息图文不改写为通过；W08 当时未创建 tag 或 GitHub Release。
 
@@ -24,18 +28,22 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 | IMG01 | 单图范围已验收交付：[施工清单](goals/20261028-1135-image-input.md)，单图真机、388 项离线及交付检查通过，原生 Goal complete，A03 本人后置；[实际证据](docs/validation/image-input.md)、[使用指南](docs/image-input.md) |
 | HOST01 | 已验收交付，原生 Goal complete：[施工清单](goals/20261029-1038-host-lifecycle-recovery.md)，A01 至 A12、456 项回归通过，原日常配置已恢复；[证据](docs/validation/host-lifecycle-recovery.md) |
 | MD01 | Android 必要范围已验收交付，原生 Goal complete：[施工清单](goals/20261029-1217-wechat-markdown-rendering.md)、[证据](docs/validation/wechat-markdown.md)、[排版规则](docs/wechat-markdown.md)。G00 至 G06／T01 至 T23／A01 至 A12、512 项回归及最终真人闭环通过，日常状态恢复；Mac 完整要求本人后置 |
-| PERF01 | 隔离开发验收完成：[施工清单](goals/20261031-2132-performance-optimization.md)、[交付与数据](docs/validation/performance-optimization.md)。G00 至 G07／T01 至 T19／A01 至 A10、537 项回归及自动 SDK／原生通过；开发原生 Goal 已实际 complete，已由 W08 整合为 0.1.0／schema 4，当前本机沿用其能力并升级为 0.1.1／schema 5 |
+| PERF01 | 隔离开发验收完成：[施工清单](goals/20261031-2132-performance-optimization.md)、[交付与数据](docs/validation/performance-optimization.md)。G00 至 G07／T01 至 T19／A01 至 A10、537 项回归及自动 SDK／原生通过；开发原生 Goal 已实际 complete，已由 W08 整合为 0.1.0／schema 4，后续本机沿用其能力并继续升级，准确版本见本页当前阶段 |
 | REC01 | 已验收交付，原生 Goal complete：[任务准入恢复与项目完整收尾](goals/20261103-0020-admission-recovery-closeout.md)。G00 至 G09／T01 至 T27／A01 至 A12、580 项回归、本机 0.1.1／schema 5、原任务唯一 completed 通过；本轮完整 Git 提交／main 合并／v0.1.1 标签公开推送完成 |
+| ASK01 | 0.1.2／schema 6 已本机加载，625 项／真实原生及负载通过；手机双向和完整交接通过，原生 Goal complete：[清单](goals/20261103-1038-async-question-bridge.md)、[证据](docs/validation/async-questions.md) |
 
 ## 交付状态与运行说明
 
-- W00 至 W08、IMG01、HOST01、MD01 和 PERF01 原 13 个工作包按当时确认范围交付；新增 REC01 已验收交付，已消除本轮准入阻塞并完成项目收尾。下列三个明确后置项仍未验收，不冒充完整支持。
-- 当前本机运行 `0.1.1`／schema 5，生产工作区保持 `dev`；功能提交 `387e7ac` 已正常合并 main，两个分支和 annotated v0.1.1 公开推送、独立远端核验通过。随后仅归档实际发布结果，不移动标签或改变运行代码；未创建 GitHub Release，无需再次重启已健康加载的服务。
+- W00 至 W08、IMG01、HOST01、MD01 和 PERF01 原 13 个工作包按当时确认范围交付；REC01 已验收交付并消除对应准入阻塞。新增 ASK01 修复已加载且必要真人交付通过，原有后置能力继续保留；不将旧交付扩写为所有 CLI 交互均已支持。
+- 本轮之前的 0.1.1／schema 5 已发布记录保留：生产工作区为 `dev`；功能提交 `387e7ac` 已正常合并 main，两个分支和 annotated v0.1.1 公开推送、独立远端核验通过。随后仅归档实际发布结果，不移动标签或改变运行代码；未创建 GitHub Release，无需再次重启已健康加载的服务。
 - 初次公开推送曾被自动审批要求具体确认；本人随后明确授权公共目的地与完整内容，正常推送及远端核验成功。该门禁已解决，不再列为当前阻塞。
 - 历史 unknown 2 结果保留不重放，现已按准确原生终态解除占用，不再阻塞项目；原等待任务唯一 completed。原生 hook 告警仍按历史证据保留，本轮不修改全局 hook。[REC01 实际记录](docs/validation/admission-recovery.md)。
 
 ## 待办事项
 
+- ASK01 代码与 MIT 许可文件已获本人本轮明确提交／推送／打标签授权，正在按 dev／main 与 v0.1.2 流程发布，实际结果见[发布记录](docs/validation/ask01-publication.md)。
+
+- 第三方组合发行边界：iterm2 SDK 保持 GPLv2+。若后续需要承诺完整产品可闭源再发行，须先核清适用条件、取得额外授权或评估替代实现；当前未作该兼容性保证，不影响本项目自有作品采用 MIT。[第三方声明](THIRD_PARTY_NOTICES.md)。
 
 - W08 后续观察：自然上下文失效和实际拒绝后恢复尚未触发，已获本人明确后置，不阻塞当前必要验收；183.069 小时旧值仍被 API 接受。不再预约／续发或推定固定 TTL；后续真实观察须有新授权，跨天调度先验证持久化与重启恢复。[证据](docs/validation/w08.md#2026-11-01-上下文收尾)。
 
@@ -46,6 +54,12 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - IMG01 后续：同消息图文。本人于 2026-10-29 明确后置，不阻塞本次单图交付；当前客户端把一起发送的图片和文字拆为两条，只有解析覆盖，尚无单条图文真机证据。后续先确认可实际发送的客户端／协议形态，再验证一条原始消息对应一次带图文提交；不得用合成 inbox 或跨消息自动拼接冒充通过。[原 A03 要求](goals/20261028-1135-image-input.md)。
 
 ## 最近完成
+
+- 2026-11-03 21:31 ASK01 完整交付：结构化异步即时通知、准确原轮次答复、严格辅助输入及竞争／重启／迁移保护完成。625 项回归、120 秒负载、真实原生和 Android 手机 8 条回执闭环通过；0.1.2／schema 6 已加载，旧 530 冻结／2 unknown／配置保持、原路由恢复、测试终端归零，G00 至 G09／T01 至 T32／A01 至 A12 通过，原生 Goal 实际 complete。未提交／推送。[交付](docs/validation/async-questions.md)。
+
+- 2026-11-03 10:49 ASK01 施工清单制定：明确先验证原生双向路径，再实现异步问题通知、准确答复、辅助输入关联、状态／恢复、迁移与最终验收，列出 G00 至 G09、T01 至 T32、A01 至 A12 和交付文档。同步当前异步能力缺口；只完成文档，未开工、未创建原生 Goal，不改运行程序或服务，原 MIT 工作区成果保留。[清单](goals/20261103-1038-async-question-bridge.md)。
+
+- 2026-11-03 09:49 MIT 许可本地落实：新增完整 LICENSE 与 10 个锁定依赖的第三方清单，补齐 SPDX／随包元数据及受影响文档；官方 SDK 原包和固定源码核对保留 GPL 边界。源码包／wheel／隔离安装与 580 项回归通过，54 个源码模块与依赖锁保持。未提交、合并、推送、移动标签或重启服务。[记录](docs/validation/mit-license.md)。
 
 - 2026-11-03 08:07 REC01 版本归档及公开发布：本人明确授权后完整 47 文件提交 387e7ac、独立工作树正常合并 main，annotated v0.1.1 指向功能交付；dev／main／标签原子推送成功且独立远端引用一致。随后仅同步实际发布结果文档，不移动标签、不强推、不创建 Release；当前 0.1.1／schema 5 源码及健康保持，无需重启。[发布记录](docs/validation/rec01-publication.md)。
 
@@ -81,13 +95,19 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 
 - 2026-10-27 20:07 W08 检查点：真实手机取消／中断原生证据核对完成；修复取消和主动中断的重复终态回执、排除最终正文中的 commentary，保留终态／回执原子落库与控制优先级。320 项离线测试通过，真机展示复验尚未完成。[范围](docs/validation/w08.md)。
 
-- 2026-10-27 08:01 W08 检查点：P08 真人七类交互与真实手机 FIFO／状态通过；显式刷新只读对账修复完成，实际旧 unknown 找回 interrupted、client 唯一。补齐观察实际年龄与冻结保护，316 项离线回归通过。人工联调留待今晚，20:00 一次提醒已启动等待，其他测试发送停止。[证据](docs/validation/w08.md)。
-
-- 2026-10-26 08:20 W08 检查点：真实微信先审批通过，原 client 与命令各一次，准确文件效果、两端解除等待与本人手机结果确认完整；专用原设置及全局摘要核对通过。正式私有两项目配置与 doctor 完成；其余真人验收待晚间。[范围](docs/validation/w08.md)。
-
-- 2026-10-26 07:55 W08 检查点：交付真人交互验收器及七例私有准备；实际未观察订阅的启动预检被拒且意图原样保留。仅准备，未发起待答请求，P08 仍未验收。[证据](docs/validation/w08.md)。
-
 ## 最近验证
+
+- 2026-11-03 21:26 ASK01 最终手机／收尾核对：本人确认实收并回答，准确原 turn／两 client 各一次、observed／completed、精确冻结与 8 条 accepted 通过；旧 530 冻结／2 unknown／配置保持，原路由恢复、测试终端归零，0.1.2／schema 6／原 Label ready。额外清理重载的原因和备份分列，源码未变、无额外测试消息；待 Goal 返回登记。[证据](docs/validation/async-questions.md)。
+
+- 2026-11-03 15:01 ASK01 候选及本机核验：625 项回归（37.652 秒）零失败／错误／跳过；120 秒负载、100 次通知 p95 2.187 毫秒、3952 次控制 p95 4.142 毫秒及真实原生唯一答案通过。原 Label 已加载 0.1.2／schema 6，迁移旧 12 表精确，530 旧冻结／2 unknown／配置保持；零真实测试外发，手机关卡待授权。[证据](docs/validation/async-questions.md)。
+
+- 2026-11-03 12:47 ASK01 辅助输入归属审查：核对在线映射、桌面任务收养、普通／外部／换代恢复及独立占用释放路径；隔离候选四项既有合并／重复 client 保护测试通过，属于 580 项基线的定向复核，不增加总数。明确后续准确辅助分类约束，未修改业务代码或越过 G01；产品边界仍待确认。[记录](docs/validation/async-questions.md)。
+
+- 2026-11-03 12:39 ASK01 原生准入调查：六个真实合成问题任务证明单题／自由文字／多题答案进入原 turn，错误及已结束 turn 拒绝；但两端相反答案均被接受且有 ACK 后不可见窗口，G01 保持未通过。580 项旧基线（36.448 秒）通过、异步最小反例单列预期失败；两自有终端已清理，原源码／配置和 12 张生产业务表摘要保持，schema 5／原服务健康。[证据](docs/validation/async-questions.md)。
+
+- 2026-11-03 10:49 ASK01 计划核对：10 个 G、32 个 T、12 个 A 编号完整，38 个施工执行项均未勾选；清单与相关文档本地链接、差异格式及隐私内容检查通过。8 份其他既有改动文件摘要保持，未修改业务代码、执行运行测试、迁移、重启、外发微信或 Git 写操作；先前原生字段证据不冒充新能力验收。[清单](goals/20261103-1038-async-question-bridge.md)。
+
+- 2026-11-03 09:49 MIT 交付核对：580 项离线回归（35.976 秒）、编译／依赖／差异检查通过；隔离源码包和 wheel 均含两份原文声明，MIT 元数据及六项直接依赖准确，独立目标安装可读取许可证。10 个锁定运行发行包与 12 份许可文件逐项核对，制品无内置依赖或私有运行数据；SDK 专用授权例外未取得，不将自有 MIT 扩大为组合产品闭源许可。[机器摘要](docs/validation/mit-license.json)。
 
 - 2026-11-03 08:07 公开提交与标签核验：218 文件、974 可达对象（42 commit／629 blob／1 tag）与 2422 个私密值／密钥格式核对无匹配；140 份源码／测试／锁与 580 项已测候选相同，编译／依赖／差异／JSON／本地链接通过。GitHub public／默认 main／推送权限及远端三引用独立核对通过，运行摘要与托管进程一致，未执行额外重启。[机器记录](docs/validation/rec01-publication.json)。
 
@@ -116,15 +136,3 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - 2026-10-31 16:46 MD01 单图回归通过：真实图片 client 唯一、completed、单张原生图片摘要与附件一致、零工具、最终冻结回执精确且 accepted。Android 识别码／1 红三角／2 绿圆／3 蓝方／字段表和段落完整。自有 idle 线程已临时 Plan 准备一次真人追问，原设置保存，其他设置／全局保持，完成后恢复；Goal 未完成。[证据](docs/validation/wechat-markdown.md)。
 
 - 2026-10-31 16:40 MD01 最终文字真人显示通过：Android 五段首尾、列表续段与所属关系、行内值、两代码块及后续字段完整，A08 原生／冻结／手机证据对应。旧 Q03 五条与当前渲染逐字相同，复用旧消息不重发；Android 长消息细节仍待核对。新图片按本人要求生成并校验保存桌面，未替本人发送，单图／追问和最终恢复未完成。[证据](docs/validation/wechat-markdown.md)。
-
-- 2026-10-31 16:32 MD01 最终真实文字：guixu 原会话 client 唯一、completed、零工具，原始结果与模板逐字相同、5 段冻结正文与当前渲染精确且全部 accepted。续段／行内值／56 字节代码及首尾标记完整；身份与路由再次核验、idle。Android 实际截图待本人，单图／追问／日常恢复待完成。[证据](docs/validation/wechat-markdown.md)。
-
-- 2026-10-31 16:30 MD01 列表修正版加载：S02 显式所属关系／续段／独立代码完整，标记保护复制 37 字节精确；512 项回归（37.460 秒）及 6 类容量通过。正常 stop exit 0、等待消费者释放与 launchd not running 后启动，新摘要准确、host／native ready，旧全量任务／回执／当前配置保持。原 guixu 终端与路由完整复验、idle；最终真实文字／单图／追问及恢复待本人。[证据](docs/validation/wechat-markdown.md)。
-
-- 2026-10-31 16:08 MD01 S02：本人具体两条授权后各单次 API accepted，冻结正文准确、零重试／UI／原生任务，任务／出站计数保持。实际列表所属关系、续段及独立代码显示／精确复制待本人；生产仍 v4，未修改通用列表渲染。[证据](docs/validation/wechat-markdown.md)。
-
-- 2026-10-31 16:05 MD01 S01 真人结果：五条实收，Android 行内命令／路径／变量及后续字段恢复，S01-4 复制 56 字节精确。列表续段仍缺失；S01-2 为 30／37 字节，仅首行少 7 空格，本人确认经过微信聊天文字中转，不归因复制按钮。保留原文件，生产仍 v4；S02 两条显式列表所属关系对照只准备、未发送，Goal 未完成。[证据](docs/validation/wechat-markdown.md)。
-
-- 2026-10-31 15:53 MD01 S01：本人新 status 及具体五条授权后，冻结包匹配、5 条各单次 API accepted，零消息重试／UI／原生任务；生产维持 v4、候选不加载，任务和 status 后账本计数保持。Android 收件、显示及两代码块精确复制待本人，不计真机通过。[证据](docs/validation/wechat-markdown.md)。
-
-- 2026-10-31 02:06 MD01 夜间候选：真实 guixu 文字任务 client 唯一、零工具、原始结果／冻结正文逐字完整，但 Android 实际界面缺失／移位，保留失败。v5 复杂代码消息隔离、实际缩进保真和标准自动链接通过 509 项回归（37.015 秒）、14 类 fixture 及容量；生产仍 v4、host／native ready，候选未加载，新 5 条小样未授权／发送。原 412 条冻结及历史任务／配置保持，临时线程设置恢复；白天补实际显示／复制、单图／追问和最终恢复，不完成 Goal。[证据](docs/validation/wechat-markdown.md)。

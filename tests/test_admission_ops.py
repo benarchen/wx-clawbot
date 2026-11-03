@@ -123,6 +123,7 @@ class OccupancyMigrationTests(RuntimeFixture):
         await self.state.queue_reply('frozen','Original frozen result')
         await self.state.close()
         with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
+            db.execute('DROP TABLE async_questions')
             db.execute('DROP INDEX task_unknown_history')
             for table in ('admission_waits','occupancy_audit','task_occupancy'):
                 db.execute('DROP TABLE '+table)
@@ -139,12 +140,12 @@ class OccupancyMigrationTests(RuntimeFixture):
         task=await self.v4()
         before=self.rows()
         plan=schema.inspect(self.root,self.credentials)
-        self.assertEqual(plan['add_tables'],list(schema.V5_COLUMNS))
+        self.assertEqual(plan['add_tables'],list(schema.V5_COLUMNS)+list(schema.V6_COLUMNS))
         self.assertEqual(self.rows(),before)
         report=schema.upgrade(self.root,self.credentials)
         after=self.rows()
         self.assertEqual({k:after[k] for k in before},before)
-        self.assertEqual((report['from_version'],report['to_version']),(4,5))
+        self.assertEqual((report['from_version'],report['to_version']),(4,schema.VERSION))
         self.assertEqual(after['task_occupancy'][0][0:3],(task['id'],'holding',0))
         self.assertEqual(schema.upgrade(self.root,self.credentials)['status'],'current')
 
