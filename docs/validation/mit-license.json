@@ -257,5 +257,13 @@
   "dependency_versions_changed": false,
   "service_restarted": false,
   "git_committed": false,
-  "published": false
+  "published": false,
+  "publication": {
+    "version": "0.1.2",
+    "published": true,
+    "release_commit": "ab8f8b954d9c4df168ae3a60b175b340595dd932",
+    "tag": "v0.1.2",
+    "record": "ask01-publication.json",
+    "prior_artifacts_unchanged": true
+  }
 }

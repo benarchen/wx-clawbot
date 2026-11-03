@@ -479,11 +479,14 @@
   },
   "git_state": {
     "branch": "dev",
-    "head": "38debfb0aa8fb1610c49ab58766d7f3e15884b7b",
-    "committed": false,
-    "pushed": false,
-    "tags_created": false,
-    "mit_work_preserved": true
+    "head_at_goal_completion": "38debfb0aa8fb1610c49ab58766d7f3e15884b7b",
+    "release_commit": "ab8f8b954d9c4df168ae3a60b175b340595dd932",
+    "committed": true,
+    "pushed": true,
+    "tag": "v0.1.2",
+    "tag_object": "d74f2ef7e9470e79551ec720c30cfaacff7d077e",
+    "mit_work_preserved": true,
+    "publication_record": "ask01-publication.json"
   },
   "test_matrix": {
     "T01": {

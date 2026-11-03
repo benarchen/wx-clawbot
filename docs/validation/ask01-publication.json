@@ -1,7 +1,7 @@
 {
   "version": "0.1.2",
   "runtime_schema": 6,
-  "phase": "prepublication_audit_passed",
+  "phase": "published_remote_verified",
   "repository": "benarchen/wx-clawbot",
   "visibility": "public",
   "branches": [
@@ -17,8 +17,8 @@
   "regression_tests": 625,
   "validated_source_test_lock_files": 151,
   "mit_included": true,
-  "submitted": false,
-  "pushed": false,
+  "submitted": true,
+  "pushed": true,
   "runtime_restarted": false,
   "wechat_test_sends": 0,
   "public_audit": {
@@ -29,5 +29,15 @@
     "private_value_matches": 0,
     "secret_patterns_matches": 0,
     "json_and_local_links_passed": true
-  }
+  },
+  "release_commit": "ab8f8b954d9c4df168ae3a60b175b340595dd932",
+  "changed_files": 41,
+  "release_tree_files": 235,
+  "tag_object": "d74f2ef7e9470e79551ec720c30cfaacff7d077e",
+  "tag_commit": "ab8f8b954d9c4df168ae3a60b175b340595dd932",
+  "remote_verified": true,
+  "remote_main_at_release": "ab8f8b954d9c4df168ae3a60b175b340595dd932",
+  "remote_dev_at_release": "ab8f8b954d9c4df168ae3a60b175b340595dd932",
+  "published_at_beijing": "2026-11-03 21:52",
+  "postpublication_docs": "随后只记录实际结果并正常同步双分支；标签保持功能提交"
 }

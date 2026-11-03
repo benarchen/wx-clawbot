@@ -4,7 +4,7 @@
 
 本项目自有代码和文档采用 [MIT License](LICENSE)。第三方依赖保持原授权，其中 iterm2 Python SDK 声明 GPLv2+；本项目 MIT 授权不代表完整组合产品可按 MIT 闭源再发行。依赖清单和发行边界见 [第三方声明](THIRD_PARTY_NOTICES.md)。
 
-当前版本为 `0.1.2`，已在本机使用原托管入口运行。已有账本须通过显式备份升级到 schema 6，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)及[本机交付记录](docs/validation/local-release.md)。
+当前版本为 [`0.1.2`](https://github.com/benarchen/wx-clawbot/tree/v0.1.2)，已在本机使用原托管入口运行。已有账本须通过显式备份升级到 schema 6，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)及[本机交付记录](docs/validation/local-release.md)。
 
 当前提供前台微信桥接：本人绑定、项目选择、原终端会话发现与切换、单次派发与持续聚焦、独立观察订阅，以及在 iTerm2 可见创建新 Codex 会话。任务通过原生 daemon 队列提交，回复区分入队、执行和最终结果。[实际行为与验证范围](docs/validation/w05.md) 说明各入口的范围。
 
