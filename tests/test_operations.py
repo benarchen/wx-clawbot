@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import unittest
+from contextlib import closing
 from dataclasses import asdict
 from pathlib import Path
 from unittest.mock import patch
@@ -111,7 +112,7 @@ class OperatorTests(RuntimeFixture):
         report = retry_delivery(self.root, "operator-event", apply=True, confirm_unknown=True)
         self.assertEqual(report["next_attempt"], 1)
         import sqlite3
-        with sqlite3.connect(self.root / "runtime.sqlite3") as db:
+        with closing(sqlite3.connect(self.root / "runtime.sqlite3")) as db:
             self.assertEqual(db.execute("SELECT state FROM tasks WHERE id=?", (task["id"],)).fetchone()[0], before[0]["state"])
             self.assertEqual(db.execute("SELECT count(*) FROM tasks").fetchone()[0], 1)
             self.assertEqual(db.execute("SELECT phase FROM inbox").fetchone()[0], "runtime")

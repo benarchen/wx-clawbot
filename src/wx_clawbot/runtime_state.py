@@ -14,9 +14,10 @@ from .channels.state import ChannelState
 from .channels.messages import parse_message
 from . import schema
 from .output import DisplaySegment, render_segments, render_in_worker
+from .occupancy import OccupancyStore, ACTIVE_FROM, ACTIVE_WHERE, TASK_COLUMNS
 
 
-class RuntimeState(ChannelState):
+class RuntimeState(OccupancyStore, ChannelState):
     APPLICATION_ID = schema.APPLICATION_ID
     parse_message = staticmethod(parse_message)
 
@@ -73,7 +74,7 @@ class RuntimeState(ChannelState):
         # Image preparation precedes every native attempt. Resume only its frozen
         # task, never replay an old inbox command; dispatching remains unknown.
         self.db.execute("UPDATE tasks SET state='received' WHERE state='prepared' AND input_items<>'[]'")
-        self.db.execute("UPDATE tasks SET state='unknown' WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')")
+        self._mark_native_unknown()
         self.db.execute("UPDATE outbox SET state='unknown' WHERE state='sending'")
         self.db.execute("UPDATE delivery_attempts SET state='unknown' WHERE state='sending'")
         self.db.execute("UPDATE inbox SET phase='stale' WHERE phase='runtime'")
@@ -272,10 +273,19 @@ class RuntimeState(ChannelState):
 
     async def native_disconnected(self):
         """Preserve intent and receipts; never replay an uncertain native call."""
-        def mark():
-            self.db.execute("UPDATE tasks SET state='unknown',updated_at=? WHERE state IN "
-                            "('prepared','dispatching','queued','running','waiting_interaction','stopping')", (time.time(),))
-        await self._call(mark)
+        await self._call(self._mark_native_unknown)
+
+    def _mark_native_unknown(self):
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            rows = list(self.db.execute("SELECT id FROM tasks WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')"))
+            for (identity,) in rows:
+                self.db.execute("UPDATE tasks SET state='unknown',updated_at=? WHERE id=?", (time.time(), identity))
+                self._occupancy_transition(identity, "holding", "native_unverified")
+            self.db.execute("COMMIT")
+        except BaseException:
+            self.db.execute("ROLLBACK")
+            raise
 
     async def task_intent(self, message_id, target: dict, text: str):
         if (not isinstance(message_id, str) or not message_id or not isinstance(target, dict)
@@ -294,7 +304,7 @@ class RuntimeState(ChannelState):
             row = self.db.execute("SELECT conflict,phase,content FROM inbox WHERE message_id=?", (message_id,)).fetchone()
             if row is None or row[:2] != (0, "runtime"):
                 raise ProtocolError("Task must originate from a fresh validated runtime message")
-            if self.db.execute("SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
+            if self._active_count() >= 128:
                 raise ProtocolError("Unresolved task admission bound reached")
             now = time.time()
             self.db.execute("BEGIN IMMEDIATE")
@@ -302,6 +312,7 @@ class RuntimeState(ChannelState):
                 self.db.execute("INSERT INTO tasks(id,source_message_id,client_id,target,thread_id,input,state,created_at,updated_at,input_items) VALUES(?,?,?,?,?,?,'prepared',?,?,?)",
                                 (task_id, message_id, client_id, encoded, target["thread_id"], text, now, now, row[2]))
                 self.db.execute("UPDATE attachments SET task_id=? WHERE message_id=? AND task_id IS NULL", (task_id, message_id))
+                self._occupancy_transition(task_id, "waiting", "not_submitted")
                 self.db.execute("COMMIT")
             except BaseException:
                 self.db.execute("ROLLBACK")
@@ -319,12 +330,22 @@ class RuntimeState(ChannelState):
             if previous and ((state == "queued" and previous[0] in {"running", "waiting_interaction", "stopping"})
                              or (state in {"running", "waiting_interaction"} and previous[0] == "stopping")):
                 return False  # A delayed queue ACK must not regress an observed native turn.
-            result = self.db.execute("""UPDATE tasks SET state=?,queue_id=COALESCE(?,queue_id),
-                turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=? AND state NOT IN ('completed','failed','interrupted','cancelled')""",
-                                     (state, queue_id, turn_id, time.time(), task_id))
-            if result.rowcount != 1:
-                raise ProtocolError("Task is missing or already terminal")
-            return True
+            self.db.execute("BEGIN IMMEDIATE")
+            try:
+                result = self.db.execute("""UPDATE tasks SET state=?,queue_id=COALESCE(?,queue_id),
+                    turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=? AND state NOT IN ('completed','failed','interrupted','cancelled')""",
+                                         (state, queue_id, turn_id, time.time(), task_id))
+                if result.rowcount != 1:
+                    raise ProtocolError("Task is missing or already terminal")
+                prior = self.db.execute("SELECT state FROM task_occupancy WHERE task_id=?", (task_id,)).fetchone()
+                if state != "unknown" or prior != ("released",):
+                    occupancy = "waiting" if state == "received" else "holding"
+                    self._occupancy_transition(task_id, occupancy, "late_native_activity" if prior == ("released",) else "native_" + state)
+                self.db.execute("COMMIT")
+                return True
+            except BaseException:
+                self.db.execute("ROLLBACK")
+                raise
         return await self._call(update)
 
     async def external_task(self, target, turn_id, *, native_client_id=None):
@@ -339,14 +360,21 @@ class RuntimeState(ChannelState):
                 if json.loads(row[0]) != destination:
                     raise ProtocolError("External native turn identity changed")
                 return "e-" + identity
-            if self.db.execute("SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
+            if self._active_count() >= 128:
                 raise ProtocolError("Unresolved task bound prevents adopting another external turn")
             now = time.time()
             # client_id is explicitly local for this external row, not a claimed
             # native submission receipt. No fabricated inbox or task text is stored.
-            self.db.execute("""INSERT INTO tasks(id,client_id,target,thread_id,input,state,turn_id,created_at,updated_at)
-                VALUES(?,?,?,?,'','running',?,?,?)""", ("e-" + identity, "wx-external-" + identity,
-                    encoded, target["thread_id"], turn_id, now, now))
+            self.db.execute("BEGIN IMMEDIATE")
+            try:
+                self.db.execute("""INSERT INTO tasks(id,client_id,target,thread_id,input,state,turn_id,created_at,updated_at)
+                    VALUES(?,?,?,?,'','running',?,?,?)""", ("e-" + identity, "wx-external-" + identity,
+                        encoded, target["thread_id"], turn_id, now, now))
+                self._occupancy_transition("e-" + identity, "holding", "external_activity")
+                self.db.execute("COMMIT")
+            except BaseException:
+                self.db.execute("ROLLBACK")
+                raise
             return "e-" + identity
         task_id = await self._call(insert)
         return await self.tasks(task_id=task_id)
@@ -374,7 +402,7 @@ class RuntimeState(ChannelState):
                     raise ProtocolError("Native turn has multiple local task associations")
                 return self._task(rows[0]) if rows else None
             if active_only:
-                rows = list(self.db.execute(query + " INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"))
+                rows = list(self.db.execute(f"SELECT {','.join('t.'+c for c in TASK_COLUMNS.split(','))} FROM {ACTIVE_FROM} WHERE {ACTIVE_WHERE} ORDER BY t.rowid LIMIT 129"))
                 if len(rows) > 128:
                     raise ProtocolError("Unresolved task bound exceeded; do not use a partial admission view")
                 return [self._task(row) for row in rows]
@@ -449,6 +477,7 @@ class RuntimeState(ChannelState):
                     AND state IN ('pending','preparing')""", (time.time(), task_id))
                 self.db.execute("UPDATE tasks SET state=?,turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=?",
                                 (state, turn_id, time.time(), task_id))
+                self._occupancy_transition(task_id, "released", "task_" + state)
                 self.db.execute("UPDATE outbox SET state='superseded' WHERE task_id=? AND state='pending' AND kind IN ('accepted','progress')", (task_id,))
                 for index, chunk in enumerate(chunks, 1):
                     self._queue_reply(f"{task_id}-final-{index}", chunk.text, reply_priority, task_id, "final")

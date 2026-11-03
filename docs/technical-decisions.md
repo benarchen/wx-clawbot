@@ -95,11 +95,11 @@ SDK 提供终端对象、创建 tab 和发送文本接口。发送文本是模�
 
 源码：`<project-root>/`。
 
-私有状态设计目录：`~/Library/Application Support/wx-clawbot/`，内含 config.json、state.sqlite3、secrets、logs、runtime。本轮仅确定路径，没有创建该目录。目录权限 0700，敏感文件 0600；源码只保存脱敏模板。
+2026-10-24 设计输入中的私有状态目录为 `~/Library/Application Support/wx-clawbot/`，当时仅确定路径；这一历史描述不代表当前未部署。当前已使用的 config.json、credentials.json、runtime.sqlite3、日志及托管布局见[运维说明](operations.md)，实际部署见[交付记录](validation/local-release.md)。目录权限 0700，敏感文件 0600；源码只保存脱敏模板。
 
 Socket 优先沿用被核验的原生运行时地址，不猜测固定路径。项目自有 socket 若需要，必须检查 Unix 路径长度并使用私有短路径。launchd 的程序路径使用绝对路径，不能依赖交互式 Shell 的 PATH；停止桥接服务不默认关闭用户终端。
 
-## 8. 未决项与开工条件
+## 8. 设计输入时的未决项与开工条件（历史）
 
 | 项目 | 当前状态 | 关闭方式 |
 | --- | --- | --- |
@@ -117,3 +117,9 @@ Socket 优先沿用被核验的原生运行时地址，不猜测固定路径。�
 实施核对：`app-server proxy` 仅透传原始字节，不能直接写 JSONL。Unix 控制 socket 使用 WebSocket；桥接直连该 socket，不新建运行时。见 [官方固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/stdio-to-uds/src/lib.rs)。
 
 可恢复错误状态：额度失败可使原 thread 显示 `systemError`，同时仍在原终端和运行时内存中。不能只按 idle／active 白名单将其当作未加载。对 systemError 额外要求原生 `thread/loaded/list` 包含准确 thread ID，且 `canAcceptDirectInput` 为 true；继续核验原进程、页脚 ID、运行时、sessionId 与 cwd。缺少任一证据即拒绝，不恢复存档副本。依据为固定 CLI schema、实际失败现场及[官方状态／已加载列表说明](https://learn.chatgpt.com/docs/app-server)。原失败任务保持 failed，只有用户新的请求进入原生队列。
+
+## REC01：按证据释放占用
+
+执行结果与仓库占用采用独立持久化状态；输入合并使独立结果不可确认时，原生准确终态和空队列仍可能证明占用结束。该证明只释放占用，不授权路由、不恢复旧线程，也不声称每条历史输入各自完成。以 revision／连接代次和事务拒绝陈旧证据；不能仅凭空队列、idle、时间或窗口退出释放。
+
+活动查询走独立占用部分索引，已释放未知记录分页保留；不把它们计入活动上限，也不清理未知证据。原生历史查询在找到全部准确目标轮次后停止，不为占用判定扫描无关旧历史。操作与数据边界见[REC01 记录](validation/admission-recovery.md)。

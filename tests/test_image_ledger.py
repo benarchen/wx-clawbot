@@ -1,5 +1,6 @@
 import hashlib
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -124,7 +125,7 @@ class ImageLedgerTests(RuntimeFixture):
         await self.state.close()
         with patch('wx_clawbot.image_files.remove_released_file', side_effect=OSError('injected disk error')), self.assertRaises(OSError):
             maintain(self.root, self.credentials, apply=True, now=NOW)
-        with sqlite3.connect(self.root / 'runtime.sqlite3') as db:
+        with closing(sqlite3.connect(self.root / 'runtime.sqlite3')) as db:
             self.assertEqual(db.execute('SELECT filename FROM attachments').fetchone(), (filename,))
         self.assertTrue(path.exists())
         self.assertEqual(maintain(self.root, self.credentials, now=NOW)['released_files_pending'], 1)

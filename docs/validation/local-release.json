@@ -1981,5 +1981,142 @@
     },
     "validated_source_unchanged": true,
     "publication_still_not_executed": true
-  }
+  },
+  "rec01_update": {
+    "migration_applied": true,
+    "deployed": true,
+    "version": "0.1.1",
+    "schema": 5,
+    "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+    "migration": {
+      "from_version": 4,
+      "to_version": 5,
+      "old_business_tables": 9,
+      "all_old_business_rows_exact": true,
+      "backup_verified": true,
+      "integrity_and_foreign_keys": true,
+      "new_tables": 3
+    },
+    "same_managed_label_and_argv": true,
+    "same_editable_project_entry": true,
+    "normal_stop_exit_code": 0,
+    "single_consumer": true,
+    "host": "ready",
+    "native": "ready",
+    "historical_unknown_results": 2,
+    "historical_unknown_occupancies_released": 2,
+    "historical_unknown_results_not_replayed": true,
+    "original_received_task": {
+      "state": "completed",
+      "input_target_client_unchanged": true,
+      "native_client_occurrences": 1,
+      "matching_turns": 1,
+      "native_queue_empty": true,
+      "frozen_render_exact": true,
+      "final_replies": 1,
+      "final_states": [
+        "accepted"
+      ],
+      "api_accepted": true,
+      "person_received_confirmed": false
+    },
+    "protected_old_rows": {
+      "attachments": {
+        "original_rows": 18,
+        "unchanged_rows": 18,
+        "expected_changed_rows": 0
+      },
+      "delivery_attempts": {
+        "original_rows": 495,
+        "unchanged_rows": 495,
+        "expected_changed_rows": 0
+      },
+      "inbox": {
+        "original_rows": 253,
+        "unchanged_rows": 253,
+        "expected_changed_rows": 0
+      },
+      "interactions": {
+        "original_rows": 14,
+        "unchanged_rows": 14,
+        "expected_changed_rows": 0
+      },
+      "outbox": {
+        "original_rows": 502,
+        "unchanged_rows": 502,
+        "expected_changed_rows": 0
+      },
+      "tasks": {
+        "original_rows": 87,
+        "unchanged_rows": 86,
+        "expected_changed_rows": 1
+      }
+    },
+    "old_outbox_rows_preserved": 502,
+    "old_task_rows": 87,
+    "old_tasks_unchanged": 86,
+    "expected_original_received_changed": 1,
+    "current_tasks": {
+      "cancelled": 5,
+      "completed": 69,
+      "failed": 3,
+      "interrupted": 8,
+      "unknown": 2
+    },
+    "current_replies": {
+      "accepted": 497,
+      "superseded": 8
+    },
+    "active_occupancies": 0,
+    "global_config_credentials_project_config_plist_unchanged": true,
+    "no_wechat_ui_or_test_messages": true,
+    "no_manual_sql_release": true,
+    "checked_at_beijing": "2026-11-03 03:15",
+    "git_committed": false,
+    "git_pushed": false,
+    "lifecycle_deltas": {
+      "channel": {
+        "original_rows": 1,
+        "changed_columns": []
+      },
+      "reply_context": {
+        "original_rows": 1,
+        "changed_columns": []
+      },
+      "routes": {
+        "original_rows": 1,
+        "changed_columns": [
+          "snapshot",
+          "updated_at"
+        ],
+        "changed_snapshot_fields": [
+          "revision"
+        ]
+      }
+    },
+    "backup_permissions": {
+      "directory": "0700",
+      "file": "0600"
+    },
+    "resources": {
+      "owned_terminal_ids_checked": 5,
+      "owned_test_terminals_remaining": 0,
+      "case_phases": {
+        "native": "retired_duplicate_footer",
+        "native-round2": "cleaned",
+        "native-final": "cleaned"
+      },
+      "managed_consumers": 1,
+      "user_terminals_changed": 0,
+      "global_configuration_writes": 0
+    },
+    "native_goal": {
+      "status": "complete",
+      "completed_at_beijing": "2026-11-03 03:25",
+      "tokens_used": 818604,
+      "elapsed_seconds": 10124,
+      "actual_tool_result_recorded": true
+    }
+  },
+  "rec01_publication_record": "rec01-publication.json"
 }

@@ -39,10 +39,13 @@ class OfflineExecution:
                 task = await state.tasks(task_id=command.argument)
                 if task is None:
                     raise CommandError("任务不存在。")
-                return f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。"
+                return (f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。\n"
+                        + await state.describe_admission(task) + '\n原生离线，以上为最后保存的记录。')
             tasks = await state.tasks(active_only=True)
+            occupancy = await state.occupancy_counts()
             return ("执行目标尚未重新核验；原生运行时未就绪，不会自动重放任务。\n"
-                    + ("\n".join(f"{t['id']}：{t['state']}" for t in tasks[:20]) or "暂无未结束任务。"))
+                    + ("\n".join(f"{t['id']}：{t['state']}" for t in tasks[:20]) or "暂无未结束任务。")
+                    + f"\n历史未知且已释放占用：{occupancy.get('released_unknown',0)} 条；以上为最后记录。")
         if command.name == "stop" and command.argument:
             task = await state.tasks(task_id=command.argument)
             if task and task["state"] == "received":

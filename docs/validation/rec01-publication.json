@@ -1,0 +1,55 @@
+{
+  "version": "0.1.1",
+  "phase": "authorized_preflight",
+  "repository": "https://github.com/benarchen/wx-clawbot",
+  "visibility": "public",
+  "branches": [
+    "dev",
+    "main"
+  ],
+  "tag": "v0.1.1",
+  "tag_type": "annotated",
+  "baseline_commit": "b5a75514a10e5cbc2777fbc9bf444f66c763c768",
+  "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+  "authorization": "本人明确要求完整提交、合并 main、打 tag 并推送 GitHub；包含已审查的 REC01 源码、测试、版本、文档及可达历史。",
+  "authorized_at_beijing": "2026-11-03 07:55",
+  "checks": {
+    "remote_main_dev_match_baseline": true,
+    "remote_tag_absent": true,
+    "remote_public_and_push_permission_verified": true,
+    "candidate_files": 217,
+    "reachable_objects": 916,
+    "object_types": {
+      "commit": 41,
+      "tree": 293,
+      "blob": 582
+    },
+    "private_exact_needles": 2422,
+    "private_matches": 0,
+    "credential_shape_matches": 0,
+    "source_test_lock_files_identical": 140,
+    "regression_reused": {
+      "tests": 580,
+      "seconds": 36.153,
+      "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4"
+    },
+    "staged_files": 0,
+    "compileall": true,
+    "pip_check": true,
+    "diff_check": true,
+    "patch_context_whitespace": "标准 unified patch 的空白上下文标记为合法单空格；仅正式 .patch 设 -whitespace，保留其字节／摘要及正反向 apply 验证，源码与文档仍执行空白检查。"
+  },
+  "restart": {
+    "required": false,
+    "reason": "托管进程已加载相同 0.1.1 源码摘要，bridge／host／native ready；本次仅 Git 元数据及发布文档变化。",
+    "performed": false
+  },
+  "commit": null,
+  "merge_completed": false,
+  "tag_created": false,
+  "pushed": false,
+  "force_push": false,
+  "history_rewrite": false,
+  "github_release_created": false,
+  "changed_files": 47
+}

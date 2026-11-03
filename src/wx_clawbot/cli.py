@@ -113,6 +113,16 @@ def main(argv: list[str] | None = None) -> int:
     maintenance.add_argument("--state-dir", type=Path,
                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     maintenance.add_argument("--apply", action="store_true", help="显式授权清理七天正文／三十天已结摘要，要求前台停止")
+    admission_report = commands.add_parser("admission-report", help="只读查看准确任务的仓库占用与处置摘要，不连接原生")
+    admission_release = commands.add_parser("admission-release", help="默认只读；显式核验原生终态后释放占用，不改写未知结果")
+    for action in (admission_report, admission_release):
+        action.add_argument("--state-dir", type=Path, default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
+        action.add_argument("--task-id", required=True)
+    admission_release.add_argument("--apply", action="store_true", help="要求已授权、前台停止和完整原生证据，不强制解锁")
+    admission_release.add_argument("--confirm-report", help="admission-report 返回的准确确认摘要")
+    admission_release.add_argument("--reason", help="本次明确处置理由，最多 512 字符")
+    admission_release.add_argument("--socket", type=Path)
+    admission_release.add_argument("--codex-home", type=Path, default=Path.home() / ".codex")
     run = commands.add_parser("serve", help="前台运行本人微信与已注册项目桥接")
     run.add_argument("--config", required=True, type=Path)
     run.add_argument("--socket", type=Path, help="省略时只读发现既有 daemon，不自动启动")
@@ -138,6 +148,18 @@ def main(argv: list[str] | None = None) -> int:
         action.add_argument("--state-dir", type=Path,
                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     args = parser.parse_args(argv)
+    if args.command in {"admission-report", "admission-release"}:
+        from . import admission_ops
+        try:
+            result = admission_ops.report(args.state_dir, args.task_id) if args.command == "admission-report" else asyncio.run(
+                admission_ops.release(args.state_dir, args.task_id, apply=args.apply,
+                    confirm_report=args.confirm_report, reason=args.reason, socket=args.socket, codex_home=args.codex_home))
+        except Exception as exc:
+            print(json.dumps({"status":"failed","component":"admission","error_type":type(exc).__name__,
+                "message":"请核对任务、账本版本、确认摘要、前台停止状态及原生终态证据；未强制释放占用。"},ensure_ascii=False))
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     if args.command in {"status", "stop", "retry-reply"}:
         from .operations import status, request_stop, retry_delivery
         try:

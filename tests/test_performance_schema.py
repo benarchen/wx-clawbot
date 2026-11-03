@@ -14,6 +14,9 @@ class PerformanceSchemaTests(RuntimeFixture):
         await self.state.queue_reply('historic','frozen source\n')
         await self.state.close()
         with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
+            db.execute('DROP INDEX task_unknown_history')
+            for name in ('admission_waits','occupancy_audit','task_occupancy'):
+                db.execute('DROP TABLE '+name)
             for statement in schema.PERFORMANCE_UPGRADE:
                 db.execute('DROP INDEX '+statement.split()[2])
             db.execute('PRAGMA user_version=3')
@@ -29,12 +32,16 @@ class PerformanceSchemaTests(RuntimeFixture):
         await self.prepare_v3()
         before = self.rows()
         result=schema.upgrade(self.root,self.credentials)
-        self.assertEqual((result['from_version'],result['to_version']),(3,4))
-        self.assertEqual(self.rows(),before)
+        self.assertEqual((result['from_version'],result['to_version']),(3,schema.VERSION))
+        after = self.rows()
+        self.assertEqual({k:after[k] for k in before},before)
+        self.assertEqual(set(after)-set(before),set(schema.V5_COLUMNS))
+        self.assertEqual(len(after['task_occupancy']),1)
+        self.assertEqual(after['task_occupancy'][0][1],'waiting')
         self.assertEqual(self.rows(self.root/result['backup']),before)
         self.assertEqual(schema.upgrade(self.root,self.credentials)['status'],'current')
         with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
-            self.assertEqual(schema.validate(db,self.credentials),4)
+            self.assertEqual(schema.validate(db,self.credentials),schema.VERSION)
 
     async def test_v3_failure_after_indexes_rolls_back_data_version_and_indexes(self):
         await self.prepare_v3()

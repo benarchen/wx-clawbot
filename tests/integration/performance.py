@@ -115,6 +115,9 @@ async def worker(args):
     tree = ast.parse(textwrap.dedent(inspect.getsource(RuntimeState.claim_reply)))
     claim = next(n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str) and 'SELECT o.id' in n.value)
     active = "SELECT id FROM tasks" + (" INDEXED BY task_active" if schema.VERSION>=4 else "") + " WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"
+    if schema.VERSION>=5:
+        from wx_clawbot.occupancy import ACTIVE_FROM,ACTIVE_WHERE
+        active=f"SELECT t.id FROM {ACTIVE_FROM} WHERE {ACTIVE_WHERE} ORDER BY t.rowid LIMIT 129"
     native = 'SELECT id FROM tasks WHERE thread_id=? AND turn_id=?'
     def measured(db, query, params=()):
         values=[]

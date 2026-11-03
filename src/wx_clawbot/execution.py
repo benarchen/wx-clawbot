@@ -19,6 +19,7 @@ from .channels.media import ImageError
 from .images import ImagePreparer
 from .hosts.lifecycle import HostUnavailable
 from .results import ResultWork
+from .admission_recovery import AdmissionRecovery
 
 
 TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
@@ -46,6 +47,9 @@ class Execution:
         self.image_jobs = {}
         self.image_errors = []
         self.results = None
+        self.inflight = set()
+        self.recovery = AdmissionRecovery(self)
+        self.history_cursor = ''
 
     def start_image_preparation(self, task):
         if task["id"] in self.image_jobs:
@@ -163,9 +167,8 @@ class Execution:
                 f"仓库或桌面活动核验失败，任务未提交：{task['id']}。"))
             raise
         if reason:
-            await self.state.queue_reply(task["id"] + "-waiting",
-                f"任务已接收，等待准入：{task['id']}。{reason}；尚未进入原生队列。",
-                priority=2, task_id=task["id"], kind="progress")
+            await self.state.admission_wait(task, str(reason), getattr(reason, "blockers", ()))
+            self.recovery.wake.set()
             return
         await self.dispatch(task)
 
@@ -185,8 +188,12 @@ class Execution:
             self.verified_host(host_generation)
             attempted = True
             queue = self.queue(thread_id, target.cwd)
-            receipt = (await queue.add(text, task["client_id"], input_items=content) if content is not None
-                       else await queue.add(text, task["client_id"]))
+            self.inflight.add(thread_id)
+            try:
+                receipt = (await queue.add(text, task["client_id"], input_items=content) if content is not None
+                           else await queue.add(text, task["client_id"]))
+            finally:
+                self.inflight.discard(thread_id)
             current = await self.state.tasks(task_id=task_id)
             if current["state"] not in TERMINAL:
                 await self.state.task_update(task_id, "queued", queue_id=receipt["id"])
@@ -251,9 +258,7 @@ class Execution:
                     await self.dispatch(task)
                     active = await self.state.tasks(active_only=True)
                 else:
-                    await self.state.queue_reply(task["id"] + "-waiting",
-                        f"任务已接收，等待准入：{task['id']}。{reason}；尚未进入原生队列。",
-                        priority=2, task_id=task["id"], kind="progress")
+                    await self.state.admission_wait(task, str(reason), getattr(reason, "blockers", ()))
 
     async def turns(self, thread_id):
         cursor, seen = None, set()
@@ -322,7 +327,19 @@ class Execution:
 
     async def reconcile(self):
         """Only read the original runtime; this path never adds a native task."""
-        tasks = [t for t in await self.state.tasks(active_only=True) if t["state"] == "unknown"]
+        await self.reconcile_results()
+        await self.recovery.reconcile(force=True)
+
+    async def reconcile_results(self, *, thread_id=None):
+        tasks = [t for t in await self.state.tasks(active_only=True) if t['state']=='unknown']
+        if thread_id is not None:
+            tasks=[t for t in tasks if t['thread_id']==thread_id]
+        else:
+            # Released ownership never discards the chance to recover an exact
+            # result later. Explicit refresh advances a bounded historical page.
+            page=await self.state.unknown_history_page(after=self.history_cursor,limit=20)
+            self.history_cursor=page[-1]['id'] if len(page)==20 else ''
+            tasks=list({t['id']:t for t in tasks+page}.values())
         groups = {}
         for task in tasks:
             target = restore_target(task["target"])
@@ -467,6 +484,14 @@ class Execution:
         thread_id, turn_id = params.get("threadId"), params.get("turnId")
         if not isinstance(thread_id, str):
             return
+        active_turn = params.get('turn', {}).get('id') if method == 'turn/started' else turn_id
+        if method in {'turn/started', 'item/started'} and isinstance(active_turn, str):
+            # This exact historical association is only a conflict signal. It
+            # cannot subscribe, restore a route, read an unrelated turn or submit.
+            if await self.state.reactivate_occupancy(thread_id, active_turn):
+                self.recovery.trigger(thread_id)
+        if method == 'turn/completed' and thread_id in self.recovery.schedule:
+            self.recovery.trigger(thread_id)
         if not any(s.binding.thread_id == thread_id for s in self.controller.subscriptions.bound.values()):
             return  # Never read turns for unrelated runtime-wide notifications.
         if method == "turn/started":
@@ -579,6 +604,17 @@ class Execution:
 
     async def prune_memory(self):
         active = await self.state.tasks(active_only=True)
+        active_ids = {t['id'] for t in active}
+        subscriptions = self.controller.subscriptions
+        for session_id, roles in tuple(subscriptions.roles.items()):
+            for role in tuple(roles):
+                if not role.startswith('task-') or role[5:] in active_ids:
+                    continue
+                rows = await self.state.occupancy_snapshot(task_id=role[5:])
+                if rows and rows[0]['state']=='unknown' and rows[0]['occupancy']['state']=='released':
+                    session = subscriptions.bound.get(session_id)
+                    if session is not None:
+                        await subscriptions.release(session.target, role)
         sessions = tuple(self.catalog.sessions.values()) + tuple(self.controller.subscriptions.bound.values())
         valid_ids = {s.target.session_id for s in sessions} | {t["target"]["session_id"] for t in active}
         for key, lock in tuple(self.admission.items()):
@@ -588,7 +624,6 @@ class Execution:
         valid_queues |= {(t["thread_id"], Path(t["target"]["cwd"])) for t in active}
         for key in set(self.queues) - valid_queues:
             del self.queues[key]
-        active_ids = {t["id"] for t in active}
         self.turn_tasks = {key: value for key, value in self.turn_tasks.items() if value in active_ids}
         self.observed_turns = {key for key in self.observed_turns if self.observed(key[0])}
         self.trim_interactions()
@@ -614,6 +649,7 @@ class Execution:
             async with asyncio.TaskGroup() as tasks:
                 tasks.create_task(self.results.run())
                 tasks.create_task(self.consume_events())
+                tasks.create_task(self.recovery.run())
         finally:
             self.results = None
             for broker in self.brokers.values():
@@ -669,9 +705,11 @@ class Execution:
                             for b in self.brokers.values() for r in b.records.values()
                             if r.state == "pending" and b.clock() < r.deadline]
             delivery = await self.state.delivery_counts()
+            occupancy = await self.state.occupancy_counts()
             return (f"执行目标：{describe(routes.target)}\n观察订阅：{describe(routes.observer)}\n"
                     + ("\n".join(active[:20]) or "暂无未结束任务。")
                     + ("\n" + "\n".join(interactions[:20]) if interactions else "")
+                    + f"\n历史未知且已释放占用：{occupancy.get('released_unknown', 0)} 条；结果未改写。"
                     + f"\n回执：待发 {delivery.get('pending', 0)}，投递未知 {delivery.get('unknown', 0)}，拒绝 {delivery.get('rejected', 0)}。")
         if command.argument:
             task = await self.state.tasks(task_id=command.argument)
@@ -685,7 +723,7 @@ class Execution:
         if task is None:
             raise CommandError("任务不存在。")
         if name == "status":
-            return f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。"
+            return f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。\n" + await self.state.describe_admission(task)
         if task["state"] in TERMINAL:
             return f"任务已结束：{task['id']}｜{task['state']}。"
         if task["state"] == "received":

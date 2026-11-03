@@ -1,0 +1,1247 @@
+{
+  "goal": "REC01",
+  "status": "complete",
+  "baseline_commit": "b5a75514a10e5cbc2777fbc9bf444f66c763c768",
+  "candidate_version": "0.1.1",
+  "candidate_schema": 5,
+  "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+  "wheel_sha256": "d1e00be2d91571c883eb86d34cecabdec4e1ea6a6cf09f6d78ac9e3c9029a4d6",
+  "full_regression": {
+    "tests": 580,
+    "seconds": 36.153,
+    "passed": true,
+    "log_sha256": "56ce152a5edf3bc6ede2721fbc8e6b9fd827c85f8c239ab0afed85aeb9547a9f",
+    "resource_warning_count": 0
+  },
+  "package": {
+    "version": "0.1.1",
+    "isolated_parent_and_worker": true,
+    "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+    "imported_modules": 53,
+    "large_render_parts": 31,
+    "dependencies": {
+      "iterm2": "2.30",
+      "websockets": "17.3",
+      "segno": "1.6.6",
+      "cryptography": "50.0.2",
+      "pillow": "13.0.0",
+      "markdown-it-py": "4.2.0"
+    }
+  },
+  "native": {
+    "passed": true,
+    "runtime_version": "0.166.0",
+    "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+    "actual_sdk_binding_verified": true,
+    "owned_terminals": 2,
+    "real_tasks_completed": 2,
+    "unknown_fixture_results_preserved": 1,
+    "released_unknown_holds": 1,
+    "normal_result_recovered": true,
+    "new_intent_submitted_once": true,
+    "global_configuration_unchanged": true,
+    "model_provider_unchanged": true,
+    "task_tools": 0,
+    "wechat_sends": 0,
+    "production_ledger_writes": 0,
+    "historical_native_task_replays": 0
+  },
+  "soak": {
+    "action": "soak",
+    "passed": true,
+    "duration_seconds": 120,
+    "seed": 20261103,
+    "cycles": 116,
+    "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+    "original_unknown_preserved": true,
+    "original_intent_native_submissions": 1,
+    "native_submissions": 117,
+    "fake_sends": 358,
+    "duplicate_client_ids": 0,
+    "control_p95_ms": 0.2449589956086129,
+    "control_max_ms": 0.8552919898647815,
+    "peak_active_observed": 2,
+    "historical_mutating_native_calls": 0,
+    "wechat_sends": 0,
+    "production_ledger_writes": 0,
+    "occupancy": {
+      "released": 351,
+      "released_unknown": 234
+    },
+    "native_calls": 1600,
+    "max_rss_bytes": 52264960
+  },
+  "queries": {
+    "passed": true,
+    "samples_each": 15,
+    "warmups_each": 1,
+    "paired_alternating_order": true,
+    "results": [
+      {
+        "mode": "settled",
+        "historical_rows": 1000,
+        "actual_active": 128,
+        "old_result": 128,
+        "candidate_result": 128,
+        "old": {
+          "samples_ms": [
+            0.005167,
+            0.004375,
+            0.00425,
+            0.004084,
+            0.003958,
+            0.004,
+            0.003833,
+            0.004042,
+            0.003917,
+            0.003958,
+            0.004,
+            0.003917,
+            0.003792,
+            0.003875,
+            0.003833
+          ],
+          "median_ms": 0.003958,
+          "p95_ms": 0.005167,
+          "max_ms": 0.005167
+        },
+        "candidate": {
+          "samples_ms": [
+            0.019792,
+            0.01875,
+            0.018209,
+            0.017791,
+            0.017708,
+            0.0175,
+            0.017291,
+            0.017167,
+            0.017333,
+            0.01725,
+            0.01725,
+            0.017166,
+            0.017292,
+            0.017083,
+            0.01675
+          ],
+          "median_ms": 0.017292,
+          "p95_ms": 0.019792,
+          "max_ms": 0.019792
+        },
+        "candidate_plan": [
+          [
+            5,
+            0,
+            94,
+            "SEARCH o USING INDEX occupancy_active (state=?)"
+          ],
+          [
+            24,
+            0,
+            36,
+            "SEARCH t USING COVERING INDEX sqlite_autoindex_tasks_1 (id=?)"
+          ]
+        ]
+      },
+      {
+        "mode": "settled",
+        "historical_rows": 10000,
+        "actual_active": 128,
+        "old_result": 128,
+        "candidate_result": 128,
+        "old": {
+          "samples_ms": [
+            0.00525,
+            0.004458,
+            0.004042,
+            0.004041,
+            0.004041,
+            0.004042,
+            0.003875,
+            0.003959,
+            0.003916,
+            0.003959,
+            0.00375,
+            0.004,
+            0.003875,
+            0.003917,
+            0.003792
+          ],
+          "median_ms": 0.003959,
+          "p95_ms": 0.00525,
+          "max_ms": 0.00525
+        },
+        "candidate": {
+          "samples_ms": [
+            0.021083,
+            0.019875,
+            0.019083,
+            0.018917,
+            0.018625,
+            0.0185,
+            0.018458,
+            0.01825,
+            0.018333,
+            0.018542,
+            0.018417,
+            0.018375,
+            0.018417,
+            0.018333,
+            0.018208
+          ],
+          "median_ms": 0.018458,
+          "p95_ms": 0.021083,
+          "max_ms": 0.021083
+        },
+        "candidate_plan": [
+          [
+            5,
+            0,
+            94,
+            "SEARCH o USING INDEX occupancy_active (state=?)"
+          ],
+          [
+            24,
+            0,
+            40,
+            "SEARCH t USING COVERING INDEX sqlite_autoindex_tasks_1 (id=?)"
+          ]
+        ]
+      },
+      {
+        "mode": "settled",
+        "historical_rows": 100000,
+        "actual_active": 128,
+        "old_result": 128,
+        "candidate_result": 128,
+        "old": {
+          "samples_ms": [
+            0.005292,
+            0.004333,
+            0.004042,
+            0.004042,
+            0.003958,
+            0.004125,
+            0.003875,
+            0.004084,
+            0.004167,
+            0.003917,
+            0.003875,
+            0.003917,
+            0.003916,
+            0.003958,
+            0.003875
+          ],
+          "median_ms": 0.003958,
+          "p95_ms": 0.005292,
+          "max_ms": 0.005292
+        },
+        "candidate": {
+          "samples_ms": [
+            0.024167,
+            0.022416,
+            0.021833,
+            0.02125,
+            0.021166,
+            0.021334,
+            0.021083,
+            0.021041,
+            0.021125,
+            0.021166,
+            0.021041,
+            0.021125,
+            0.021042,
+            0.021042,
+            0.021083
+          ],
+          "median_ms": 0.021125,
+          "p95_ms": 0.024167,
+          "max_ms": 0.024167
+        },
+        "candidate_plan": [
+          [
+            5,
+            0,
+            94,
+            "SEARCH o USING INDEX occupancy_active (state=?)"
+          ],
+          [
+            24,
+            0,
+            42,
+            "SEARCH t USING COVERING INDEX sqlite_autoindex_tasks_1 (id=?)"
+          ]
+        ]
+      },
+      {
+        "mode": "released_unknown",
+        "historical_rows": 1000,
+        "actual_active": 128,
+        "old_result": 1128,
+        "candidate_result": 128,
+        "old": {
+          "samples_ms": [
+            0.010875,
+            0.011,
+            0.008417,
+            0.010875,
+            0.008375,
+            0.008375,
+            0.00825,
+            0.010125,
+            0.008084,
+            0.010167,
+            0.010083,
+            0.010084,
+            0.007916,
+            0.008,
+            0.010334
+          ],
+          "median_ms": 0.010083,
+          "p95_ms": 0.011,
+          "max_ms": 0.011
+        },
+        "candidate": {
+          "samples_ms": [
+            0.023708,
+            0.021667,
+            0.019125,
+            0.021084,
+            0.020708,
+            0.020583,
+            0.020667,
+            0.020375,
+            0.020583,
+            0.018542,
+            0.018667,
+            0.0205,
+            0.018417,
+            0.020375,
+            0.017875
+          ],
+          "median_ms": 0.0205,
+          "p95_ms": 0.023708,
+          "max_ms": 0.023708
+        },
+        "candidate_plan": [
+          [
+            5,
+            0,
+            94,
+            "SEARCH o USING INDEX occupancy_active (state=?)"
+          ],
+          [
+            24,
+            0,
+            36,
+            "SEARCH t USING COVERING INDEX sqlite_autoindex_tasks_1 (id=?)"
+          ]
+        ]
+      },
+      {
+        "mode": "released_unknown",
+        "historical_rows": 10000,
+        "actual_active": 128,
+        "old_result": 10128,
+        "candidate_result": 128,
+        "old": {
+          "samples_ms": [
+            0.042375,
+            0.03925,
+            0.039375,
+            0.039833,
+            0.039083,
+            0.038792,
+            0.038584,
+            0.038708,
+            0.039125,
+            0.039041,
+            0.038583,
+            0.041208,
+            0.041125,
+            0.038916,
+            0.038833
+          ],
+          "median_ms": 0.039083,
+          "p95_ms": 0.042375,
+          "max_ms": 0.042375
+        },
+        "candidate": {
+          "samples_ms": [
+            0.01975,
+            0.018916,
+            0.018709,
+            0.018333,
+            0.01825,
+            0.018291,
+            0.018334,
+            0.018167,
+            0.018209,
+            0.01825,
+            0.018125,
+            0.018042,
+            0.018416,
+            0.018208,
+            0.018208
+          ],
+          "median_ms": 0.01825,
+          "p95_ms": 0.01975,
+          "max_ms": 0.01975
+        },
+        "candidate_plan": [
+          [
+            5,
+            0,
+            94,
+            "SEARCH o USING INDEX occupancy_active (state=?)"
+          ],
+          [
+            24,
+            0,
+            40,
+            "SEARCH t USING COVERING INDEX sqlite_autoindex_tasks_1 (id=?)"
+          ]
+        ]
+      },
+      {
+        "mode": "released_unknown",
+        "historical_rows": 100000,
+        "actual_active": 128,
+        "old_result": 100128,
+        "candidate_result": 128,
+        "old": {
+          "samples_ms": [
+            0.366125,
+            0.358792,
+            0.379667,
+            0.397458,
+            0.383959,
+            0.382584,
+            0.378833,
+            0.3775,
+            0.375875,
+            0.376583,
+            0.378083,
+            0.37675,
+            0.375958,
+            0.383375,
+            0.392833
+          ],
+          "median_ms": 0.378083,
+          "p95_ms": 0.397458,
+          "max_ms": 0.397458
+        },
+        "candidate": {
+          "samples_ms": [
+            0.0245,
+            0.022709,
+            0.022958,
+            0.022042,
+            0.027375,
+            0.022084,
+            0.021834,
+            0.021708,
+            0.021917,
+            0.021625,
+            0.021917,
+            0.021583,
+            0.021709,
+            0.021458,
+            0.021875
+          ],
+          "median_ms": 0.021917,
+          "p95_ms": 0.027375,
+          "max_ms": 0.027375
+        },
+        "candidate_plan": [
+          [
+            5,
+            0,
+            94,
+            "SEARCH o USING INDEX occupancy_active (state=?)"
+          ],
+          [
+            24,
+            0,
+            42,
+            "SEARCH t USING COVERING INDEX sqlite_autoindex_tasks_1 (id=?)"
+          ]
+        ]
+      }
+    ],
+    "notes": "settled mode is equivalent-result performance; released_unknown mode intentionally changes active admission semantics",
+    "production_ledger_writes": 0,
+    "native_submissions": 0,
+    "wechat_sends": 0
+  },
+  "synthetic_migration": {
+    "scope": "synthetic ledger only",
+    "from_schema": 3,
+    "to_schema": 5,
+    "seconds": 0.2473560840007849,
+    "business_rows": {
+      "attachments": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "channel": {
+        "rows": 1,
+        "sha256": "829b24474d02a7e78c409c15d01872a6a59bff564d1c66f4d4dbb92c3796f6f4"
+      },
+      "delivery_attempts": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "inbox": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "interactions": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "outbox": {
+        "rows": 100000,
+        "sha256": "5a0803a0f51692a9d32372c8cad2bf9eed3d3d5fe591a7f43a37d422551ef69e"
+      },
+      "reply_context": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "routes": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tasks": {
+        "rows": 100000,
+        "sha256": "b11770f098fff5ddf7f342244feedbea75a3bd3e255ec2561d130b9fbc287963"
+      }
+    },
+    "all_business_rows_and_backup_exact": true,
+    "database_bytes_before": 33808384,
+    "database_bytes_after": 39030784,
+    "new_index_bytes": {
+      "reply_task_kind": 2482176,
+      "task_native_turn": 2682880,
+      "task_active": 4096,
+      "occupancy_active": 4096,
+      "occupancy_history": 4096,
+      "task_unknown_history": 4096
+    },
+    "integrity_ok": true,
+    "repeat_noop": true,
+    "passed": true
+  },
+  "writes_baseline": {
+    "source_sha256": "4cc2a61ae221257ad0c8da5c8fee254f870ca264f651fdc4ad8552a9c73c387b",
+    "scope": "100000 synthetic completed tasks and accepted final replies; no production I/O",
+    "admission_milliseconds": {
+      "samples": [
+        0.16625001444481313,
+        0.17899999511428177,
+        0.15837501268833876,
+        0.15587499365210533,
+        0.14004198601469398,
+        0.14287501107901335,
+        0.13583299005404115,
+        0.13045797822996974,
+        0.1509999856352806,
+        0.14062499394640326,
+        0.17291601398028433,
+        0.1329160004388541,
+        0.14683298650197685,
+        0.18066700431518257,
+        0.16033297288231552,
+        0.15391598572023213,
+        0.15704199904575944,
+        0.1327499921899289,
+        0.13341597514227033,
+        0.14404102694243193,
+        0.12837498798035085,
+        0.15425001038238406,
+        0.13425000361166894,
+        0.13716597459279,
+        0.16729201888665557,
+        0.132500019390136,
+        0.14354099403135478,
+        0.13025000225752592,
+        0.1378330052830279,
+        0.13245799345895648
+      ],
+      "median": 0.14320800255518407,
+      "p95": 0.17899999511428177,
+      "max": 0.18066700431518257
+    },
+    "atomic_final_milliseconds": {
+      "samples": [
+        0.5283330101519823,
+        0.5962080031167716,
+        0.45354198664426804,
+        0.432166998507455,
+        0.42758299969136715,
+        0.42816699715331197,
+        0.4022079810965806,
+        0.4007080278825015,
+        0.4098750068806112,
+        0.4344999906606972,
+        0.4865420050919056,
+        0.4082079976797104,
+        0.43170800199732184,
+        0.42150000808760524,
+        0.4378340090624988,
+        0.39508301415480673,
+        0.42708299588412046,
+        0.4535409971140325,
+        0.43779201223514974,
+        0.40920800529420376,
+        0.415540998801589,
+        0.4278330015949905,
+        0.4158749943599105,
+        0.4287080082576722,
+        0.4219590045977384,
+        0.43825001921504736,
+        0.4179589741397649,
+        0.4082500236108899,
+        0.4024170048069209,
+        0.4074580210726708
+      ],
+      "median": 0.4273329977877438,
+      "p95": 0.5283330101519823,
+      "max": 0.5962080031167716
+    },
+    "completed": true
+  },
+  "writes_candidate": {
+    "source_sha256": "a4deeabf12b8dc8088efbed2b5cb42b81082c52422952ea30775062b5c4329d9",
+    "scope": "100000 synthetic completed tasks and accepted final replies; no production I/O",
+    "admission_milliseconds": {
+      "samples": [
+        0.2073749783448875,
+        0.2156670088879764,
+        0.19366698688827455,
+        0.19175000488758087,
+        0.1752499956637621,
+        0.2207910001743585,
+        0.1825840154197067,
+        0.17904199194163084,
+        0.20137501996941864,
+        0.17516600200906396,
+        0.191833998542279,
+        0.16370799858123064,
+        0.18845798331312835,
+        0.20533299539238214,
+        0.20650000078603625,
+        0.17637497512623668,
+        0.19595801131799817,
+        0.16812499961815774,
+        0.17574999947100878,
+        0.17295798170380294,
+        0.18358399393036962,
+        0.1940829970408231,
+        0.16554200556129217,
+        0.18224999075755477,
+        0.18933400860987604,
+        0.5773750017397106,
+        0.15204100054688752,
+        0.1622500130906701,
+        0.14249997911974788,
+        0.13566698180511594
+      ],
+      "median": 0.18308400467503816,
+      "p95": 0.2207910001743585,
+      "max": 0.5773750017397106
+    },
+    "atomic_final_milliseconds": {
+      "samples": [
+        0.6698340002913028,
+        0.48275000881403685,
+        0.522000016644597,
+        0.5041249969508499,
+        0.4770419909618795,
+        0.4747500061057508,
+        0.4506670229602605,
+        0.48166699707508087,
+        0.44245898607186973,
+        0.4610000178217888,
+        0.43408299097791314,
+        0.47649999032728374,
+        0.47608400927856565,
+        0.45508399489335716,
+        0.4526670090854168,
+        0.6541250040754676,
+        0.4567090072669089,
+        0.46874998952262104,
+        0.46350000775419176,
+        0.45154200051911175,
+        0.48391599557362497,
+        0.4698749980889261,
+        0.4259579873178154,
+        0.450624997029081,
+        0.42883300920948386,
+        0.4276249965187162,
+        0.4833329876419157,
+        0.4308749921619892,
+        0.43612500303424895,
+        0.41412501013837755
+      ],
+      "median": 0.46225001278799027,
+      "p95": 0.6541250040754676,
+      "max": 0.6698340002913028
+    },
+    "completed": true
+  },
+  "production": {
+    "migration_applied": true,
+    "deployed": true,
+    "version": "0.1.1",
+    "schema": 5,
+    "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+    "migration": {
+      "from_version": 4,
+      "to_version": 5,
+      "old_business_tables": 9,
+      "all_old_business_rows_exact": true,
+      "backup_verified": true,
+      "integrity_and_foreign_keys": true,
+      "new_tables": 3
+    },
+    "same_managed_label_and_argv": true,
+    "same_editable_project_entry": true,
+    "normal_stop_exit_code": 0,
+    "single_consumer": true,
+    "host": "ready",
+    "native": "ready",
+    "historical_unknown_results": 2,
+    "historical_unknown_occupancies_released": 2,
+    "historical_unknown_results_not_replayed": true,
+    "original_received_task": {
+      "state": "completed",
+      "input_target_client_unchanged": true,
+      "native_client_occurrences": 1,
+      "matching_turns": 1,
+      "native_queue_empty": true,
+      "frozen_render_exact": true,
+      "final_replies": 1,
+      "final_states": [
+        "accepted"
+      ],
+      "api_accepted": true,
+      "person_received_confirmed": false
+    },
+    "protected_old_rows": {
+      "attachments": {
+        "original_rows": 18,
+        "unchanged_rows": 18,
+        "expected_changed_rows": 0
+      },
+      "delivery_attempts": {
+        "original_rows": 495,
+        "unchanged_rows": 495,
+        "expected_changed_rows": 0
+      },
+      "inbox": {
+        "original_rows": 253,
+        "unchanged_rows": 253,
+        "expected_changed_rows": 0
+      },
+      "interactions": {
+        "original_rows": 14,
+        "unchanged_rows": 14,
+        "expected_changed_rows": 0
+      },
+      "outbox": {
+        "original_rows": 502,
+        "unchanged_rows": 502,
+        "expected_changed_rows": 0
+      },
+      "tasks": {
+        "original_rows": 87,
+        "unchanged_rows": 86,
+        "expected_changed_rows": 1
+      }
+    },
+    "old_outbox_rows_preserved": 502,
+    "old_task_rows": 87,
+    "old_tasks_unchanged": 86,
+    "expected_original_received_changed": 1,
+    "current_tasks": {
+      "cancelled": 5,
+      "completed": 69,
+      "failed": 3,
+      "interrupted": 8,
+      "unknown": 2
+    },
+    "current_replies": {
+      "accepted": 497,
+      "superseded": 8
+    },
+    "active_occupancies": 0,
+    "global_config_credentials_project_config_plist_unchanged": true,
+    "no_wechat_ui_or_test_messages": true,
+    "no_manual_sql_release": true,
+    "checked_at_beijing": "2026-11-03 03:15",
+    "git_committed": false,
+    "git_pushed": false,
+    "lifecycle_deltas": {
+      "channel": {
+        "original_rows": 1,
+        "changed_columns": []
+      },
+      "reply_context": {
+        "original_rows": 1,
+        "changed_columns": []
+      },
+      "routes": {
+        "original_rows": 1,
+        "changed_columns": [
+          "snapshot",
+          "updated_at"
+        ],
+        "changed_snapshot_fields": [
+          "revision"
+        ]
+      }
+    },
+    "backup_permissions": {
+      "directory": "0700",
+      "file": "0600"
+    },
+    "resources": {
+      "owned_terminal_ids_checked": 5,
+      "owned_test_terminals_remaining": 0,
+      "case_phases": {
+        "native": "retired_duplicate_footer",
+        "native-round2": "cleaned",
+        "native-final": "cleaned"
+      },
+      "managed_consumers": 1,
+      "user_terminals_changed": 0,
+      "global_configuration_writes": 0
+    }
+  },
+  "acceptance": {
+    "A01": "passed",
+    "A02": "passed",
+    "A03": "passed",
+    "A04": "passed",
+    "A05": "passed",
+    "A06": "passed",
+    "A07": "passed",
+    "A08": "passed",
+    "A09": "passed",
+    "A10": "passed",
+    "A11": "passed",
+    "A12": "passed"
+  },
+  "file_manifest": [
+    {
+      "path": "src/wx_clawbot/execution.py",
+      "before_sha256": "863623190034650a7ed3cc3196308c00fce615dd00829d65b37712c6b0492c45",
+      "after_sha256": "d67b87c0d58292ef91c4a64240b4bdb7e166ac542f47fdff5393339dc4839923"
+    },
+    {
+      "path": "src/wx_clawbot/occupancy.py",
+      "before_sha256": null,
+      "after_sha256": "0172fe5a0583fda4b6928ede248d8afcc41fc87fc6bda11617f8f610a63b79d0"
+    },
+    {
+      "path": "src/wx_clawbot/runtime_lifecycle.py",
+      "before_sha256": "a236616f9be739b329bf8f763590b07188e90a405baea245f5b5292f0b0cd47c",
+      "after_sha256": "e31e4168fc6e08268cdcce05153bc67eb5099b9daf27ae5a4538954f87100d82"
+    },
+    {
+      "path": "src/wx_clawbot/__init__.py",
+      "before_sha256": "aa22cdadc1394e804cbea46cda96176e004b9651c36b1424ab944352f6ccbb3d",
+      "after_sha256": "452f4176f3176c1c2db50579b42db64c449b11968343afdd00281f83d4a5814e"
+    },
+    {
+      "path": "src/wx_clawbot/runtime_state.py",
+      "before_sha256": "4db19507c82a300dc384f61d0c06d717f4e6821a6526d983268422873aaeb53c",
+      "after_sha256": "a56b2864799a0fe1e248d3586d98d3ce47172695129b7dea79887fe7b5f31b0a"
+    },
+    {
+      "path": "src/wx_clawbot/admission_ops.py",
+      "before_sha256": null,
+      "after_sha256": "ee0a70357af41981937df2c5b2cced8f72edc604b0ed59b3259b75cf4d2a39d7"
+    },
+    {
+      "path": "src/wx_clawbot/operations.py",
+      "before_sha256": "841e065ef3e0f3c50e3afec50404ed3e00ac4ce9f89b4bc1d9fdce6e7cf67bf3",
+      "after_sha256": "276fbc2b1bf5ceae01f63fd8d7f860aceff50db44b8c3ff2ae80815ca1314a0c"
+    },
+    {
+      "path": "src/wx_clawbot/cli.py",
+      "before_sha256": "63b180e5420f188872edfed7e657900ebeccbc522487a9bf1ee4593c9de94437",
+      "after_sha256": "18709aee2bb0e030372ca2bb4e67d1359d9194187df489090892e7714d4d444f"
+    },
+    {
+      "path": "src/wx_clawbot/admission_recovery.py",
+      "before_sha256": null,
+      "after_sha256": "6015feedb182f23ab5aa136b29c6d78d83464fe338f13bdb8a2d7585336b4f17"
+    },
+    {
+      "path": "src/wx_clawbot/admission.py",
+      "before_sha256": "aa48a404723d7e00c5eefca6d5f3817e80a740aeb7c077818d215ffa12c08def",
+      "after_sha256": "3aba046b0bf497a3965654d6f492806cd0df1bcd0d47a4d281c5b78e446f261a"
+    },
+    {
+      "path": "src/wx_clawbot/schema.py",
+      "before_sha256": "b4f3bafd61e7a45cc719137f3190bcc37981ff800a2a76089d37db02e28ab4b0",
+      "after_sha256": "f897ffc049301328bf2ecc043dcfa81918e54ef32c34b693aeaae79f34cef20b"
+    },
+    {
+      "path": "src/wx_clawbot/agents/codex.py",
+      "before_sha256": "ec0e9772ea1f8f76b61bec2019057c19b8e87fb74802bad976faeea7dd69a839",
+      "after_sha256": "6cf469dcadd31dfd34b7b0563e9b85e9dac986ac0748c4fcc2425865f561134e"
+    },
+    {
+      "path": "tests/test_performance_schema.py",
+      "before_sha256": "3e770d7fe09b6f75d3dba06592ee0d3bd0b903a1ef7447b18a5db13c647fada2",
+      "after_sha256": "72b0a8851356c101093233d3a6766bac893044aa54382a1f607a0e8bf5d9aa74"
+    },
+    {
+      "path": "tests/test_operations.py",
+      "before_sha256": "4d1a96b2a1d68596ade4666d26a063b87b92f657bc18e1f6cb5979c8a86348de",
+      "after_sha256": "71f814c543d1c07f1f498ed79ead446aab07493c6621207d2e381b1b80218516"
+    },
+    {
+      "path": "tests/test_admission_recovery.py",
+      "before_sha256": null,
+      "after_sha256": "d712f6215411b1760e6e000bff292d6bfacb281895df529ef11a5ffd86af4a5f"
+    },
+    {
+      "path": "tests/test_schema.py",
+      "before_sha256": "f8706049722c155e51cfc496295ac120a45cd9a6f32027569f780458d0bdb3dd",
+      "after_sha256": "8f9216a94388d79ce58bdfc81bcea382670d4b5982f2e4fb9c747ccc1ea891e6"
+    },
+    {
+      "path": "tests/test_image_ledger.py",
+      "before_sha256": "5e1f26ef2c8d91951bc2fcd076328a68bc017bc02a13f074b7c4b34aea22b7a2",
+      "after_sha256": "073e73241c072eaeab07504f02be7c52d255daf83497273e3406eb1f9a21ab77"
+    },
+    {
+      "path": "tests/test_admission_scheduling.py",
+      "before_sha256": null,
+      "after_sha256": "fe9ab3ce9bf1789f63f44f338b6da993d01e1e6f0a10d795c719c7bda7c3b6a2"
+    },
+    {
+      "path": "tests/test_admission_ops.py",
+      "before_sha256": null,
+      "after_sha256": "006f89d535708b3c3a38b8ec17a4f2aa7836df918ea0bf31ac24f032a42525c0"
+    },
+    {
+      "path": "tests/integration/admission_queries.py",
+      "before_sha256": null,
+      "after_sha256": "f9d97a72d8a84000356234906d6f00db27860457d441bea5d39f468c051bc8f0"
+    },
+    {
+      "path": "tests/integration/performance_writes.py",
+      "before_sha256": "5f1cef5a6765669f2d9b1ebc80cb2e677b31ba66ec067e5f7c2c6c8f80c3cd25",
+      "after_sha256": "b11e659dcac3f379530297050abd01825dbee28527e90c733ea8a55e8aff66f0"
+    },
+    {
+      "path": "tests/integration/admission_recovery.py",
+      "before_sha256": null,
+      "after_sha256": "5f359b95b88888dc44ae676c536648f86527cffd111839cb7f2b41137c8ceffa"
+    },
+    {
+      "path": "tests/integration/performance_migration.py",
+      "before_sha256": "6c476a7745fda8cddb3c2106eeeff9ada06a318528f9ddc99ccc4920f4cdd801",
+      "after_sha256": "226d3673417ea0e3de89aced677e11edcd9c1af698ee9633496e68621f7fd5d2"
+    },
+    {
+      "path": "tests/integration/admission_native.py",
+      "before_sha256": null,
+      "after_sha256": "e061f2a0b2f5ee81428276678e48cd743690466f27f88b58ecf2a3a9ae1fe9cd"
+    },
+    {
+      "path": "tests/integration/performance.py",
+      "before_sha256": "adc7ba48cf8c402861bbd4a87b062033b4b5ed4b97d13531f749dfeee498942a",
+      "after_sha256": "3178d990eb4c69ae8d9853a68b92d3d22df733b217247b7b16d09703d1aea5a9"
+    },
+    {
+      "path": "pyproject.toml",
+      "before_sha256": "3e61a94ae280040d7aa74699e7fbb670e6a914b4ac87255e6bdf32477cfbba62",
+      "after_sha256": "ae012a80e2bef178103cb08152df79486bc9a78d9a19df586ccbd95fd0917ffe"
+    }
+  ],
+  "patch_sha256": "197f5c7de6f980a9ef94c7cbf0d23f95606d4438de5be9aa0369096662f74889",
+  "source_digest_formats": {
+    "source_sha256": "package-relative path plus bytes with NUL separators",
+    "performance_helper_hashes": "src-relative path plus bytes with NUL separators"
+  },
+  "test_matrix": {
+    "T01": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_controller.py",
+        "tests/integration/admission_recovery.py"
+      ]
+    },
+    "T02": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_native_queue.py",
+        "tests/test_runtime_state.py",
+        "tests/test_admission_recovery.py"
+      ]
+    },
+    "T03": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_controller.py"
+      ]
+    },
+    "T04": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission.py",
+        "tests/test_controller.py",
+        "tests/test_native_queue.py"
+      ]
+    },
+    "T05": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_controller.py"
+      ]
+    },
+    "T06": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_admission_scheduling.py"
+      ]
+    },
+    "T07": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_controller.py",
+        "tests/test_admission_scheduling.py",
+        "tests/test_admission_recovery.py"
+      ]
+    },
+    "T08": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_runtime_state.py",
+        "tests/test_recovery_state.py"
+      ]
+    },
+    "T09": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_scheduling.py",
+        "tests/test_admission_recovery.py"
+      ]
+    },
+    "T10": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_admission_scheduling.py",
+        "tests/test_controller.py"
+      ]
+    },
+    "T11": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/integration/admission_queries.py"
+      ]
+    },
+    "T12": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_controller.py",
+        "tests/test_admission_recovery.py"
+      ]
+    },
+    "T13": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_runtime_lifecycle.py",
+        "tests/test_admission_ops.py",
+        "tests/test_controller.py"
+      ]
+    },
+    "T14": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_sessions.py",
+        "tests/test_catalog.py"
+      ]
+    },
+    "T15": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_admission_scheduling.py",
+        "tests/test_native_queue.py"
+      ]
+    },
+    "T16": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_interactions.py",
+        "tests/test_controller.py",
+        "tests/test_subscriptions.py"
+      ]
+    },
+    "T17": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_schema.py",
+        "tests/test_image_schema.py",
+        "tests/test_performance_schema.py",
+        "tests/test_admission_ops.py"
+      ]
+    },
+    "T18": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_schema.py",
+        "tests/test_admission_ops.py",
+        "tests/integration/performance_migration.py"
+      ]
+    },
+    "T19": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_ops.py"
+      ]
+    },
+    "T20": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_ops.py"
+      ]
+    },
+    "T21": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py"
+      ]
+    },
+    "T22": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_scheduling.py",
+        "tests/integration/admission_recovery.py"
+      ]
+    },
+    "T23": {
+      "result": "passed",
+      "evidence": [
+        "tests/test_admission_recovery.py",
+        "tests/test_retention.py",
+        "tests/test_image_ledger.py"
+      ]
+    },
+    "T24": {
+      "result": "passed",
+      "evidence": [
+        "tests/integration/admission_recovery.py"
+      ]
+    },
+    "T25": {
+      "result": "passed",
+      "evidence": [
+        "tests/integration/admission_recovery.py"
+      ]
+    },
+    "T26": {
+      "result": "passed",
+      "evidence": [
+        "tests/integration/admission_native.py"
+      ]
+    },
+    "T27": {
+      "result": "passed",
+      "evidence": [
+        "docs/validation/project-closeout.md"
+      ]
+    }
+  },
+  "delivery_review": {
+    "at_beijing": "2026-11-03 03:23",
+    "source_test_lock_files_identical": 140,
+    "privacy": {
+      "checked_text_files": 215,
+      "private_exact_needles": 2422,
+      "leaks": [],
+      "missing_links": [],
+      "runtime_files": 26,
+      "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4",
+      "patch_apply_check": true,
+      "patch_check_direction": "reverse_on_deployed_exact_files"
+    },
+    "git": {
+      "branch": "dev",
+      "head": "b5a75514a10e5cbc2777fbc9bf444f66c763c768",
+      "changed_files": 44,
+      "staged_files": 0,
+      "committed": false,
+      "pushed": false,
+      "files": [
+        "AGENTS.md",
+        "README.md",
+        "ROADMAP.md",
+        "docs/architecture-design.md",
+        "docs/command-contract-proposal.md",
+        "docs/development-contracts.md",
+        "docs/operations.md",
+        "docs/product-design.md",
+        "docs/state-schema.md",
+        "docs/technical-decisions.md",
+        "docs/validation/local-release.json",
+        "docs/validation/local-release.md",
+        "goals/implementation-plan.md",
+        "pyproject.toml",
+        "src/wx_clawbot/__init__.py",
+        "src/wx_clawbot/admission.py",
+        "src/wx_clawbot/agents/codex.py",
+        "src/wx_clawbot/cli.py",
+        "src/wx_clawbot/execution.py",
+        "src/wx_clawbot/operations.py",
+        "src/wx_clawbot/runtime_lifecycle.py",
+        "src/wx_clawbot/runtime_state.py",
+        "src/wx_clawbot/schema.py",
+        "tests/integration/performance.py",
+        "tests/integration/performance_migration.py",
+        "tests/integration/performance_writes.py",
+        "tests/test_image_ledger.py",
+        "tests/test_operations.py",
+        "tests/test_performance_schema.py",
+        "tests/test_schema.py",
+        "docs/validation/admission-recovery.json",
+        "docs/validation/admission-recovery.md",
+        "docs/validation/admission-recovery.patch",
+        "docs/validation/project-closeout.md",
+        "goals/20261103-0020-admission-recovery-closeout.md",
+        "src/wx_clawbot/admission_ops.py",
+        "src/wx_clawbot/admission_recovery.py",
+        "src/wx_clawbot/occupancy.py",
+        "tests/integration/admission_native.py",
+        "tests/integration/admission_queries.py",
+        "tests/integration/admission_recovery.py",
+        "tests/test_admission_ops.py",
+        "tests/test_admission_recovery.py",
+        "tests/test_admission_scheduling.py"
+      ]
+    },
+    "goal_status": "complete"
+  },
+  "native_goal": {
+    "status": "complete",
+    "completed_at_beijing": "2026-11-03 03:25",
+    "tokens_used": 818604,
+    "elapsed_seconds": 10124,
+    "actual_tool_result_recorded": true
+  },
+  "rec01_publication_record": "rec01-publication.json"
+}

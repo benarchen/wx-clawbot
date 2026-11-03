@@ -1,4 +1,4 @@
-"""Synthetic schema-3 to schema-4 migration with full business-row digests."""
+"""Synthetic schema-3 to current supported schema, preserving all old business rows."""
 import argparse
 import asyncio
 import hashlib
@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import time
+from contextlib import closing
 
 from wx_clawbot import schema
 from wx_clawbot.channels.wechat import Credentials
@@ -15,7 +16,7 @@ from performance import output_path
 
 
 def snapshot(path):
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db:
         tables=[r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
         result={}
         for table in tables:
@@ -33,7 +34,11 @@ async def main(args):
         credentials=Credentials('synthetic-bot','synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic')
         state=await RuntimeState.open(path,credentials)
         await state.close()
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db:
+            for statement in getattr(schema,'OCCUPANCY_INDEXES',()):
+                db.execute('DROP INDEX IF EXISTS '+statement.split()[2])
+            for table in reversed(list(getattr(schema,'V5_COLUMNS',{}))):
+                db.execute('DROP TABLE '+table)
             for statement in schema.PERFORMANCE_UPGRADE:db.execute('DROP INDEX '+statement.split()[2])
             db.execute('PRAGMA user_version=3')
             db.executemany("INSERT INTO tasks(id,client_id,target,thread_id,input,state,created_at,updated_at,turn_id) VALUES(?,?,?,'history','synthetic','completed',0,0,?)",
@@ -48,16 +53,20 @@ async def main(args):
         started=time.perf_counter(); result=schema.upgrade(root,credentials)
         seconds=time.perf_counter()-started
         after=snapshot(path); backup=snapshot(root/result['backup'])
-        assert before==after==backup
+        assert before==backup
+        assert {name:after[name] for name in before}==before
+        added=set(after)-set(before)
+        assert added==(set(schema.V5_COLUMNS) if schema.VERSION>=5 else set())
+        assert all(after[name]['rows']==0 for name in added)
         assert seconds<60
-        with sqlite3.connect(path) as db:
-            assert schema.validate(db,credentials)==4
+        with closing(sqlite3.connect(path)) as db:
+            assert schema.validate(db,credentials)==schema.VERSION
             assert db.execute('PRAGMA quick_check').fetchall()==[('ok',)]
             assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
             index_bytes={name:db.execute('SELECT COALESCE(sum(pgsize),0) FROM dbstat WHERE name=?',(name,)).fetchone()[0]
-                         for name in ('reply_task_kind','task_native_turn','task_active')}
+                         for name in [s.split()[2] for s in schema.PERFORMANCE_UPGRADE+getattr(schema,'OCCUPANCY_INDEXES',())]}
         assert schema.upgrade(root,credentials)['status']=='current'
-        report={'scope':'synthetic ledger only','from_schema':3,'to_schema':4,
+        report={'scope':'synthetic ledger only','from_schema':3,'to_schema':schema.VERSION,
                 'seconds':seconds,'business_rows':before,'all_business_rows_and_backup_exact':True,
                 'database_bytes_before':before_bytes,'database_bytes_after':path.stat().st_size,
                 'new_index_bytes':index_bytes,

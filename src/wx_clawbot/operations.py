@@ -147,6 +147,8 @@ def status(root):
     with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as db:
         db.execute("BEGIN")
         report["schema_version"] = schema.validate(db, credentials)
+        if report["schema_version"] >= 5:
+            report["occupancy"] = dict(db.execute("SELECT state,count(*) FROM task_occupancy GROUP BY state"))
         report["tasks"] = dict(db.execute("SELECT state,count(*) FROM tasks GROUP BY state"))
         report["replies"] = dict(db.execute("SELECT state,count(*) FROM outbox GROUP BY state"))
         report["unsettled_reply_ids"] = [row[0] for row in db.execute(

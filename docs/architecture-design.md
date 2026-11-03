@@ -175,16 +175,17 @@ CodexAdapter 通过本机 Unix WebSocket 连接既有共享运行时，核对线
 首版经本人确认采用 [桌面专用排队入口](desktop-queue-contract.md)：电脑在普通 Shell 使用 `codex queue`，桥接使用相同 daemon／thread 的队列接口。原 TUI 持续显示执行与交互，空闲可继续对话；其忙碌时 Enter／Tab 不属于统一队列入口。客户端适配后置，保留旧按键反例供后续决策。
 
 ```text
-received → submitting → queued → running → completed / failed
-                                  ↕ waiting_interaction
-running / waiting_interaction → cancelling → interrupted
-submitting / running / cancelling → outcome_unknown（断连后无法确认）
+prepared → received → dispatching → queued → running → completed / failed
+                                             ↕ waiting_interaction
+running / waiting_interaction → stopping → interrupted
+prepared / dispatching / queued / running / waiting_interaction / stopping → unknown（断连后无法确认）
+received → cancelled（本地撤销，尚未原生提交）
 queued → cancelled（尚未执行）
 ```
 
-submitting 在发送给 Agent 之前持久化。若提交成功与 queue／turn ID 落盘之间崩溃，标记 outcome_unknown 并核对原生记录，不盲目重放。queued 表示已被原生队列接收；桥接账本不再次派发。任务 completed 只表示 Agent 轮次结束，回执另列验证结果，不能推断所有测试或 Git 推送成功。
+dispatching 在发送给 Agent 之前持久化。若提交成功与 queue／turn ID 落盘之间崩溃，标记 unknown 并核对原生记录，不盲目重放。queued 表示已被原生队列接收；桥接账本不再次派发。任务 completed 只表示 Agent 轮次结束，回执另列验证结果，不能推断所有测试或 Git 推送成功。
 
-审批与追问按 request_id、task_id、运行代次和发送者绑定；建议 10 分钟超时，超时拒绝／取消并返回可理解状态。断线和重启使旧审批失效。若当前 Agent 不能安全结束等待，则标记未知并阻止后续任务，等待核对。
+审批与追问按 request_id、task_id、运行代次和发送者绑定；微信答复授权 10 分钟过期，过期后拒绝微信迟到答复，不自动批准、拒绝或取消原生请求，仍可在原终端处理。断线和重启使旧微信交互授权失效。若原生任务不能确认结束，则保留未知结果及占用，按准入核验流程处理，不因交互期限解锁。
 
 按 D05，交互在微信和电脑同步展示，首次有效答复完成原子状态转换并提交一次，另一端更新已处理。电脑原生答复可能绕过桥接账本，因此需要原生请求完成事件或共享裁决入口，不能仅凭本地数据库锁宣称双端互斥。提交结果不确定时核对原生状态，不将另一答复作为自动重试；覆盖同意与拒绝同时到达、超时边界和断线后迟到答复。
 
@@ -196,7 +197,7 @@ submitting 在发送给 Agent 之前持久化。若提交成功与 queue／turn 
 
 结果写入 Outbox 与任务终态关联；内容分段带项目、任务、段号。发送成功只依据通道可提供的回执等级，不把服务端受理等同手机已读。超时不确定时保留 delivery_unknown；若重试造成重复消息，任务 ID 和段号便于识别，但绝不重新执行任务。
 
-审批、失败、最终结果优先于高频进展。建议 5 秒以上合并进展消息；配额数值以真实通道能力为准，不照搬截图“每入站 10 条”。最终结果超长时分页留存，可通过状态入口取回，不静默截断关键错误。
+审批、失败、最终结果优先于高频进展，过时进展在事务内淘汰；配额数值以真实通道能力为准，不照搬截图“每入站 10 条”。最终结果按结构分段并保留容量限制和超限提示，关键错误单独保护，完整原始内容仍在原终端；状态入口查询执行和投递情况，不提供完整结果下载接口。准确容量及保留期见[账本说明](state-schema.md)。
 
 Markdown 格式化只作用于展示；命令、代码、路径、URL 和引用保持原义。中文排版在渲染层确定性处理。无外部通知 HTTP API 也能完成首版任务回执，首版不为它新增公网入口。
 
@@ -206,7 +207,7 @@ Markdown 格式化只作用于展示；命令、代码、路径、URL 和引用�
 
 源码目录为 `<project-root>/`。默认私有运行目录为 `~/Library/Application Support/wx-clawbot/`，保存本项目配置、凭据、诊断 state.sqlite3、运行 runtime.sqlite3 和启动登记；源码仓库只保留脱敏模板、代码、测试与文档。运行目录由显式登录或前台运行创建，结构与保留期操作见[账本说明](state-schema.md)；不自动注册常驻服务。
 
-launchd 负责单实例常驻与有限退避重启；本机管理 CLI 提供 start、stop、status、doctor。应用自身检查消息循环及 Agent 连接健康；有实际需要再增加独立 watchdog，避免双重重启风暴。
+launchd 负责单实例常驻与有限退避重启；本机管理 CLI 提供 serve、stop、status、doctor，既有托管入口由明确的 launchctl kickstart 恢复，没有 start 子命令。应用自身检查消息循环及 Agent 连接健康，不增加第二套进程托管。
 
 HOST01 将实际前台实现拆成持久的微信收发与可恢复的依赖生命周期。`HostLifecycle` 统一提供 iTerm2 当前连接与代次，管理被动重连、显式按需拉起、认证子进程硬截止及 SDK 资源回收；目录和可见启动器共享这一入口。`BridgeRuntime` 负责既有原生连接的只读发现／重连和恢复协调，原生事件仍由唯一 Execution 消费。宿主缺席不关闭微信，原生缺席时只提供可解释的降级能力；配置／绑定／账本错误仍明确失败。完整身份核验、冻结目标和未知任务不重放的约束不变，实际验收见 [HOST01 记录](validation/host-lifecycle-recovery.md)。
 
@@ -255,3 +256,9 @@ SDK 的 `async_get_app` 会刷新全列表，因此 catalog 只在单次 discove
 - 已定技术方向与本机检查结果见技术决策；原终端映射、共享运行时双端交互、原生队列和微信文本闭环的实际验证状态以 ROADMAP 为准。attach 已确认独立观察订阅，数值默认值在施工关卡中校准；改变已确认用户体验时再确认。
 
 实施核对：`app-server proxy` 仅透传原始字节，不能直接写 JSONL。Unix 控制 socket 使用 WebSocket；桥接直连该 socket，不新建运行时。见 [官方固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/stdio-to-uds/src/lib.rs)。
+
+## REC01：结果与占用分离契约
+
+本节为 REC01 的施工约束，部署状态以 ROADMAP 为准。任务结果 unknown 与仓库 holding／released 分开持久化；准确原生终态、完整提交／排队核验和版本化审计共同决定释放。合并输入可证明占用结束，但不能证明各本地任务独立完成。旧线程历史只读核验不产生会话路由、订阅或提交权限，查询不到、idle、窗口消失和超时均不足以解锁。
+
+释放和新准入由同一协调器及 SQLite 事务序列化，证据绑定连接代次与 revision；迟到活动使占用重新进入冲突保护，不能重放旧任务。活动容量不计已释放历史，历史分页与保留期仍保护 unknown。桥接无法锁住独立桌面客户端，已知遗留子进程风险须明确阻塞。

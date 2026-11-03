@@ -13,7 +13,7 @@ from .channels.private import private_directory, private_file, private_lease
 
 
 APPLICATION_ID = 0x57585254
-VERSION = 4
+VERSION = 5
 V1_COLUMNS = {
     "channel": {"id", "bot", "owner", "cursor"},
     "inbox": {"message_id", "text", "context", "created_ms", "seq", "received_at", "phase", "conflict"},
@@ -63,20 +63,41 @@ PERFORMANCE_UPGRADE = (
     "CREATE INDEX task_native_turn ON tasks(thread_id,turn_id)",
     "CREATE INDEX task_active ON tasks(state) WHERE state NOT IN ('completed','failed','interrupted','cancelled')",
 )
+V5_COLUMNS = {
+    "task_occupancy": {"task_id", "state", "revision", "reason", "evidence", "checked_at", "updated_at"},
+    "occupancy_audit": {"id", "task_id", "revision", "state", "reason", "evidence", "created_at"},
+    "admission_waits": {"task_id", "reason", "blockers", "first_at", "checked_at", "escalated"},
+}
+OCCUPANCY_UPGRADE = (
+    """CREATE TABLE task_occupancy (task_id TEXT PRIMARY KEY,state TEXT NOT NULL CHECK(state IN ('waiting','holding','released')),
+        revision INTEGER NOT NULL CHECK(revision>=0),reason TEXT NOT NULL,evidence TEXT NOT NULL,
+        checked_at REAL,updated_at REAL NOT NULL,FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE)""",
+    """CREATE TABLE occupancy_audit (id INTEGER PRIMARY KEY,task_id TEXT NOT NULL,revision INTEGER NOT NULL,
+        state TEXT NOT NULL,reason TEXT NOT NULL,evidence TEXT NOT NULL,created_at REAL NOT NULL,
+        UNIQUE(task_id,revision),FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE)""",
+    """CREATE TABLE admission_waits (task_id TEXT PRIMARY KEY,reason TEXT NOT NULL,blockers TEXT NOT NULL,
+        first_at REAL NOT NULL,checked_at REAL NOT NULL,escalated INTEGER NOT NULL CHECK(escalated IN (0,1)),
+        FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE)""",
+)
+OCCUPANCY_INDEXES = (
+    "CREATE INDEX occupancy_active ON task_occupancy(state) WHERE state IN ('waiting','holding')",
+    "CREATE INDEX occupancy_history ON task_occupancy(state,task_id)",
+    "CREATE INDEX task_unknown_history ON tasks(id) WHERE state='unknown'",
+)
 
 
 class UpgradeRequired(ProtocolError):
     pass
 
 
-def validate(db, credentials, *, versions=(1, 2, 3, VERSION)):
+def validate(db, credentials, *, versions=(1, 2, 3, 4, VERSION)):
     if db.execute("PRAGMA application_id").fetchone()[0] != APPLICATION_ID:
         raise ProtocolError("Database is not this application's runtime ledger")
     version = db.execute("PRAGMA user_version").fetchone()[0]
     if version not in versions:
         raise ProtocolError("Unsupported runtime schema version")
     tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
-    columns_by_table = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {})
+    columns_by_table = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {}) | (V5_COLUMNS if version >= 5 else {})
     expected = set(columns_by_table)
     if tables != expected:
         raise ProtocolError("Runtime tables differ from the verified schema")
@@ -95,10 +116,15 @@ def validate(db, credentials, *, versions=(1, 2, 3, VERSION)):
                 raise ProtocolError("Runtime message digest is missing")
     if version >= 4:
         indexes = {row[0]: row[1] for row in db.execute("SELECT name,sql FROM sqlite_master WHERE type='index'")}
-        for statement in PERFORMANCE_UPGRADE:
+        for statement in PERFORMANCE_UPGRADE + (OCCUPANCY_INDEXES if version >= 5 else ()):
             name = statement.split()[2]
             if indexes.get(name) != statement:
                 raise ProtocolError("Runtime performance index differs from the verified schema")
+    if version >= 5:
+        missing = db.execute("""SELECT 1 FROM tasks t WHERE t.state NOT IN ('completed','failed','interrupted','cancelled')
+            AND NOT EXISTS(SELECT 1 FROM task_occupancy o WHERE o.task_id=t.id) LIMIT 1""").fetchone()
+        if missing:
+            raise ProtocolError("Active task has no verified occupancy record")
     return version
 
 
@@ -125,14 +151,19 @@ def _text_steps(db, credentials):
 def apply_steps(db, credentials):
     """Caller owns the transaction and has either a new file or a verified backup."""
     version = validate(db, credentials)
-    if version not in (1, 2, 3) or not db.in_transaction:
+    if version not in (1, 2, 3, 4) or not db.in_transaction:
         raise ProtocolError("A supported older schema and an explicit transaction required")
     if version == 1:
         _text_steps(db, credentials)
     for statement in IMAGE_UPGRADE if version < 3 else ():
         db.execute(statement)
-    for statement in PERFORMANCE_UPGRADE:
+    for statement in PERFORMANCE_UPGRADE if version < 4 else ():
         db.execute(statement)
+    for statement in OCCUPANCY_UPGRADE + OCCUPANCY_INDEXES:
+        db.execute(statement)
+    db.execute("""INSERT INTO task_occupancy(task_id,state,revision,reason,evidence,updated_at)
+        SELECT id,CASE WHEN state IN ('prepared','received') THEN 'waiting' ELSE 'holding' END,
+        0,'legacy_unverified','{}',updated_at FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')""")
     db.execute("ANALYZE tasks")
     db.execute("ANALYZE outbox")
     db.execute(f"PRAGMA user_version={VERSION}")
@@ -151,14 +182,14 @@ def inspect(root: Path, credentials):
     root = _root(root)
     with closing(sqlite3.connect((root / "runtime.sqlite3").as_uri() + "?mode=ro", uri=True)) as db:
         version = validate(db, credentials)
-        tables = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {})
+        tables = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {}) | (V5_COLUMNS if version >= 5 else {})
         counts = {name: db.execute(f"SELECT count(*) FROM {name}").fetchone()[0] for name in tables}
     return {"status": "current" if version == VERSION else "upgrade_available", "from_version": version,
             "to_version": VERSION, "row_counts": counts, "requires_stopped_consumer": True,
-            "add_tables": (["routes", "interactions", "delivery_attempts"] if version == 1 else []) + (["attachments"] if version < 3 else []),
+            "add_tables": (["routes", "interactions", "delivery_attempts"] if version == 1 else []) + (["attachments"] if version < 3 else []) + (list(V5_COLUMNS) if version < 5 else []),
             "add_columns": (["inbox.body_sha256", "outbox.body_sha256"] if version == 1 else [])
                            + (["inbox.content", "tasks.input_items"] if version < 3 else []),
-            "add_indexes": [s.split()[2] for s in PERFORMANCE_UPGRADE] if version < VERSION else [],
+            "add_indexes": ([s.split()[2] for s in PERFORMANCE_UPGRADE] if version < 4 else []) + ([s.split()[2] for s in OCCUPANCY_INDEXES] if version < 5 else []),
             "data_deleted": False}
 
 

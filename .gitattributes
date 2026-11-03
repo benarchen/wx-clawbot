@@ -1,0 +1,2 @@
+# Unified patch context markers include a single space on empty context lines.
+docs/validation/*.patch -whitespace

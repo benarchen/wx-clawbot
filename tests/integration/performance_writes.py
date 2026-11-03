@@ -7,6 +7,7 @@ import sqlite3
 import sys
 import tempfile
 import time
+from contextlib import closing
 
 from performance import output_path, source_hash, stats
 
@@ -23,7 +24,7 @@ async def main(args):
         credentials=Credentials('fixture-bot','fixture-owner','https://ilinkai.weixin.qq.com/','synthetic')
         state=await RuntimeState.open(path,credentials)
         await state.close()
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             db.executemany("INSERT INTO tasks(id,client_id,target,thread_id,input,state,created_at,updated_at,turn_id) VALUES(?,?,?,'history','synthetic','completed',0,0,?)",
                 ((f'task-{i}',f'client-{i}','{}',f'turn-{i}') for i in range(100000)))
             db.executemany("INSERT INTO outbox(id,text,priority,state,task_id,kind,created_at,body_sha256) VALUES(?,'synthetic history',1,'accepted',?,'final',0,?)",

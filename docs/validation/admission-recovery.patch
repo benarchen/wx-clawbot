@@ -1,0 +1,2376 @@
+--- a/src/wx_clawbot/execution.py
++++ b/src/wx_clawbot/execution.py
+@@ -19,6 +19,7 @@
+ from .images import ImagePreparer
+ from .hosts.lifecycle import HostUnavailable
+ from .results import ResultWork
++from .admission_recovery import AdmissionRecovery
+ 
+ 
+ TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
+@@ -46,6 +47,9 @@
+         self.image_jobs = {}
+         self.image_errors = []
+         self.results = None
++        self.inflight = set()
++        self.recovery = AdmissionRecovery(self)
++        self.history_cursor = ''
+ 
+     def start_image_preparation(self, task):
+         if task["id"] in self.image_jobs:
+@@ -163,9 +167,8 @@
+                 f"仓库或桌面活动核验失败，任务未提交：{task['id']}。"))
+             raise
+         if reason:
+-            await self.state.queue_reply(task["id"] + "-waiting",
+-                f"任务已接收，等待准入：{task['id']}。{reason}；尚未进入原生队列。",
+-                priority=2, task_id=task["id"], kind="progress")
++            await self.state.admission_wait(task, str(reason), getattr(reason, "blockers", ()))
++            self.recovery.wake.set()
+             return
+         await self.dispatch(task)
+ 
+@@ -185,8 +188,12 @@
+             self.verified_host(host_generation)
+             attempted = True
+             queue = self.queue(thread_id, target.cwd)
+-            receipt = (await queue.add(text, task["client_id"], input_items=content) if content is not None
+-                       else await queue.add(text, task["client_id"]))
++            self.inflight.add(thread_id)
++            try:
++                receipt = (await queue.add(text, task["client_id"], input_items=content) if content is not None
++                           else await queue.add(text, task["client_id"]))
++            finally:
++                self.inflight.discard(thread_id)
+             current = await self.state.tasks(task_id=task_id)
+             if current["state"] not in TERMINAL:
+                 await self.state.task_update(task_id, "queued", queue_id=receipt["id"])
+@@ -251,9 +258,7 @@
+                     await self.dispatch(task)
+                     active = await self.state.tasks(active_only=True)
+                 else:
+-                    await self.state.queue_reply(task["id"] + "-waiting",
+-                        f"任务已接收，等待准入：{task['id']}。{reason}；尚未进入原生队列。",
+-                        priority=2, task_id=task["id"], kind="progress")
++                    await self.state.admission_wait(task, str(reason), getattr(reason, "blockers", ()))
+ 
+     async def turns(self, thread_id):
+         cursor, seen = None, set()
+@@ -322,7 +327,19 @@
+ 
+     async def reconcile(self):
+         """Only read the original runtime; this path never adds a native task."""
+-        tasks = [t for t in await self.state.tasks(active_only=True) if t["state"] == "unknown"]
++        await self.reconcile_results()
++        await self.recovery.reconcile(force=True)
++
++    async def reconcile_results(self, *, thread_id=None):
++        tasks = [t for t in await self.state.tasks(active_only=True) if t['state']=='unknown']
++        if thread_id is not None:
++            tasks=[t for t in tasks if t['thread_id']==thread_id]
++        else:
++            # Released ownership never discards the chance to recover an exact
++            # result later. Explicit refresh advances a bounded historical page.
++            page=await self.state.unknown_history_page(after=self.history_cursor,limit=20)
++            self.history_cursor=page[-1]['id'] if len(page)==20 else ''
++            tasks=list({t['id']:t for t in tasks+page}.values())
+         groups = {}
+         for task in tasks:
+             target = restore_target(task["target"])
+@@ -467,6 +484,14 @@
+         thread_id, turn_id = params.get("threadId"), params.get("turnId")
+         if not isinstance(thread_id, str):
+             return
++        active_turn = params.get('turn', {}).get('id') if method == 'turn/started' else turn_id
++        if method in {'turn/started', 'item/started'} and isinstance(active_turn, str):
++            # This exact historical association is only a conflict signal. It
++            # cannot subscribe, restore a route, read an unrelated turn or submit.
++            if await self.state.reactivate_occupancy(thread_id, active_turn):
++                self.recovery.trigger(thread_id)
++        if method == 'turn/completed' and thread_id in self.recovery.schedule:
++            self.recovery.trigger(thread_id)
+         if not any(s.binding.thread_id == thread_id for s in self.controller.subscriptions.bound.values()):
+             return  # Never read turns for unrelated runtime-wide notifications.
+         if method == "turn/started":
+@@ -579,6 +604,17 @@
+ 
+     async def prune_memory(self):
+         active = await self.state.tasks(active_only=True)
++        active_ids = {t['id'] for t in active}
++        subscriptions = self.controller.subscriptions
++        for session_id, roles in tuple(subscriptions.roles.items()):
++            for role in tuple(roles):
++                if not role.startswith('task-') or role[5:] in active_ids:
++                    continue
++                rows = await self.state.occupancy_snapshot(task_id=role[5:])
++                if rows and rows[0]['state']=='unknown' and rows[0]['occupancy']['state']=='released':
++                    session = subscriptions.bound.get(session_id)
++                    if session is not None:
++                        await subscriptions.release(session.target, role)
+         sessions = tuple(self.catalog.sessions.values()) + tuple(self.controller.subscriptions.bound.values())
+         valid_ids = {s.target.session_id for s in sessions} | {t["target"]["session_id"] for t in active}
+         for key, lock in tuple(self.admission.items()):
+@@ -588,7 +624,6 @@
+         valid_queues |= {(t["thread_id"], Path(t["target"]["cwd"])) for t in active}
+         for key in set(self.queues) - valid_queues:
+             del self.queues[key]
+-        active_ids = {t["id"] for t in active}
+         self.turn_tasks = {key: value for key, value in self.turn_tasks.items() if value in active_ids}
+         self.observed_turns = {key for key in self.observed_turns if self.observed(key[0])}
+         self.trim_interactions()
+@@ -614,6 +649,7 @@
+             async with asyncio.TaskGroup() as tasks:
+                 tasks.create_task(self.results.run())
+                 tasks.create_task(self.consume_events())
++                tasks.create_task(self.recovery.run())
+         finally:
+             self.results = None
+             for broker in self.brokers.values():
+@@ -669,9 +705,11 @@
+                             for b in self.brokers.values() for r in b.records.values()
+                             if r.state == "pending" and b.clock() < r.deadline]
+             delivery = await self.state.delivery_counts()
++            occupancy = await self.state.occupancy_counts()
+             return (f"执行目标：{describe(routes.target)}\n观察订阅：{describe(routes.observer)}\n"
+                     + ("\n".join(active[:20]) or "暂无未结束任务。")
+                     + ("\n" + "\n".join(interactions[:20]) if interactions else "")
++                    + f"\n历史未知且已释放占用：{occupancy.get('released_unknown', 0)} 条；结果未改写。"
+                     + f"\n回执：待发 {delivery.get('pending', 0)}，投递未知 {delivery.get('unknown', 0)}，拒绝 {delivery.get('rejected', 0)}。")
+         if command.argument:
+             task = await self.state.tasks(task_id=command.argument)
+@@ -685,7 +723,7 @@
+         if task is None:
+             raise CommandError("任务不存在。")
+         if name == "status":
+-            return f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。"
++            return f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。\n" + await self.state.describe_admission(task)
+         if task["state"] in TERMINAL:
+             return f"任务已结束：{task['id']}｜{task['state']}。"
+         if task["state"] == "received":
+--- /dev/null
++++ b/src/wx_clawbot/occupancy.py
+@@ -0,0 +1,226 @@
++"""Durable admission ownership; unknown execution results remain independent."""
++
++import hashlib
++import json
++import math
++import time
++from datetime import datetime, timedelta, timezone
++
++from .channels.http import ProtocolError
++from .output import render_in_worker, render_segments
++
++
++ACTIVE_FROM = "task_occupancy o INDEXED BY occupancy_active JOIN tasks t ON t.id=o.task_id"
++ACTIVE_WHERE = "o.state IN ('waiting','holding')"
++TASK_COLUMNS = "id,source_message_id,client_id,target,thread_id,input,state,queue_id,turn_id,input_items"
++CHECK_REASONS = {
++    'legacy_unverified':'旧任务尚未取得结束证据',
++    'native_unverified':'连接中断，等待重新核验',
++    'native_query_unavailable':'原生查询暂不可用，程序会自动重新核验',
++    'native_still_active':'原生线程仍有活动',
++    'native_history_still_active':'原生历史中仍有执行中的轮次',
++    'native_queue_not_empty_or_incomplete':'原生队列未排空或队列核验不完整',
++    'native_queue_changed':'核验期间原生队列发生变化',
++    'known_tool_still_running':'发现原生工具仍在运行',
++    'missing_terminal_identity':'缺少准确原生轮次关联，尚不能安全解除',
++    'original_turn_not_found':'当前有界查询尚未找到准确原轮次',
++    'history_bound_exceeded':'原轮次超出本次有界核验范围',
++    'duplicate_client_history':'发现重复提交关联，仍需核对',
++    'submission_inflight':'原生提交仍在进行，尚不能解除',
++    'native_generation_changed':'原生连接已变化，等待重新核验',
++    'occupancy_revision_changed':'任务占用记录已变化，等待重新核验',
++    'late_native_activity':'收到迟到的原生活动，已恢复占用保护',
++}
++
++
++def transition(db, task_id, state, reason, evidence=None):
++    if not db.in_transaction:
++        raise ProtocolError("Occupancy transition requires its task transaction")
++    encoded = json.dumps(evidence or {}, sort_keys=True, allow_nan=False)
++    if state not in {"waiting", "holding", "released"} or len(encoded) > 16384:
++        raise ValueError("Bounded explicit occupancy evidence required")
++    row = db.execute("SELECT state,revision FROM task_occupancy WHERE task_id=?", (task_id,)).fetchone()
++    revision = row[1] + 1 if row else 0
++    now = time.time()
++    db.execute("""INSERT INTO task_occupancy VALUES(?,?,?,?,?,?,?)
++        ON CONFLICT(task_id) DO UPDATE SET state=excluded.state,revision=excluded.revision,
++        reason=excluded.reason,evidence=excluded.evidence,checked_at=excluded.checked_at,updated_at=excluded.updated_at""",
++        (task_id, state, revision, reason, encoded, now if evidence else None, now))
++    db.execute("INSERT INTO occupancy_audit(task_id,revision,state,reason,evidence,created_at) VALUES(?,?,?,?,?,?)",
++                    (task_id, revision, state, reason, encoded, now))
++
++
++def release_rows(db, expected, evidence, *, reason="native_terminal"):
++    if (not isinstance(expected, list) or not 1 <= len(expected) <= 128
++            or len({t['id'] for t in expected}) != len(expected)
++            or not isinstance(evidence, dict) or evidence.get("kind") != "native_terminal"
++            or evidence.get("queue_empty") is not True or not isinstance(evidence.get('turns'),dict) or not evidence['turns']
++            or any(not isinstance(k,str) or not k or v not in {'completed','failed','interrupted'} for k,v in evidence['turns'].items())
++            or not isinstance(evidence.get("generation"), str) or not evidence['generation']):
++        raise ValueError("Exact snapshots and native terminal/queue evidence required")
++    db.execute("BEGIN IMMEDIATE")
++    try:
++        for task in expected:
++            row = db.execute("""SELECT t.state,t.thread_id,t.turn_id,o.state,o.revision FROM tasks t
++                JOIN task_occupancy o ON o.task_id=t.id WHERE t.id=?""", (task["id"],)).fetchone()
++            if row != ("unknown", task["thread_id"], task["turn_id"], "holding", task["occupancy"]["revision"]):
++                raise ProtocolError("Occupancy evidence became stale")
++            if evidence.get("thread_id") != task["thread_id"] or task["turn_id"] not in evidence["turns"]:
++                raise ProtocolError("Native terminal evidence escaped its original turn")
++        for task in expected:
++            transition(db, task["id"], "released", reason, evidence)
++        db.execute("COMMIT")
++        return True
++    except BaseException:
++        db.execute("ROLLBACK")
++        raise
++
++
++class OccupancyStore:
++    """Uses RuntimeState's single worker/connection and existing transaction owner."""
++
++    def _occupancy_transition(self, task_id, state, reason, evidence=None):
++        transition(self.db, task_id, state, reason, evidence)
++
++    def _active_count(self):
++        return self.db.execute(f"SELECT count(*) FROM {ACTIVE_FROM} WHERE {ACTIVE_WHERE}").fetchone()[0]
++
++    async def occupancy_snapshot(self, *, task_id=None, holding_only=False):
++        def read():
++            where, args = ("o.task_id=?", (task_id,)) if task_id else (
++                "o.state='holding'" if holding_only else ACTIVE_WHERE, ())
++            query = f"SELECT {','.join('t.'+c for c in TASK_COLUMNS.split(','))},o.state,o.revision,o.reason,o.evidence,o.checked_at FROM task_occupancy o JOIN tasks t ON t.id=o.task_id WHERE {where} ORDER BY o.rowid LIMIT 129"
++            rows = list(self.db.execute(query, args))
++            if len(rows) > 128:
++                raise ProtocolError("Occupancy bound exceeded; incomplete view cannot grant admission")
++            result = []
++            for row in rows:
++                task = self._task(row[:10])
++                task["occupancy"] = dict(zip(("state", "revision", "reason", "evidence", "checked_at"), row[10:]))
++                task["occupancy"]["evidence"] = json.loads(task["occupancy"]["evidence"])
++                result.append(task)
++            return result
++        return await self._call(read)
++
++    async def release_occupancies(self, expected, evidence, *, reason="native_terminal"):
++        return await self._call(lambda: release_rows(self.db, expected, evidence, reason=reason))
++
++    async def record_occupancy_check(self, snapshots, reason):
++        def record():
++            now = time.time()
++            self.db.executemany("UPDATE task_occupancy SET checked_at=?,reason=? WHERE task_id=? AND revision=? AND state='holding'",
++                [(now, reason, t["id"], t["occupancy"]["revision"]) for t in snapshots])
++        await self._call(record)
++
++    async def reactivate_occupancy(self, thread_id, turn_id):
++        def mark():
++            self.db.execute('BEGIN IMMEDIATE')
++            try:
++                rows = list(self.db.execute("""SELECT t.id FROM tasks t INDEXED BY task_native_turn
++                    JOIN task_occupancy o ON o.task_id=t.id WHERE t.thread_id=? AND t.turn_id=?
++                    AND t.state='unknown' AND o.state='released' LIMIT 129""", (thread_id, turn_id)))
++                if len(rows)>128:
++                    raise ProtocolError('Late native activity exceeds the bounded ownership view')
++                for (identity,) in rows:
++                    self._occupancy_transition(identity,'holding','late_native_activity')
++                self.db.execute('COMMIT')
++                return bool(rows)
++            except BaseException:
++                self.db.execute('ROLLBACK')
++                raise
++        return await self._call(mark)
++
++    async def occupancy_history(self, *, after="", limit=20):
++        if not isinstance(after, str) or type(limit) is not int or not 1 <= limit <= 100:
++            raise ValueError("Bounded occupancy history cursor required")
++        def read():
++            return [dict(zip(("task_id", "state", "revision", "reason", "checked_at"), row)) for row in self.db.execute(
++                "SELECT task_id,state,revision,reason,checked_at FROM task_occupancy INDEXED BY occupancy_history WHERE state='released' AND task_id>? ORDER BY task_id LIMIT ?", (after, limit))]
++        return await self._call(read)
++
++    async def unknown_history_page(self, *, after='', limit=20):
++        if not isinstance(after,str) or type(limit) is not int or not 1<=limit<=100:
++            raise ValueError('Bounded unknown-result cursor required')
++        return await self._call(lambda:[self._task(row) for row in self.db.execute(
++            f"SELECT {TASK_COLUMNS} FROM tasks INDEXED BY task_unknown_history WHERE state='unknown' AND id>? ORDER BY id LIMIT ?",(after,limit))])
++
++    async def admission_wait(self, task, reason, blockers, *, now=None):
++        now = time.time() if now is None else now
++        if type(now) not in (int,float) or not math.isfinite(now):
++            raise ValueError('Finite admission observation clock required')
++        blockers = sorted(set(blockers))[:128]
++        encoded = json.dumps(blockers)
++        old = await self.admission_wait_status(task['id'])
++        if old and (old['escalated'] or now - old['first_at'] < 60):
++            await self._call(lambda: self.db.execute(
++                "UPDATE admission_waits SET reason=?,blockers=?,checked_at=? WHERE task_id=?", (reason, encoded, now, task['id'])))
++            return
++        text = f"任务已接收，等待准入：{task['id']}。{reason}；尚未进入原生队列。"
++        if blockers:
++            text += "\n阻塞任务：" + "、".join(blockers) + "。"
++        text += f"\n可用 /status {task['id']} 查询，或 /stop {task['id']} 撤销本次未提交任务。"
++        chunks = await render_in_worker(text, renderer=render_segments, slots=self.render_slots)
++        def record():
++            self.db.execute("BEGIN IMMEDIATE")
++            try:
++                current = self.db.execute("SELECT state FROM tasks WHERE id=?", (task["id"],)).fetchone()
++                if current != ("received",):
++                    return
++                old = self.db.execute("SELECT first_at,escalated,reason,blockers FROM admission_waits WHERE task_id=?", (task["id"],)).fetchone()
++                first, escalated = (old[0], old[1]) if old else (now, 0)
++                upgrade = bool(old and not escalated and now - first >= 60)
++                self.db.execute("""INSERT INTO admission_waits VALUES(?,?,?,?,?,?) ON CONFLICT(task_id)
++                    DO UPDATE SET reason=excluded.reason,blockers=excluded.blockers,checked_at=excluded.checked_at,escalated=excluded.escalated""",
++                    (task["id"], reason, encoded, first, now, int(escalated or upgrade)))
++                if old is None or upgrade:
++                    event = task["id"] + ("-waiting-60" if upgrade else "-waiting")
++                    for i, chunk in enumerate(chunks):
++                        self._queue_reply(event + (f"-part-{i}" if len(chunks) > 1 else ""),
++                            ("准入等待仍未解除。\n" if upgrade else "") + chunk.text, 2, task["id"], "progress")
++                self.db.execute("COMMIT")
++            finally:
++                if self.db.in_transaction:
++                    self.db.execute("ROLLBACK")
++        await self._call(record, wake=True)
++
++    async def admission_wait_status(self, task_id):
++        def read():
++            row = self.db.execute("SELECT reason,blockers,first_at,checked_at,escalated FROM admission_waits WHERE task_id=?", (task_id,)).fetchone()
++            return dict(zip(("reason", "blockers", "first_at", "checked_at", "escalated"), row)) if row else None
++        return await self._call(read)
++
++    async def occupancy_counts(self):
++        def read():
++            counts = dict(self.db.execute("SELECT state,count(*) FROM task_occupancy GROUP BY state"))
++            counts['released_unknown'] = self.db.execute("SELECT count(*) FROM task_occupancy o JOIN tasks t ON t.id=o.task_id WHERE o.state='released' AND t.state='unknown'").fetchone()[0]
++            return counts
++        return await self._call(read)
++
++    async def describe_admission(self, task):
++        rows = await self.occupancy_snapshot(task_id=task['id'])
++        if not rows:
++            return ''
++        hold = rows[0]['occupancy']
++        state = {'waiting':'尚未提交，等待准入','holding':'仓库占用仍保留','released':'仓库占用已释放'}[hold['state']]
++        text = f"{state}。"
++        if task['state'] == 'unknown':
++            text += '历史执行结果仍未知，不会自动重跑。'
++            if hold['state']=='holding':
++                text += '\n占用核验说明：'+CHECK_REASONS.get(hold['reason'],'准确原生结束证据尚不完整')+'。'
++        if hold['checked_at']:
++            checked = datetime.fromtimestamp(hold['checked_at'], timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
++            text += f'\n最后占用核验：{checked}（北京时间）。'
++        wait = await self.admission_wait_status(task['id']) if task['state']=='received' else None
++        if wait:
++            text += '\n等待原因：'+wait['reason']+'。'
++            blockers = json.loads(wait['blockers'])
++            if blockers:
++                text += '\n阻塞任务：'+'、'.join(blockers)+'。'
++            checked=datetime.fromtimestamp(wait['checked_at'],timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S')
++            text += f'\n最后准入检查：{checked}（北京时间）。'
++        return text
++
++
++def report_digest(rows):
++    values = [(t["id"], t["state"], t["target"], t["thread_id"], t["turn_id"], t["occupancy"]["state"], t["occupancy"]["revision"]) for t in rows]
++    return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
+--- a/src/wx_clawbot/runtime_lifecycle.py
++++ b/src/wx_clawbot/runtime_lifecycle.py
+@@ -39,10 +39,13 @@
+                 task = await state.tasks(task_id=command.argument)
+                 if task is None:
+                     raise CommandError("任务不存在。")
+-                return f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。"
++                return (f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。\n"
++                        + await state.describe_admission(task) + '\n原生离线，以上为最后保存的记录。')
+             tasks = await state.tasks(active_only=True)
++            occupancy = await state.occupancy_counts()
+             return ("执行目标尚未重新核验；原生运行时未就绪，不会自动重放任务。\n"
+-                    + ("\n".join(f"{t['id']}：{t['state']}" for t in tasks[:20]) or "暂无未结束任务。"))
++                    + ("\n".join(f"{t['id']}：{t['state']}" for t in tasks[:20]) or "暂无未结束任务。")
++                    + f"\n历史未知且已释放占用：{occupancy.get('released_unknown',0)} 条；以上为最后记录。")
+         if command.name == "stop" and command.argument:
+             task = await state.tasks(task_id=command.argument)
+             if task and task["state"] == "received":
+--- a/src/wx_clawbot/__init__.py
++++ b/src/wx_clawbot/__init__.py
+@@ -1,3 +1,3 @@
+ """Bridge for native Codex sessions."""
+ 
+-__version__ = "0.1.0"
++__version__ = "0.1.1"
+--- a/src/wx_clawbot/runtime_state.py
++++ b/src/wx_clawbot/runtime_state.py
+@@ -14,9 +14,10 @@
+ from .channels.messages import parse_message
+ from . import schema
+ from .output import DisplaySegment, render_segments, render_in_worker
+-
+-
+-class RuntimeState(ChannelState):
++from .occupancy import OccupancyStore, ACTIVE_FROM, ACTIVE_WHERE, TASK_COLUMNS
++
++
++class RuntimeState(OccupancyStore, ChannelState):
+     APPLICATION_ID = schema.APPLICATION_ID
+     parse_message = staticmethod(parse_message)
+ 
+@@ -73,7 +74,7 @@
+         # Image preparation precedes every native attempt. Resume only its frozen
+         # task, never replay an old inbox command; dispatching remains unknown.
+         self.db.execute("UPDATE tasks SET state='received' WHERE state='prepared' AND input_items<>'[]'")
+-        self.db.execute("UPDATE tasks SET state='unknown' WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')")
++        self._mark_native_unknown()
+         self.db.execute("UPDATE outbox SET state='unknown' WHERE state='sending'")
+         self.db.execute("UPDATE delivery_attempts SET state='unknown' WHERE state='sending'")
+         self.db.execute("UPDATE inbox SET phase='stale' WHERE phase='runtime'")
+@@ -272,10 +273,19 @@
+ 
+     async def native_disconnected(self):
+         """Preserve intent and receipts; never replay an uncertain native call."""
+-        def mark():
+-            self.db.execute("UPDATE tasks SET state='unknown',updated_at=? WHERE state IN "
+-                            "('prepared','dispatching','queued','running','waiting_interaction','stopping')", (time.time(),))
+-        await self._call(mark)
++        await self._call(self._mark_native_unknown)
++
++    def _mark_native_unknown(self):
++        self.db.execute("BEGIN IMMEDIATE")
++        try:
++            rows = list(self.db.execute("SELECT id FROM tasks WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')"))
++            for (identity,) in rows:
++                self.db.execute("UPDATE tasks SET state='unknown',updated_at=? WHERE id=?", (time.time(), identity))
++                self._occupancy_transition(identity, "holding", "native_unverified")
++            self.db.execute("COMMIT")
++        except BaseException:
++            self.db.execute("ROLLBACK")
++            raise
+ 
+     async def task_intent(self, message_id, target: dict, text: str):
+         if (not isinstance(message_id, str) or not message_id or not isinstance(target, dict)
+@@ -294,7 +304,7 @@
+             row = self.db.execute("SELECT conflict,phase,content FROM inbox WHERE message_id=?", (message_id,)).fetchone()
+             if row is None or row[:2] != (0, "runtime"):
+                 raise ProtocolError("Task must originate from a fresh validated runtime message")
+-            if self.db.execute("SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
++            if self._active_count() >= 128:
+                 raise ProtocolError("Unresolved task admission bound reached")
+             now = time.time()
+             self.db.execute("BEGIN IMMEDIATE")
+@@ -302,6 +312,7 @@
+                 self.db.execute("INSERT INTO tasks(id,source_message_id,client_id,target,thread_id,input,state,created_at,updated_at,input_items) VALUES(?,?,?,?,?,?,'prepared',?,?,?)",
+                                 (task_id, message_id, client_id, encoded, target["thread_id"], text, now, now, row[2]))
+                 self.db.execute("UPDATE attachments SET task_id=? WHERE message_id=? AND task_id IS NULL", (task_id, message_id))
++                self._occupancy_transition(task_id, "waiting", "not_submitted")
+                 self.db.execute("COMMIT")
+             except BaseException:
+                 self.db.execute("ROLLBACK")
+@@ -319,12 +330,22 @@
+             if previous and ((state == "queued" and previous[0] in {"running", "waiting_interaction", "stopping"})
+                              or (state in {"running", "waiting_interaction"} and previous[0] == "stopping")):
+                 return False  # A delayed queue ACK must not regress an observed native turn.
+-            result = self.db.execute("""UPDATE tasks SET state=?,queue_id=COALESCE(?,queue_id),
+-                turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=? AND state NOT IN ('completed','failed','interrupted','cancelled')""",
+-                                     (state, queue_id, turn_id, time.time(), task_id))
+-            if result.rowcount != 1:
+-                raise ProtocolError("Task is missing or already terminal")
+-            return True
++            self.db.execute("BEGIN IMMEDIATE")
++            try:
++                result = self.db.execute("""UPDATE tasks SET state=?,queue_id=COALESCE(?,queue_id),
++                    turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=? AND state NOT IN ('completed','failed','interrupted','cancelled')""",
++                                         (state, queue_id, turn_id, time.time(), task_id))
++                if result.rowcount != 1:
++                    raise ProtocolError("Task is missing or already terminal")
++                prior = self.db.execute("SELECT state FROM task_occupancy WHERE task_id=?", (task_id,)).fetchone()
++                if state != "unknown" or prior != ("released",):
++                    occupancy = "waiting" if state == "received" else "holding"
++                    self._occupancy_transition(task_id, occupancy, "late_native_activity" if prior == ("released",) else "native_" + state)
++                self.db.execute("COMMIT")
++                return True
++            except BaseException:
++                self.db.execute("ROLLBACK")
++                raise
+         return await self._call(update)
+ 
+     async def external_task(self, target, turn_id, *, native_client_id=None):
+@@ -339,14 +360,21 @@
+                 if json.loads(row[0]) != destination:
+                     raise ProtocolError("External native turn identity changed")
+                 return "e-" + identity
+-            if self.db.execute("SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')").fetchone()[0] >= 128:
++            if self._active_count() >= 128:
+                 raise ProtocolError("Unresolved task bound prevents adopting another external turn")
+             now = time.time()
+             # client_id is explicitly local for this external row, not a claimed
+             # native submission receipt. No fabricated inbox or task text is stored.
+-            self.db.execute("""INSERT INTO tasks(id,client_id,target,thread_id,input,state,turn_id,created_at,updated_at)
+-                VALUES(?,?,?,?,'','running',?,?,?)""", ("e-" + identity, "wx-external-" + identity,
+-                    encoded, target["thread_id"], turn_id, now, now))
++            self.db.execute("BEGIN IMMEDIATE")
++            try:
++                self.db.execute("""INSERT INTO tasks(id,client_id,target,thread_id,input,state,turn_id,created_at,updated_at)
++                    VALUES(?,?,?,?,'','running',?,?,?)""", ("e-" + identity, "wx-external-" + identity,
++                        encoded, target["thread_id"], turn_id, now, now))
++                self._occupancy_transition("e-" + identity, "holding", "external_activity")
++                self.db.execute("COMMIT")
++            except BaseException:
++                self.db.execute("ROLLBACK")
++                raise
+             return "e-" + identity
+         task_id = await self._call(insert)
+         return await self.tasks(task_id=task_id)
+@@ -374,7 +402,7 @@
+                     raise ProtocolError("Native turn has multiple local task associations")
+                 return self._task(rows[0]) if rows else None
+             if active_only:
+-                rows = list(self.db.execute(query + " INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"))
++                rows = list(self.db.execute(f"SELECT {','.join('t.'+c for c in TASK_COLUMNS.split(','))} FROM {ACTIVE_FROM} WHERE {ACTIVE_WHERE} ORDER BY t.rowid LIMIT 129"))
+                 if len(rows) > 128:
+                     raise ProtocolError("Unresolved task bound exceeded; do not use a partial admission view")
+                 return [self._task(row) for row in rows]
+@@ -449,6 +477,7 @@
+                     AND state IN ('pending','preparing')""", (time.time(), task_id))
+                 self.db.execute("UPDATE tasks SET state=?,turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=?",
+                                 (state, turn_id, time.time(), task_id))
++                self._occupancy_transition(task_id, "released", "task_" + state)
+                 self.db.execute("UPDATE outbox SET state='superseded' WHERE task_id=? AND state='pending' AND kind IN ('accepted','progress')", (task_id,))
+                 for index, chunk in enumerate(chunks, 1):
+                     self._queue_reply(f"{task_id}-final-{index}", chunk.text, reply_priority, task_id, "final")
+--- /dev/null
++++ b/src/wx_clawbot/admission_ops.py
+@@ -0,0 +1,86 @@
++"""Explicit maintenance actions; reports never connect to native or send messages."""
++
++import asyncio
++import json
++import re
++import sqlite3
++import uuid
++from contextlib import closing
++
++from . import schema
++from .admission_recovery import terminal_evidence
++from .agents.codex import CodexConnection
++from .channels.http import ProtocolError
++from .channels.private import load_credentials, private_file, private_lease
++from .occupancy import TASK_COLUMNS, release_rows, report_digest
++from .operations import existing_root
++from .runtime_discovery import discover_runtime
++
++
++def snapshots(db, task_id):
++    selected = db.execute("SELECT thread_id FROM tasks WHERE id=?", (task_id,)).fetchone()
++    if selected is None:
++        raise ProtocolError("Exact task is absent")
++    query = f"SELECT {','.join('t.'+c for c in TASK_COLUMNS.split(','))},o.state,o.revision,o.reason,o.evidence,o.checked_at FROM task_occupancy o JOIN tasks t ON t.id=o.task_id WHERE o.task_id=? OR (t.thread_id=? AND o.state='holding') ORDER BY o.rowid LIMIT 129"
++    rows = list(db.execute(query, (task_id, selected[0])))
++    if not rows or len(rows) > 128:
++        raise ProtocolError("Complete bounded occupancy view required")
++    result = []
++    for row in rows:
++        task = dict(zip(TASK_COLUMNS.split(','), row[:10]))
++        task['target'] = json.loads(task['target'])
++        task['input_items'] = json.loads(task['input_items'])
++        task['occupancy'] = dict(zip(('state','revision','reason','evidence','checked_at'), row[10:]))
++        task['occupancy']['evidence'] = json.loads(task['occupancy']['evidence'])
++        result.append(task)
++    return result
++
++
++def report(root, task_id):
++    if not isinstance(task_id, str) or not re.fullmatch(r'[te]-[0-9a-f]{32}', task_id):
++        raise ValueError("Exact local task id required")
++    root = existing_root(root)
++    private_file(root / 'runtime.sqlite3')
++    credentials = load_credentials(root / 'credentials.json')
++    with closing(sqlite3.connect((root / 'runtime.sqlite3').as_uri()+'?mode=ro',uri=True)) as db:
++        db.execute('BEGIN')
++        schema.validate(db, credentials, versions=(schema.VERSION,))
++        rows = snapshots(db, task_id)
++    return {'status':'admission_report','task_id':task_id,'confirm_report':report_digest(rows),
++            'occupancies':[{'task_id':t['id'],'execution_state':t['state'],
++                'occupancy':t['occupancy']['state'],'revision':t['occupancy']['revision'],
++                'reason':t['occupancy']['reason'],'checked_at':t['occupancy']['checked_at']} for t in rows],
++            'applied':False,'requires_stopped_consumer':True,'requires_native_terminal_evidence':True}
++
++
++async def release(root, task_id, *, apply=False, confirm_report=None, reason=None, socket=None, codex_home=None):
++    planned = report(root, task_id)
++    if not apply:
++        return planned
++    if (not isinstance(confirm_report, str) or not re.fullmatch(r'[0-9a-f]{64}', confirm_report)
++            or not isinstance(reason, str) or not reason.strip() or len(reason) > 512):
++        raise ValueError("Explicit report digest and bounded operator reason required")
++    root = existing_root(root)
++    credentials = load_credentials(root/'credentials.json')
++    with private_lease(root/'channel-consumer.lock'), closing(sqlite3.connect(root/'runtime.sqlite3',isolation_level=None,timeout=1)) as db:
++        db.execute('PRAGMA foreign_keys=ON')
++        schema.validate(db, credentials, versions=(schema.VERSION,))
++        rows = snapshots(db, task_id)
++        selected = next(t for t in rows if t['id']==task_id)
++        if selected['occupancy']['state']=='released':
++            return {'status':'already_released','task_id':task_id,'applied':False}
++        if report_digest(rows) != confirm_report:
++            raise ProtocolError('Operator report became stale')
++        if socket is None:
++            socket, _ = await asyncio.to_thread(discover_runtime, codex_home)
++        native = await CodexConnection.connect(socket)
++        try:
++            async with asyncio.timeout(5):
++                evidence = await terminal_evidence(native, rows, uuid.uuid4().hex)
++            evidence['operator_reason'] = reason
++            evidence['operator_report'] = confirm_report
++            release_rows(db, rows, evidence, reason='operator_verified_terminal')
++        finally:
++            await native.close()
++    return {'status':'released','task_id':task_id,'task_ids':[t['id'] for t in rows],
++            'execution_state':'unknown','applied':True,'native_submissions':0,'messages_sent':0}
+--- a/src/wx_clawbot/operations.py
++++ b/src/wx_clawbot/operations.py
+@@ -147,6 +147,8 @@
+     with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as db:
+         db.execute("BEGIN")
+         report["schema_version"] = schema.validate(db, credentials)
++        if report["schema_version"] >= 5:
++            report["occupancy"] = dict(db.execute("SELECT state,count(*) FROM task_occupancy GROUP BY state"))
+         report["tasks"] = dict(db.execute("SELECT state,count(*) FROM tasks GROUP BY state"))
+         report["replies"] = dict(db.execute("SELECT state,count(*) FROM outbox GROUP BY state"))
+         report["unsettled_reply_ids"] = [row[0] for row in db.execute(
+--- a/src/wx_clawbot/cli.py
++++ b/src/wx_clawbot/cli.py
+@@ -113,6 +113,16 @@
+     maintenance.add_argument("--state-dir", type=Path,
+                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
+     maintenance.add_argument("--apply", action="store_true", help="显式授权清理七天正文／三十天已结摘要，要求前台停止")
++    admission_report = commands.add_parser("admission-report", help="只读查看准确任务的仓库占用与处置摘要，不连接原生")
++    admission_release = commands.add_parser("admission-release", help="默认只读；显式核验原生终态后释放占用，不改写未知结果")
++    for action in (admission_report, admission_release):
++        action.add_argument("--state-dir", type=Path, default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
++        action.add_argument("--task-id", required=True)
++    admission_release.add_argument("--apply", action="store_true", help="要求已授权、前台停止和完整原生证据，不强制解锁")
++    admission_release.add_argument("--confirm-report", help="admission-report 返回的准确确认摘要")
++    admission_release.add_argument("--reason", help="本次明确处置理由，最多 512 字符")
++    admission_release.add_argument("--socket", type=Path)
++    admission_release.add_argument("--codex-home", type=Path, default=Path.home() / ".codex")
+     run = commands.add_parser("serve", help="前台运行本人微信与已注册项目桥接")
+     run.add_argument("--config", required=True, type=Path)
+     run.add_argument("--socket", type=Path, help="省略时只读发现既有 daemon，不自动启动")
+@@ -138,6 +148,18 @@
+         action.add_argument("--state-dir", type=Path,
+                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
+     args = parser.parse_args(argv)
++    if args.command in {"admission-report", "admission-release"}:
++        from . import admission_ops
++        try:
++            result = admission_ops.report(args.state_dir, args.task_id) if args.command == "admission-report" else asyncio.run(
++                admission_ops.release(args.state_dir, args.task_id, apply=args.apply,
++                    confirm_report=args.confirm_report, reason=args.reason, socket=args.socket, codex_home=args.codex_home))
++        except Exception as exc:
++            print(json.dumps({"status":"failed","component":"admission","error_type":type(exc).__name__,
++                "message":"请核对任务、账本版本、确认摘要、前台停止状态及原生终态证据；未强制释放占用。"},ensure_ascii=False))
++            return 1
++        print(json.dumps(result, ensure_ascii=False, indent=2))
++        return 0
+     if args.command in {"status", "stop", "retry-reply"}:
+         from .operations import status, request_stop, retry_delivery
+         try:
+--- /dev/null
++++ b/src/wx_clawbot/admission_recovery.py
+@@ -0,0 +1,170 @@
++"""Bounded read-only native evidence; never restores or executes historical work."""
++
++import asyncio
++import hashlib
++import json
++import time
++
++from .agents.rpc import RpcError
++
++
++class EvidenceUnavailable(ValueError):
++    pass
++
++
++async def terminal_evidence(native, tasks, generation):
++    """Prove original turns ended and no queued work remains on their thread."""
++    if not isinstance(tasks,list) or not 1<=len(tasks)<=128 or any(
++        not isinstance(t,dict) or t.get('state')!='unknown' or not isinstance(t.get('target'),dict)
++        or any(not isinstance(t.get(k),str) or not t[k] or len(t[k])>256 for k in ('thread_id','turn_id','client_id'))
++        or not isinstance(t['target'].get('cwd'),str) or not t['target']['cwd'].startswith('/') for t in tasks):
++        raise EvidenceUnavailable("missing_terminal_identity")
++    thread_id = tasks[0]["thread_id"]
++    cwd = tasks[0]["target"]["cwd"]
++    if any(t["thread_id"] != thread_id or t["target"]["cwd"] != cwd for t in tasks):
++        raise EvidenceUnavailable("conflicting_thread_identity")
++
++    async def inspect():
++        value = await native.inspect(thread_id)
++        if not isinstance(value,dict) or value.get("id") != thread_id or value.get("cwd") != cwd:
++            raise EvidenceUnavailable("native_identity_mismatch")
++        if not isinstance(value.get('status'),dict) or value['status'].get("type") not in {"idle", "notLoaded"}:
++            raise EvidenceUnavailable("native_still_active")
++
++    await inspect()
++    # queue/list is a read operation; NativeQueue.list additionally requires a
++    # live TUI for dispatch, which cannot grant or deny historical read authority.
++    queue = await native.rpc.request("thread/queue/list", {"threadId": thread_id, "limit": 1})
++    if not isinstance(queue, dict) or queue.get("data") != [] or queue.get("nextCursor") is not None:
++        raise EvidenceUnavailable("native_queue_not_empty_or_incomplete")
++    found, cursor, cursors = {}, None, set()
++    clients = {t["target"].get("native_client_id") if t["target"].get("source") == "external" else t["client_id"] for t in tasks}
++    if None in clients or "" in clients:
++        raise EvidenceUnavailable("missing_client_identity")
++    seen_clients = set()
++    for _ in range(200):
++        params = {"threadId": thread_id, "limit": 1, "itemsView": "full", "sortDirection": "desc"}
++        if cursor:
++            params["cursor"] = cursor
++        page = await native.rpc.request("thread/turns/list", params)
++        rows = page.get("data") if isinstance(page, dict) else None
++        if not isinstance(rows, list) or len(rows) > 1:
++            raise EvidenceUnavailable("malformed_history")
++        for turn in rows:
++            if (not isinstance(turn, dict) or not isinstance(turn.get("items"), list)
++                    or not isinstance(turn.get("id"), str) or not turn['id']
++                    or any(not isinstance(i,dict) for i in turn['items'])):
++                raise EvidenceUnavailable("malformed_turn")
++            if turn.get('status') == 'inProgress':
++                raise EvidenceUnavailable('native_history_still_active')
++            if any(i.get('type') in {'commandExecution','mcpToolCall','dynamicToolCall'} and
++                   i.get('status') in {'inProgress','running'} for i in turn['items'] if isinstance(i,dict)):
++                raise EvidenceUnavailable('known_tool_still_running')
++            users = [i for i in turn["items"] if isinstance(i, dict) and i.get("type") == "userMessage"]
++            if any(i.get('clientId') is not None and not isinstance(i['clientId'],str) for i in users):
++                raise EvidenceUnavailable('malformed_client_identity')
++            matches = [i.get("clientId") for i in users if i.get("clientId") in clients]
++            if len(set(matches)) != len(matches) or any(c in seen_clients for c in matches):
++                raise EvidenceUnavailable("duplicate_client_history")
++            seen_clients.update(matches)
++            for task in tasks:
++                if task["turn_id"] != turn["id"]:
++                    continue
++                client = task["target"].get("native_client_id") if task["target"].get("source") == "external" else task["client_id"]
++                if client not in matches or turn["id"] in found and found[turn["id"]] != turn.get("status"):
++                    raise EvidenceUnavailable("ambiguous_original_turn")
++                if turn.get("status") not in {"completed", "failed", "interrupted"}:
++                    raise EvidenceUnavailable("turn_not_terminal")
++                found[turn["id"]] = turn["status"]
++        if set(found) == {t['turn_id'] for t in tasks}:
++            break  # Ownership proof does not require unrelated older results.
++        cursor = page.get("nextCursor")
++        if cursor is None:
++            break
++        if not isinstance(cursor, str) or not cursor or cursor in cursors:
++            raise EvidenceUnavailable("invalid_history_cursor")
++        cursors.add(cursor)
++    else:
++        raise EvidenceUnavailable("history_bound_exceeded")
++    if set(found) != {t["turn_id"] for t in tasks} or seen_clients != clients:
++        raise EvidenceUnavailable("original_turn_not_found")
++    await inspect()
++    # A queue insertion between history and the second inspection must still
++    # prevent release, even when the native status remains idle.
++    after = await native.rpc.request("thread/queue/list", {"threadId": thread_id, "limit": 1})
++    if not isinstance(after, dict) or after.get("data") != [] or after.get("nextCursor") is not None:
++        raise EvidenceUnavailable("native_queue_changed")
++    return {"kind": "native_terminal", "thread_id": thread_id, "turns": found,
++            "queue_empty": True, "generation": generation,
++            "clients_sha256": hashlib.sha256(json.dumps(sorted(clients)).encode()).hexdigest()}
++
++
++class AdmissionRecovery:
++    """At most two checks at a time; slow native reads never own admission_gate."""
++
++    def __init__(self, engine, *, clock=time.monotonic):
++        self.engine = engine
++        self.schedule = {}
++        self.lock = asyncio.Lock()
++        self.wake = asyncio.Event()
++        self.clock = clock
++        self.query_timeout = 5
++
++    def trigger(self, thread_id):
++        self.schedule.pop(thread_id, None)
++        self.wake.set()
++
++    async def check(self, tasks):
++        engine = self.engine
++        thread_id = tasks[0]["thread_id"]
++        attempt = self.schedule.get(thread_id, (0, 0))[1]
++        reason = "native_unavailable"
++        try:
++            if not engine.controller.native_ready:
++                raise EvidenceUnavailable('native_generation_changed')
++            if thread_id in engine.inflight:
++                raise EvidenceUnavailable("submission_inflight")
++            async with asyncio.timeout(self.query_timeout):
++                await engine.reconcile_results(thread_id=thread_id)
++                tasks=[t for t in await engine.state.occupancy_snapshot(holding_only=True) if t['thread_id']==thread_id]
++                if not tasks:
++                    self.schedule.pop(thread_id,None)
++                    return
++                evidence = await terminal_evidence(engine.native, tasks, engine.generation)
++            async with engine.admission_gate:
++                if not engine.controller.native_ready or thread_id in engine.inflight:
++                    raise EvidenceUnavailable("native_generation_changed")
++                current = [t for t in await engine.state.occupancy_snapshot(holding_only=True) if t["thread_id"] == thread_id]
++                if [(t["id"], t["occupancy"]["revision"]) for t in current] != [(t["id"], t["occupancy"]["revision"]) for t in tasks]:
++                    raise EvidenceUnavailable("occupancy_revision_changed")
++                await engine.state.release_occupancies(tasks, evidence)
++            self.schedule.pop(thread_id, None)
++            return
++        except EvidenceUnavailable as exc:
++            reason = str(exc)
++        except (TimeoutError, ConnectionError, RpcError, ValueError):
++            reason = "native_query_unavailable"
++        # Storage failure must escape, rather than being disguised as a transient
++        # native error. In particular a failed release cannot unlock admission.
++        await engine.state.record_occupancy_check(tasks, reason)
++        delay = (1, 2, 5, 15, 30)[min(attempt, 4)]
++        self.schedule[thread_id] = (self.clock() + delay, attempt + 1)
++
++    async def reconcile(self, *, force=False):
++        async with self.lock:
++            groups = {}
++            for task in await self.engine.state.occupancy_snapshot(holding_only=True):
++                groups.setdefault(task["thread_id"], []).append(task)
++            self.schedule = {k: v for k, v in self.schedule.items() if k in groups}
++            eligible = [tasks for key, tasks in groups.items() if all(t["state"] == "unknown" for t in tasks)
++                        and (force or self.schedule.get(key, (0, 0))[0] <= self.clock())]
++            await asyncio.gather(*(self.check(tasks) for tasks in eligible[:2]))
++
++    async def run(self):
++        while True:
++            self.wake.clear()
++            await self.reconcile()
++            try:
++                await asyncio.wait_for(self.wake.wait(), 1)
++            except TimeoutError:
++                pass
+--- a/src/wx_clawbot/admission.py
++++ b/src/wx_clawbot/admission.py
+@@ -3,6 +3,13 @@
+ import asyncio
+ import shutil
+ from pathlib import Path
++
++
++class AdmissionConflict(str):
++    def __new__(cls, reason, blockers=()):
++        value = super().__new__(cls, reason)
++        value.blockers = tuple(blockers)
++        return value
+ 
+ 
+ async def repository_key(cwd: Path, project_root: Path | None) -> str:
+@@ -40,7 +47,7 @@
+     holds = [t for t in active if t["id"] != task["id"] and t["state"] not in {"received", "prepared"}]
+     aliases = {t["target"]["project_alias"] for t in holds if t["target"].get("source") != "external"}
+     if target["project_alias"] not in aliases and len(aliases) >= 2:
+-        return "已有两个桥接活动项目"
++        return AdmissionConflict("已有两个桥接活动项目", (t["id"] for t in holds))
+     keys = {target["cwd"]: target["repository"]}
+ 
+     async def key(record):
+@@ -59,15 +66,18 @@
+                     keys[cwd] = None
+         return keys[cwd]
+ 
++    blocked = []
+     for other in holds:
+         destination = other["target"]
+         if destination["session_id"] == target["session_id"]:
+             continue  # Same native session uses its own FIFO queue.
+         identity = await key(destination)
+         if identity is None:
+-            return "旧项目任务的仓库身份无法复验，请先核对未知任务"
++            return AdmissionConflict("旧项目任务的仓库身份无法复验，请先核对未知任务", [other["id"]])
+         if destination["project_alias"] == target["project_alias"] or identity == target["repository"]:
+-            return "同项目或同仓库的另一会话仍有未结束任务"
++            blocked.append(other["id"])
++    if blocked:
++        return AdmissionConflict("同项目或同仓库的另一会话仍有未结束任务", blocked)
+     # External clients remain autonomous. Detect their current activity instead of
+     # claiming that a local mutex can prevent a desktop user from starting work.
+     for session in tuple(catalog.sessions.values()):
+--- a/src/wx_clawbot/schema.py
++++ b/src/wx_clawbot/schema.py
+@@ -13,7 +13,7 @@
+ 
+ 
+ APPLICATION_ID = 0x57585254
+-VERSION = 4
++VERSION = 5
+ V1_COLUMNS = {
+     "channel": {"id", "bot", "owner", "cursor"},
+     "inbox": {"message_id", "text", "context", "created_ms", "seq", "received_at", "phase", "conflict"},
+@@ -63,20 +63,41 @@
+     "CREATE INDEX task_native_turn ON tasks(thread_id,turn_id)",
+     "CREATE INDEX task_active ON tasks(state) WHERE state NOT IN ('completed','failed','interrupted','cancelled')",
+ )
++V5_COLUMNS = {
++    "task_occupancy": {"task_id", "state", "revision", "reason", "evidence", "checked_at", "updated_at"},
++    "occupancy_audit": {"id", "task_id", "revision", "state", "reason", "evidence", "created_at"},
++    "admission_waits": {"task_id", "reason", "blockers", "first_at", "checked_at", "escalated"},
++}
++OCCUPANCY_UPGRADE = (
++    """CREATE TABLE task_occupancy (task_id TEXT PRIMARY KEY,state TEXT NOT NULL CHECK(state IN ('waiting','holding','released')),
++        revision INTEGER NOT NULL CHECK(revision>=0),reason TEXT NOT NULL,evidence TEXT NOT NULL,
++        checked_at REAL,updated_at REAL NOT NULL,FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE)""",
++    """CREATE TABLE occupancy_audit (id INTEGER PRIMARY KEY,task_id TEXT NOT NULL,revision INTEGER NOT NULL,
++        state TEXT NOT NULL,reason TEXT NOT NULL,evidence TEXT NOT NULL,created_at REAL NOT NULL,
++        UNIQUE(task_id,revision),FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE)""",
++    """CREATE TABLE admission_waits (task_id TEXT PRIMARY KEY,reason TEXT NOT NULL,blockers TEXT NOT NULL,
++        first_at REAL NOT NULL,checked_at REAL NOT NULL,escalated INTEGER NOT NULL CHECK(escalated IN (0,1)),
++        FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE)""",
++)
++OCCUPANCY_INDEXES = (
++    "CREATE INDEX occupancy_active ON task_occupancy(state) WHERE state IN ('waiting','holding')",
++    "CREATE INDEX occupancy_history ON task_occupancy(state,task_id)",
++    "CREATE INDEX task_unknown_history ON tasks(id) WHERE state='unknown'",
++)
+ 
+ 
+ class UpgradeRequired(ProtocolError):
+     pass
+ 
+ 
+-def validate(db, credentials, *, versions=(1, 2, 3, VERSION)):
++def validate(db, credentials, *, versions=(1, 2, 3, 4, VERSION)):
+     if db.execute("PRAGMA application_id").fetchone()[0] != APPLICATION_ID:
+         raise ProtocolError("Database is not this application's runtime ledger")
+     version = db.execute("PRAGMA user_version").fetchone()[0]
+     if version not in versions:
+         raise ProtocolError("Unsupported runtime schema version")
+     tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+-    columns_by_table = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {})
++    columns_by_table = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {}) | (V5_COLUMNS if version >= 5 else {})
+     expected = set(columns_by_table)
+     if tables != expected:
+         raise ProtocolError("Runtime tables differ from the verified schema")
+@@ -95,10 +116,15 @@
+                 raise ProtocolError("Runtime message digest is missing")
+     if version >= 4:
+         indexes = {row[0]: row[1] for row in db.execute("SELECT name,sql FROM sqlite_master WHERE type='index'")}
+-        for statement in PERFORMANCE_UPGRADE:
++        for statement in PERFORMANCE_UPGRADE + (OCCUPANCY_INDEXES if version >= 5 else ()):
+             name = statement.split()[2]
+             if indexes.get(name) != statement:
+                 raise ProtocolError("Runtime performance index differs from the verified schema")
++    if version >= 5:
++        missing = db.execute("""SELECT 1 FROM tasks t WHERE t.state NOT IN ('completed','failed','interrupted','cancelled')
++            AND NOT EXISTS(SELECT 1 FROM task_occupancy o WHERE o.task_id=t.id) LIMIT 1""").fetchone()
++        if missing:
++            raise ProtocolError("Active task has no verified occupancy record")
+     return version
+ 
+ 
+@@ -125,14 +151,19 @@
+ def apply_steps(db, credentials):
+     """Caller owns the transaction and has either a new file or a verified backup."""
+     version = validate(db, credentials)
+-    if version not in (1, 2, 3) or not db.in_transaction:
++    if version not in (1, 2, 3, 4) or not db.in_transaction:
+         raise ProtocolError("A supported older schema and an explicit transaction required")
+     if version == 1:
+         _text_steps(db, credentials)
+     for statement in IMAGE_UPGRADE if version < 3 else ():
+         db.execute(statement)
+-    for statement in PERFORMANCE_UPGRADE:
+-        db.execute(statement)
++    for statement in PERFORMANCE_UPGRADE if version < 4 else ():
++        db.execute(statement)
++    for statement in OCCUPANCY_UPGRADE + OCCUPANCY_INDEXES:
++        db.execute(statement)
++    db.execute("""INSERT INTO task_occupancy(task_id,state,revision,reason,evidence,updated_at)
++        SELECT id,CASE WHEN state IN ('prepared','received') THEN 'waiting' ELSE 'holding' END,
++        0,'legacy_unverified','{}',updated_at FROM tasks WHERE state NOT IN ('completed','failed','interrupted','cancelled')""")
+     db.execute("ANALYZE tasks")
+     db.execute("ANALYZE outbox")
+     db.execute(f"PRAGMA user_version={VERSION}")
+@@ -151,14 +182,14 @@
+     root = _root(root)
+     with closing(sqlite3.connect((root / "runtime.sqlite3").as_uri() + "?mode=ro", uri=True)) as db:
+         version = validate(db, credentials)
+-        tables = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {})
++        tables = V1_COLUMNS | (V2_COLUMNS if version >= 2 else {}) | (V3_COLUMNS if version >= 3 else {}) | (V5_COLUMNS if version >= 5 else {})
+         counts = {name: db.execute(f"SELECT count(*) FROM {name}").fetchone()[0] for name in tables}
+     return {"status": "current" if version == VERSION else "upgrade_available", "from_version": version,
+             "to_version": VERSION, "row_counts": counts, "requires_stopped_consumer": True,
+-            "add_tables": (["routes", "interactions", "delivery_attempts"] if version == 1 else []) + (["attachments"] if version < 3 else []),
++            "add_tables": (["routes", "interactions", "delivery_attempts"] if version == 1 else []) + (["attachments"] if version < 3 else []) + (list(V5_COLUMNS) if version < 5 else []),
+             "add_columns": (["inbox.body_sha256", "outbox.body_sha256"] if version == 1 else [])
+                            + (["inbox.content", "tasks.input_items"] if version < 3 else []),
+-            "add_indexes": [s.split()[2] for s in PERFORMANCE_UPGRADE] if version < VERSION else [],
++            "add_indexes": ([s.split()[2] for s in PERFORMANCE_UPGRADE] if version < 4 else []) + ([s.split()[2] for s in OCCUPANCY_INDEXES] if version < 5 else []),
+             "data_deleted": False}
+ 
+ 
+--- a/src/wx_clawbot/agents/codex.py
++++ b/src/wx_clawbot/agents/codex.py
+@@ -9,6 +9,7 @@
+ 
+ from .rpc import JsonRpc
+ from .base import Capabilities, SubmissionReceipt, thread_is_loaded
++from .. import __version__
+ 
+ SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0", "0.165.0", "0.166.0"})
+ 
+@@ -34,7 +35,7 @@
+         connection.runtime_identity = (metadata.st_dev, metadata.st_ino)
+         try:
+             result = await connection.rpc.request("initialize", {
+-                "clientInfo": {"name": "wx-clawbot", "version": "0.1.0.dev0"},
++                "clientInfo": {"name": "wx-clawbot", "version": __version__},
+                 "capabilities": {"experimentalApi": True},
+             })
+             if not isinstance(result, dict) or not all(
+--- a/tests/test_performance_schema.py
++++ b/tests/test_performance_schema.py
+@@ -14,6 +14,9 @@
+         await self.state.queue_reply('historic','frozen source\n')
+         await self.state.close()
+         with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            db.execute('DROP INDEX task_unknown_history')
++            for name in ('admission_waits','occupancy_audit','task_occupancy'):
++                db.execute('DROP TABLE '+name)
+             for statement in schema.PERFORMANCE_UPGRADE:
+                 db.execute('DROP INDEX '+statement.split()[2])
+             db.execute('PRAGMA user_version=3')
+@@ -29,12 +32,16 @@
+         await self.prepare_v3()
+         before = self.rows()
+         result=schema.upgrade(self.root,self.credentials)
+-        self.assertEqual((result['from_version'],result['to_version']),(3,4))
+-        self.assertEqual(self.rows(),before)
++        self.assertEqual((result['from_version'],result['to_version']),(3,schema.VERSION))
++        after = self.rows()
++        self.assertEqual({k:after[k] for k in before},before)
++        self.assertEqual(set(after)-set(before),set(schema.V5_COLUMNS))
++        self.assertEqual(len(after['task_occupancy']),1)
++        self.assertEqual(after['task_occupancy'][0][1],'waiting')
+         self.assertEqual(self.rows(self.root/result['backup']),before)
+         self.assertEqual(schema.upgrade(self.root,self.credentials)['status'],'current')
+         with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
+-            self.assertEqual(schema.validate(db,self.credentials),4)
++            self.assertEqual(schema.validate(db,self.credentials),schema.VERSION)
+ 
+     async def test_v3_failure_after_indexes_rolls_back_data_version_and_indexes(self):
+         await self.prepare_v3()
+--- a/tests/test_operations.py
++++ b/tests/test_operations.py
+@@ -3,6 +3,7 @@
+ import os
+ import tempfile
+ import unittest
++from contextlib import closing
+ from dataclasses import asdict
+ from pathlib import Path
+ from unittest.mock import patch
+@@ -111,7 +112,7 @@
+         report = retry_delivery(self.root, "operator-event", apply=True, confirm_unknown=True)
+         self.assertEqual(report["next_attempt"], 1)
+         import sqlite3
+-        with sqlite3.connect(self.root / "runtime.sqlite3") as db:
++        with closing(sqlite3.connect(self.root / "runtime.sqlite3")) as db:
+             self.assertEqual(db.execute("SELECT state FROM tasks WHERE id=?", (task["id"],)).fetchone()[0], before[0]["state"])
+             self.assertEqual(db.execute("SELECT count(*) FROM tasks").fetchone()[0], 1)
+             self.assertEqual(db.execute("SELECT phase FROM inbox").fetchone()[0], "runtime")
+--- /dev/null
++++ b/tests/test_admission_recovery.py
+@@ -0,0 +1,259 @@
++import unittest
++import sqlite3
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++import test_controller
++from test_runtime_state import RuntimeFixture
++from wx_clawbot.controller import target_record
++from wx_clawbot.sessions import SessionUnbound
++from wx_clawbot.channels.http import ProtocolError
++from wx_clawbot.admission_recovery import terminal_evidence, EvidenceUnavailable
++from wx_clawbot.occupancy import ACTIVE_FROM, ACTIVE_WHERE
++
++
++class AdmissionRecoveryTests(unittest.IsolatedAsyncioTestCase):
++    asyncSetUp = test_controller.ControllerTests.asyncSetUp
++    incoming = test_controller.ControllerTests.incoming
++    command = test_controller.ControllerTests.command
++    select = test_controller.ControllerTests.select
++
++    async def unique_result_case(self, released=False):
++        await self.select()
++        destination=self.sessions[1]
++        incoming=await self.incoming('known completed input')
++        task=await self.state.task_intent(incoming.message_id,target_record(destination),'known completed input')
++        await self.state.task_update(task['id'],'unknown',queue_id='known-queue',turn_id='known-turn')
++        turn={'id':'known-turn','status':'completed','items':[
++            {'type':'userMessage','clientId':task['client_id']},{'type':'agentMessage','text':'EXACT-RECOVERED-RESULT'}]}
++        async def request(method,params):
++            if method=='thread/queue/list':return {'data':[],'nextCursor':None}
++            if method=='thread/turns/list':return {'data':[turn],'nextCursor':None}
++            raise AssertionError(method)
++        self.agent.rpc.request.side_effect=request
++        self.agent.inspect.return_value={'id':'thread-two','cwd':str(destination.target.cwd),'status':{'type':'idle'}}
++        if released:
++            rows=await self.state.occupancy_snapshot(task_id=task['id'])
++            await self.state.release_occupancies(rows,{'kind':'native_terminal','thread_id':'thread-two',
++                'turns':{'known-turn':'completed'},'queue_empty':True,'generation':'fixture'})
++            self.assertEqual(await self.state.tasks(active_only=True),[])
++        await self.engine.reconcile()
++        self.assertEqual((await self.state.tasks(task_id=task['id']))['state'],'completed')
++        finals=await self.state._call(lambda:list(self.state.db.execute("SELECT text FROM outbox WHERE task_id=? AND kind='final'",(task['id'],))))
++        self.assertEqual(len(finals),1)
++        self.assertIn('EXACT-RECOVERED-RESULT',finals[0][0])
++
++    async def test_unique_completed_result_is_recovered_before_unknown_hold_is_archived(self):
++        await self.unique_result_case()
++
++    async def test_released_unknown_can_still_recover_exact_result_on_later_refresh(self):
++        await self.unique_result_case(released=True)
++
++    async def test_released_unknown_task_subscription_is_pruned_without_removing_focus(self):
++        await self.select()
++        target=self.sessions[0].target
++        incoming=await self.incoming('old subscribed task')
++        task=await self.state.task_intent(incoming.message_id,target_record(self.sessions[0]),'old subscribed task')
++        await self.state.task_update(task['id'],'unknown',turn_id='old-turn')
++        await self.controller.subscriptions.acquire(target,'task-'+task['id'])
++        rows=await self.state.occupancy_snapshot(task_id=task['id'])
++        evidence={'kind':'native_terminal','thread_id':'thread-one','turns':{'old-turn':'completed'},'queue_empty':True,'generation':'fixture'}
++        await self.state.release_occupancies(rows,evidence)
++        await self.engine.prune_memory()
++        self.assertNotIn(target.session_id,self.controller.subscriptions.bound)
++        self.assertEqual(self.controller.routes.target,self.sessions[1].target)
++        self.assertIn(self.sessions[1].target.session_id,self.controller.subscriptions.bound)
++
++    async def test_merged_terminal_history_releases_occupancy_without_inventing_results(self):
++        await self.select()
++        destination = self.sessions[1]
++        old = target_record(destination)
++        old['session_id'] = 'old-session'
++        old['repository'] = 'directory:' + str(destination.target.cwd)
++        incoming = await self.incoming('old task')
++        task = await self.state.task_intent(incoming.message_id, old, 'old task')
++        await self.state.task_update(task['id'], 'unknown', queue_id='old-queue', turn_id='old-turn')
++        external = await self.state.external_task(old, 'old-turn', native_client_id='desktop-client')
++        await self.state.task_update(external['id'], 'unknown')
++        users = [{'type': 'userMessage', 'clientId': c} for c in (task['client_id'], 'desktop-client')]
++        async def request(method, params):
++            if method == 'thread/queue/list':
++                return {'data': [], 'nextCursor': None}
++            if method == 'thread/turns/list':
++                return {'data': [{'id': 'old-turn', 'status': 'completed', 'items': users}], 'nextCursor': None}
++            raise AssertionError(method)
++        self.agent.rpc.request.side_effect = request
++        self.agent.inspect.return_value = {'id': 'thread-two', 'cwd': str(destination.target.cwd), 'status': {'type': 'idle'}}
++        original_require = self.catalog.require.side_effect
++        async def require(target):
++            if target.session_id == 'old-session':
++                raise SessionUnbound('Original terminal no longer present')
++            return await original_require(target)
++        self.catalog.require.side_effect = require
++        await self.command('new task')
++        waiting = (await self.state.tasks())[0]
++        self.assertEqual(waiting['state'], 'received')
++        await self.engine.reconcile()
++        await self.engine.drain_admission()
++        self.assertEqual((await self.state.tasks(task_id=waiting['id']))['state'], 'queued')
++        for identity in (task['id'], external['id']):
++            self.assertEqual((await self.state.tasks(task_id=identity))['state'], 'unknown')
++        self.queue.add.assert_awaited_once()
++
++
++class OccupancyCapacityTests(RuntimeFixture):
++    async def unknown(self, identity=1):
++        task = await self.admit(identity)
++        await self.state.task_update(task['id'],'unknown',turn_id='fixture-turn',queue_id='fixture-queue')
++        return (await self.state.occupancy_snapshot(task_id=task['id']))[0]
++
++    def evidence(self):
++        return {'kind':'native_terminal','thread_id':'fixture-thread','turns':{'fixture-turn':'completed'},
++                'queue_empty':True,'generation':'fixture-generation'}
++
++    async def test_released_unknown_does_not_consume_active_capacity(self):
++        task = await self.unknown()
++        await self.state.release_occupancies([task],self.evidence())
++        self.assertEqual((await self.state.tasks(task_id=task['id']))['state'],'unknown')
++        self.assertEqual(await self.state.tasks(active_only=True),[])
++        self.assertEqual((await self.state.occupancy_counts())['released_unknown'],1)
++        await self.restart()
++        self.assertEqual(await self.state.tasks(active_only=True),[])
++        self.assertEqual((await self.state.occupancy_snapshot(task_id=task['id']))[0]['occupancy']['state'],'released')
++
++    async def test_state_change_invalidates_release_evidence(self):
++        task = await self.unknown()
++        await self.state.task_update(task['id'],'running')
++        with self.assertRaisesRegex(ProtocolError,'stale'):
++            await self.state.release_occupancies([task],self.evidence())
++        self.assertEqual((await self.state.occupancy_snapshot(task_id=task['id']))[0]['occupancy']['state'],'holding')
++
++    async def test_group_release_and_audit_roll_back_together(self):
++        first,second = await self.unknown(1),await self.unknown(2)
++        await self.state._call(lambda:self.state.db.execute("CREATE TRIGGER deny_release BEFORE INSERT ON occupancy_audit WHEN NEW.state='released' BEGIN SELECT RAISE(ABORT,'fixture failure'); END"))
++        with self.assertRaises(sqlite3.IntegrityError):
++            await self.state.release_occupancies([first,second],self.evidence())
++        self.assertEqual({t['occupancy']['state'] for t in await self.state.occupancy_snapshot()}, {'holding'})
++
++    async def test_late_native_activity_reacquires_without_rewriting_unknown(self):
++        task = await self.unknown()
++        await self.state.release_occupancies([task],self.evidence())
++        self.assertTrue(await self.state.reactivate_occupancy('fixture-thread','fixture-turn'))
++        self.assertFalse(await self.state.reactivate_occupancy('unrelated','fixture-turn'))
++        self.assertEqual((await self.state.tasks(task_id=task['id']))['state'],'unknown')
++        row=(await self.state.occupancy_snapshot(task_id=task['id']))[0]
++        self.assertEqual((row['occupancy']['state'],row['occupancy']['reason']),('holding','late_native_activity'))
++
++    async def test_released_unknown_survives_retention(self):
++        from wx_clawbot.retention import maintain
++        task = await self.unknown()
++        await self.state.release_occupancies([task],self.evidence())
++        before=(await self.state.tasks(task_id=task['id']))
++        await self.state.close()
++        report=maintain(self.root,self.credentials,now=9999999999,apply=True)
++        await self.restart()
++        self.assertEqual(await self.state.tasks(task_id=task['id']),before)
++        self.assertEqual(report['changed_rows']['terminal_task_summaries'],0)
++
++    async def test_wait_notifications_are_once_and_persist_across_restart(self):
++        intent=await self.admit()
++        await self.state.task_update(intent['id'],'received')
++        task=await self.state.tasks(task_id=intent['id'])
++        for now in (100,90,159,160,161,10000):
++            await self.state.admission_wait(task,'fixture blocker',['old-task'],now=now)
++        rows=await self.state._call(lambda:list(self.state.db.execute('SELECT id FROM outbox ORDER BY rowid')))
++        self.assertEqual([r[0] for r in rows],[task['id']+'-waiting',task['id']+'-waiting-60'])
++        await self.restart()
++        await self.state.admission_wait(task,'fixture blocker',['old-task'],now=20000)
++        self.assertEqual((await self.state.admission_wait_status(task['id']))['escalated'],1)
++        self.assertEqual(len(await self.state._call(lambda:list(self.state.db.execute('SELECT id FROM outbox')))),2)
++        self.assertEqual((await self.state.tasks(task_id=task['id']))['state'],'received')
++
++    async def test_capacity_bound_uses_active_occupancies_and_history_is_paged(self):
++        released=[]
++        for i in range(1,4):
++            task=await self.unknown(i)
++            await self.state.release_occupancies([task],self.evidence())
++            released.append(task['id'])
++        for i in range(4,132):
++            await self.admit(i)
++        self.assertEqual(len(await self.state.tasks(active_only=True)),128)
++        with self.assertRaisesRegex(ProtocolError,'bound'):
++            await self.admit(132)
++        page=await self.state.occupancy_history(limit=2)
++        rest=await self.state.occupancy_history(after=page[-1]['task_id'],limit=2)
++        self.assertEqual([t['task_id'] for t in page+rest],sorted(released))
++        plan=await self.state._call(lambda:list(self.state.db.execute(f'EXPLAIN QUERY PLAN SELECT count(*) FROM {ACTIVE_FROM} WHERE {ACTIVE_WHERE}')))
++        self.assertTrue(any('occupancy_active' in str(r) for r in plan))
++        def corrupt_overflow():
++            self.state.db.execute('BEGIN IMMEDIATE')
++            self.state.db.execute("""INSERT INTO tasks(id,client_id,target,thread_id,input,state,created_at,updated_at)
++                VALUES('overflow','overflow-client','{}','overflow-thread','fixture','received',1,1)""")
++            self.state._occupancy_transition('overflow','waiting','fixture_overflow')
++            self.state.db.execute('COMMIT')
++        await self.state._call(corrupt_overflow)
++        with self.assertRaisesRegex(ProtocolError,'partial'):
++            await self.state.tasks(active_only=True)
++        with self.assertRaisesRegex(ProtocolError,'incomplete'):
++            await self.state.occupancy_snapshot()
++
++
++class NativeEvidenceTests(unittest.IsolatedAsyncioTestCase):
++    def fixture(self):
++        task={'id':'old','state':'unknown','thread_id':'thread','turn_id':'turn','client_id':'client',
++              'target':{'cwd':'/fixture/project'},'occupancy':{'revision':1}}
++        turn={'id':'turn','status':'completed','items':[{'type':'userMessage','clientId':'client'}]}
++        async def request(method,params):
++            if method=='thread/queue/list':return {'data':[],'nextCursor':None}
++            if method=='thread/turns/list':return {'data':[turn],'nextCursor':None}
++            raise AssertionError('Mutating native call: '+method)
++        native=SimpleNamespace(inspect=AsyncMock(return_value={'id':'thread','cwd':'/fixture/project','status':{'type':'idle'}}),rpc=SimpleNamespace(request=AsyncMock(side_effect=request)))
++        return native,task,turn
++
++    async def test_terminal_and_empty_queue_prove_historical_ownership_without_resume(self):
++        native,task,turn=self.fixture()
++        result=await terminal_evidence(native,[task],'generation')
++        self.assertEqual(result['turns'],{'turn':'completed'})
++        self.assertEqual([c.args[0] for c in native.rpc.request.await_args_list],['thread/queue/list','thread/turns/list','thread/queue/list'])
++
++    async def test_busy_idle_alone_missing_client_and_running_tool_fail_closed(self):
++        for scenario in ('busy','missing_client','running_tool','not_terminal'):
++            native,task,turn=self.fixture()
++            if scenario=='busy':native.inspect.return_value['status']['type']='active'
++            if scenario=='missing_client':turn['items']=[]
++            if scenario=='running_tool':turn['items'].append({'type':'commandExecution','status':'inProgress'})
++            if scenario=='not_terminal':turn['status']='inProgress'
++            with self.subTest(scenario=scenario),self.assertRaises(EvidenceUnavailable):
++                await terminal_evidence(native,[task],'generation')
++
++    async def test_queue_insertion_during_read_and_repeated_history_cursor_fail_closed(self):
++        native,task,turn=self.fixture()
++        native.rpc.request.side_effect=[{'data':[],'nextCursor':None},{'data':[turn],'nextCursor':None},{'data':[{'id':'queued'}],'nextCursor':None}]
++        with self.assertRaisesRegex(EvidenceUnavailable,'queue_changed'):
++            await terminal_evidence(native,[task],'generation')
++        native,task,turn=self.fixture()
++        native.rpc.request.side_effect=[{'data':[],'nextCursor':None},{'data':[],'nextCursor':'cursor'},{'data':[],'nextCursor':'cursor'}]
++        with self.assertRaisesRegex(EvidenceUnavailable,'cursor'):
++            await terminal_evidence(native,[task],'generation')
++
++    async def test_duplicate_client_history_cannot_release(self):
++        native,task,turn=self.fixture()
++        native.rpc.request.side_effect=[{'data':[],'nextCursor':None},{'data':[dict(turn,id='other')],'nextCursor':'next'},{'data':[turn],'nextCursor':None}]
++        with self.assertRaisesRegex(EvidenceUnavailable,'duplicate_client'):
++            await terminal_evidence(native,[task],'generation')
++
++    async def test_found_exact_original_turn_does_not_scan_unrelated_older_history(self):
++        native,task,turn=self.fixture()
++        native.rpc.request.side_effect=[{'data':[],'nextCursor':None},{'data':[turn],'nextCursor':'unrelated-old-history'},{'data':[],'nextCursor':None}]
++        self.assertEqual((await terminal_evidence(native,[task],'generation'))['turns'],{'turn':'completed'})
++        self.assertEqual(native.rpc.request.await_count,3)
++
++    async def test_malformed_task_status_and_client_fail_as_evidence_unavailable(self):
++        for scenario in ('missing_cwd','malformed_status','malformed_client','malformed_item'):
++            native,task,turn=self.fixture()
++            if scenario=='missing_cwd':task['target']={}
++            if scenario=='malformed_status':native.inspect.return_value['status']=None
++            if scenario=='malformed_client':turn['items'][0]['clientId']={}
++            if scenario=='malformed_item':turn['items'].append(None)
++            with self.subTest(scenario=scenario),self.assertRaises(EvidenceUnavailable):
++                await terminal_evidence(native,[task],'generation')
+--- a/tests/test_schema.py
++++ b/tests/test_schema.py
+@@ -50,7 +50,7 @@
+         before = self.path.read_bytes(), self.snapshot()
+         report = schema.inspect(self.root, self.credentials)
+         self.assertEqual(report["status"], "upgrade_available")
+-        self.assertEqual(report["add_tables"], ["routes", "interactions", "delivery_attempts", "attachments"])
++        self.assertEqual(report["add_tables"], ["routes", "interactions", "delivery_attempts", "attachments", *schema.V5_COLUMNS])
+         self.assertEqual(report["row_counts"]["tasks"], 1)
+         self.assertFalse((self.root / "backups").exists())
+         self.assertEqual((self.path.read_bytes(), self.snapshot()), before)
+--- a/tests/test_image_ledger.py
++++ b/tests/test_image_ledger.py
+@@ -1,5 +1,6 @@
+ import hashlib
+ import sqlite3
++from contextlib import closing
+ from pathlib import Path
+ from unittest.mock import patch
+ 
+@@ -124,7 +125,7 @@
+         await self.state.close()
+         with patch('wx_clawbot.image_files.remove_released_file', side_effect=OSError('injected disk error')), self.assertRaises(OSError):
+             maintain(self.root, self.credentials, apply=True, now=NOW)
+-        with sqlite3.connect(self.root / 'runtime.sqlite3') as db:
++        with closing(sqlite3.connect(self.root / 'runtime.sqlite3')) as db:
+             self.assertEqual(db.execute('SELECT filename FROM attachments').fetchone(), (filename,))
+         self.assertTrue(path.exists())
+         self.assertEqual(maintain(self.root, self.credentials, now=NOW)['released_files_pending'], 1)
+--- /dev/null
++++ b/tests/test_admission_scheduling.py
+@@ -0,0 +1,110 @@
++import asyncio
++from types import SimpleNamespace
++from unittest.mock import patch, AsyncMock
++
++from test_runtime_state import RuntimeFixture
++from wx_clawbot.admission_recovery import AdmissionRecovery, EvidenceUnavailable
++from wx_clawbot.channels.http import ProtocolError
++
++
++class RecoverySchedulingTests(RuntimeFixture):
++    async def asyncSetUp(self):
++        await super().asyncSetUp()
++        self.task=await self.admit()
++        await self.state.task_update(self.task['id'],'unknown',turn_id='fixture-turn')
++        self.engine=SimpleNamespace(state=self.state,inflight=set(),native=object(),generation='fixture-generation',
++            admission_gate=asyncio.Lock(),controller=SimpleNamespace(native_ready=True),reconcile_results=AsyncMock())
++        self.now=0
++        self.recovery=AdmissionRecovery(self.engine,clock=lambda:self.now)
++
++    def evidence(self):
++        return {'kind':'native_terminal','thread_id':'fixture-thread','turns':{'fixture-turn':'completed'},
++                'queue_empty':True,'generation':'fixture-generation'}
++
++    async def test_failure_backoff_is_bounded_and_successful_history_does_not_poll(self):
++        with patch('wx_clawbot.admission_recovery.terminal_evidence',side_effect=EvidenceUnavailable('native_still_active')) as read:
++            for now,expected in ((0,1),(.5,1),(1,2),(2,2),(3,3),(8,4),(23,5),(52,5),(53,6)):
++                self.now=now
++                await self.recovery.reconcile()
++                self.assertEqual(read.await_count,expected)
++        with patch('wx_clawbot.admission_recovery.terminal_evidence',return_value=self.evidence()) as read:
++            await self.recovery.reconcile(force=True)
++            await self.recovery.reconcile(force=True)
++            read.assert_awaited_once()
++        self.assertEqual(self.recovery.schedule,{})
++
++    async def test_slow_native_check_never_holds_admission_gate(self):
++        entered,release=asyncio.Event(),asyncio.Event()
++        async def slow(*_):
++            entered.set();await release.wait();return self.evidence()
++        with patch('wx_clawbot.admission_recovery.terminal_evidence',side_effect=slow):
++            work=asyncio.create_task(self.recovery.reconcile())
++            try:
++                await entered.wait()
++                await asyncio.wait_for(self.engine.admission_gate.acquire(),.1)
++                self.engine.admission_gate.release()
++                release.set();await work
++            finally:
++                work.cancel();await asyncio.gather(work,return_exceptions=True)
++
++    async def test_revision_change_between_read_and_release_is_rejected(self):
++        async def changed(*_):
++            await self.state.task_update(self.task['id'],'unknown')
++            return self.evidence()
++        with patch('wx_clawbot.admission_recovery.terminal_evidence',side_effect=changed):
++            await self.recovery.reconcile()
++        self.assertEqual((await self.state.occupancy_snapshot(task_id=self.task['id']))[0]['occupancy']['state'],'holding')
++
++    async def test_generation_retirement_and_inflight_submission_block_release(self):
++        self.engine.controller.native_ready=False
++        with patch('wx_clawbot.admission_recovery.terminal_evidence',return_value=self.evidence()):
++            await self.recovery.reconcile()
++        self.assertEqual((await self.state.occupancy_snapshot(task_id=self.task['id']))[0]['occupancy']['state'],'holding')
++        self.engine.inflight.add('fixture-thread')
++        with patch('wx_clawbot.admission_recovery.terminal_evidence') as read:
++            await self.recovery.reconcile(force=True)
++            read.assert_not_awaited()
++
++    async def test_timeout_is_observable_and_does_not_release(self):
++        self.recovery.query_timeout=.01
++        async def hung(*_):await asyncio.Event().wait()
++        with patch('wx_clawbot.admission_recovery.terminal_evidence',side_effect=hung):
++            await self.recovery.reconcile()
++        hold=(await self.state.occupancy_snapshot(task_id=self.task['id']))[0]['occupancy']
++        self.assertEqual((hold['state'],hold['reason']),('holding','native_query_unavailable'))
++        self.assertIsNotNone(hold['checked_at'])
++        status=await self.state.describe_admission(await self.state.tasks(task_id=self.task['id']))
++        self.assertIn('原生查询暂不可用',status)
++        self.assertIn('最后占用核验',status)
++
++    async def test_native_terminal_signal_expedites_recheck_without_retaining_history_cache(self):
++        with patch('wx_clawbot.admission_recovery.terminal_evidence',side_effect=EvidenceUnavailable('native_still_active')) as read:
++            await self.recovery.reconcile()
++            await self.recovery.reconcile()
++            read.assert_awaited_once()
++            self.recovery.trigger('fixture-thread')
++            await self.recovery.reconcile()
++            self.assertEqual(read.await_count,2)
++
++    async def test_storage_failure_is_not_disguised_as_native_unavailability(self):
++        with patch('wx_clawbot.admission_recovery.terminal_evidence',return_value=self.evidence()), \
++                patch.object(self.state,'release_occupancies',side_effect=ProtocolError('fixture storage failure')):
++            with self.assertRaisesRegex(ProtocolError,'storage failure'):
++                await self.recovery.reconcile()
++
++    async def test_unbound_exact_started_event_reacquires_historical_ownership_only(self):
++        from wx_clawbot.execution import Execution
++        # An event with a known original turn is allowed to restore a hold even
++        # when that thread is no longer a route/subscription. Unknown turns are ignored.
++        snapshots=await self.state.occupancy_snapshot(holding_only=True)
++        await self.state.release_occupancies(snapshots,self.evidence())
++        controller=SimpleNamespace(state=self.state,catalog=SimpleNamespace(agent=object()),
++                                   subscriptions=SimpleNamespace(bound={}))
++        engine=Execution(controller)
++        try:
++            await engine.event({'method':'turn/started','params':{'threadId':'unrelated','turn':{'id':'fixture-turn'}}})
++            self.assertEqual((await self.state.occupancy_snapshot(task_id=self.task['id']))[0]['occupancy']['state'],'released')
++            await engine.event({'method':'turn/started','params':{'threadId':'fixture-thread','turn':{'id':'fixture-turn'}}})
++            self.assertEqual((await self.state.occupancy_snapshot(task_id=self.task['id']))[0]['occupancy']['state'],'holding')
++        finally:await engine.close()
++        self.assertEqual((await self.state.tasks(task_id=self.task['id']))['state'],'unknown')
+--- /dev/null
++++ b/tests/test_admission_ops.py
+@@ -0,0 +1,176 @@
++import json
++import io
++import sqlite3
++from contextlib import closing
++from contextlib import redirect_stderr, redirect_stdout
++from dataclasses import asdict
++from types import SimpleNamespace
++from unittest.mock import AsyncMock, patch
++
++from test_runtime_state import RuntimeFixture
++from wx_clawbot import admission_ops, schema
++from wx_clawbot.channels.http import ProtocolError
++from wx_clawbot.channels.private import write_json
++from wx_clawbot.cli import main
++
++
++class AdmissionOperatorTests(RuntimeFixture):
++    async def asyncSetUp(self):
++        await super().asyncSetUp()
++        write_json(self.root/'credentials.json',{'version':1,'owner_confirmed':True,'credentials':asdict(self.credentials)})
++        await self.state.accept_batch({'ret':0,'msgs':[]},phase='runtime')
++        self.task=await self.admit()
++        await self.state._call(lambda:self.state.db.execute('UPDATE tasks SET target=? WHERE id=?',
++            (json.dumps({'cwd':str(self.root),'thread_id':'fixture-thread','session_id':'fixture-session'}),self.task['id'])))
++        await self.state.task_update(self.task['id'],'unknown',turn_id='fixture-turn',queue_id='fixture-queue')
++        async def request(method,params):
++            if method=='thread/queue/list':return {'data':[],'nextCursor':None}
++            if method=='thread/turns/list':return {'data':[{'id':'fixture-turn','status':'completed','items':[
++                {'type':'userMessage','clientId':self.task['client_id']}]}],'nextCursor':None}
++            raise AssertionError(method)
++        self.native=SimpleNamespace(inspect=AsyncMock(return_value={'id':'fixture-thread','cwd':str(self.root),'status':{'type':'idle'}}),
++            rpc=SimpleNamespace(request=AsyncMock(side_effect=request)),close=AsyncMock())
++
++    async def test_report_and_release_default_are_readonly_without_native(self):
++        before=await self.state._call(lambda:list(self.state.db.iterdump()))
++        with patch.object(admission_ops.CodexConnection,'connect',new=AsyncMock()) as connect:
++            report=admission_ops.report(self.root,self.task['id'])
++            self.assertFalse((await admission_ops.release(self.root,self.task['id']))['applied'])
++            connect.assert_not_awaited()
++        self.assertFalse(report['applied'])
++        self.assertEqual(await self.state._call(lambda:list(self.state.db.iterdump())),before)
++        for private in (self.credentials.token,self.credentials.owner_id,str(self.root),self.task['client_id']):
++            self.assertNotIn(private,json.dumps(report))
++
++    async def test_running_consumer_refuses_apply_before_native_connection(self):
++        report=admission_ops.report(self.root,self.task['id'])
++        with patch.object(admission_ops.CodexConnection,'connect',new=AsyncMock()) as connect:
++            with self.assertRaises(ProtocolError):
++                await admission_ops.release(self.root,self.task['id'],apply=True,confirm_report=report['confirm_report'],reason='fixture',socket=self.root/'socket')
++            connect.assert_not_awaited()
++
++    async def test_invalid_id_and_missing_apply_confirmation_never_connect_or_write(self):
++        before=await self.state._call(lambda:list(self.state.db.iterdump()))
++        with patch.object(admission_ops.CodexConnection,'connect',new=AsyncMock()) as connect:
++            for identity in ('../wrong','', 't-'+('0'*32)):
++                with self.subTest(identity=identity),self.assertRaises((ValueError,ProtocolError)):
++                    admission_ops.report(self.root,identity)
++            digest=admission_ops.report(self.root,self.task['id'])['confirm_report']
++            for token,reason in ((None,'fixture'),(digest,None),(digest,' '),(digest,'x'*513)):
++                with self.subTest(reason=reason),self.assertRaises(ValueError):
++                    await admission_ops.release(self.root,self.task['id'],apply=True,confirm_report=token,reason=reason)
++            connect.assert_not_awaited()
++        self.assertEqual(await self.state._call(lambda:list(self.state.db.iterdump())),before)
++
++    async def test_wrong_binding_is_not_silently_repaired(self):
++        path=self.root/'credentials.json'
++        original=json.loads(path.read_text());wrong=json.loads(path.read_text())
++        wrong['credentials']['owner_id']='other-fixture-owner'
++        write_json(path,wrong,replace=True)
++        try:
++            with self.assertRaisesRegex(ProtocolError,'binding'):
++                admission_ops.report(self.root,self.task['id'])
++            self.assertEqual(json.loads(path.read_text()),wrong)
++        finally:write_json(path,original,replace=True)
++
++    async def test_cli_documents_explicit_apply_and_rejects_force(self):
++        out=io.StringIO()
++        with redirect_stdout(out),self.assertRaises(SystemExit) as caught:
++            main(['admission-release','--help'])
++        self.assertEqual(caught.exception.code,0)
++        for flag in ('--apply','--confirm-report','--reason','--task-id'):
++            self.assertIn(flag,out.getvalue())
++        with redirect_stderr(io.StringIO()),self.assertRaises(SystemExit) as caught:
++            main(['admission-release','--task-id',self.task['id'],'--state-dir',str(self.root),'--force'])
++        self.assertEqual(caught.exception.code,2)
++
++    async def test_verified_apply_is_audited_and_repeat_is_idempotent(self):
++        report=admission_ops.report(self.root,self.task['id'])
++        await self.state.close()
++        with patch.object(admission_ops.CodexConnection,'connect',new=AsyncMock(return_value=self.native)) as connect:
++            result=await admission_ops.release(self.root,self.task['id'],apply=True,confirm_report=report['confirm_report'],reason='verified fixture',socket=self.root/'socket')
++            self.assertEqual(result['status'],'released')
++            again=await admission_ops.release(self.root,self.task['id'],apply=True,confirm_report=report['confirm_report'],reason='verified fixture',socket=self.root/'socket')
++            self.assertEqual(again['status'],'already_released')
++            connect.assert_awaited_once()
++        await self.restart()
++        self.assertEqual((await self.state.tasks(task_id=self.task['id']))['state'],'unknown')
++        self.assertEqual(await self.state.tasks(active_only=True),[])
++        audit=await self.state._call(lambda:list(self.state.db.execute("SELECT evidence FROM occupancy_audit WHERE state='released'")))
++        self.assertEqual(len(audit),1)
++        self.assertEqual(json.loads(audit[0][0])['operator_report'],report['confirm_report'])
++
++    async def test_stale_digest_and_active_native_refuse_without_releasing(self):
++        report=admission_ops.report(self.root,self.task['id'])
++        await self.state.task_update(self.task['id'],'unknown')
++        await self.state.close()
++        with patch.object(admission_ops.CodexConnection,'connect',new=AsyncMock(return_value=self.native)) as connect:
++            with self.assertRaisesRegex(ProtocolError,'stale'):
++                await admission_ops.release(self.root,self.task['id'],apply=True,confirm_report=report['confirm_report'],reason='fixture',socket=self.root/'socket')
++            connect.assert_not_awaited()
++            report=admission_ops.report(self.root,self.task['id'])
++            self.native.inspect.return_value['status']['type']='active'
++            with self.assertRaises(ValueError):
++                await admission_ops.release(self.root,self.task['id'],apply=True,confirm_report=report['confirm_report'],reason='fixture',socket=self.root/'socket')
++        await self.restart()
++        self.assertEqual((await self.state.occupancy_snapshot(task_id=self.task['id']))[0]['occupancy']['state'],'holding')
++
++
++class OccupancyMigrationTests(RuntimeFixture):
++    async def v4(self):
++        task=await self.admit()
++        await self.state.task_update(task['id'],'unknown',turn_id='old-turn')
++        await self.state.queue_reply('frozen','Original frozen result')
++        await self.state.close()
++        with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            db.execute('DROP INDEX task_unknown_history')
++            for table in ('admission_waits','occupancy_audit','task_occupancy'):
++                db.execute('DROP TABLE '+table)
++            db.execute('PRAGMA user_version=4')
++            db.commit()
++        return task
++
++    def rows(self):
++        with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            names=[r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
++            return {n:db.execute('SELECT * FROM '+n+' ORDER BY rowid').fetchall() for n in names}
++
++    async def test_v4_upgrade_preserves_old_rows_and_unknown_starts_holding(self):
++        task=await self.v4()
++        before=self.rows()
++        plan=schema.inspect(self.root,self.credentials)
++        self.assertEqual(plan['add_tables'],list(schema.V5_COLUMNS))
++        self.assertEqual(self.rows(),before)
++        report=schema.upgrade(self.root,self.credentials)
++        after=self.rows()
++        self.assertEqual({k:after[k] for k in before},before)
++        self.assertEqual((report['from_version'],report['to_version']),(4,5))
++        self.assertEqual(after['task_occupancy'][0][0:3],(task['id'],'holding',0))
++        self.assertEqual(schema.upgrade(self.root,self.credentials)['status'],'current')
++
++    async def test_v4_upgrade_failure_rolls_back_and_keeps_usable_backup(self):
++        await self.v4()
++        before=self.rows()
++        original=schema.apply_steps
++        def fail(db,credentials):
++            original(db,credentials)
++            raise sqlite3.OperationalError('fixture post-DDL failure')
++        with patch.object(schema,'apply_steps',side_effect=fail),self.assertRaises(sqlite3.OperationalError):
++            schema.upgrade(self.root,self.credentials)
++        self.assertEqual(self.rows(),before)
++        with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            self.assertEqual(schema.validate(db,self.credentials),4)
++        backups=list((self.root/'backups').glob('runtime-v4-*.sqlite3'))
++        self.assertEqual(len(backups),1)
++        with closing(sqlite3.connect(backups[0])) as db:
++            self.assertEqual(schema.validate(db,self.credentials),4)
++
++    async def test_missing_or_changed_unknown_history_index_is_rejected(self):
++        await self.state.close()
++        with closing(sqlite3.connect(self.root/'runtime.sqlite3')) as db:
++            db.execute('DROP INDEX task_unknown_history')
++            with self.assertRaisesRegex(ProtocolError,'index'):
++                schema.validate(db,self.credentials)
++            db.execute("CREATE INDEX task_unknown_history ON tasks(id) WHERE state='completed'")
++            with self.assertRaisesRegex(ProtocolError,'index'):
++                schema.validate(db,self.credentials)
+--- /dev/null
++++ b/tests/integration/admission_queries.py
+@@ -0,0 +1,72 @@
++"""Offline paired admission SQL measurement; no production ledger or native I/O."""
++
++import argparse
++import json
++import math
++from pathlib import Path
++import sqlite3
++import statistics
++import tempfile
++import time
++
++from wx_clawbot.occupancy import ACTIVE_FROM, ACTIVE_WHERE
++
++
++PROJECT=Path(__file__).resolve().parents[2]
++OLD="SELECT count(*) FROM tasks INDEXED BY task_active WHERE state NOT IN ('completed','failed','interrupted','cancelled')"
++NEW=f"SELECT count(*) FROM {ACTIVE_FROM} WHERE {ACTIVE_WHERE}"
++
++
++def measure(db,sql):
++    start=time.perf_counter_ns();count=db.execute(sql).fetchone()[0]
++    return (time.perf_counter_ns()-start)/1e6,count
++
++
++def stats(samples):
++    return {'samples_ms':samples,'median_ms':statistics.median(samples),'p95_ms':sorted(samples)[math.ceil(len(samples)*.95)-1],'max_ms':max(samples)}
++
++
++def main(args):
++    output=Path(args.output).absolute()
++    if not output.resolve().is_relative_to((PROJECT/'.tmp').resolve()):
++        raise ValueError('Output must be inside this candidate project .tmp')
++    output.parent.mkdir(parents=True,exist_ok=True)
++    results=[]
++    with tempfile.TemporaryDirectory(prefix='queries-',dir=output.parent) as temp:
++        for mode in ('settled','released_unknown'):
++            for historical in (1000,10000,100000):
++                path=Path(temp)/f'{mode}-{historical}.sqlite3'
++                db=sqlite3.connect(path)
++                try:
++                    db.executescript("""CREATE TABLE tasks(id TEXT PRIMARY KEY,state TEXT NOT NULL);
++                        CREATE INDEX task_active ON tasks(state) WHERE state NOT IN ('completed','failed','interrupted','cancelled');
++                        CREATE TABLE task_occupancy(task_id TEXT PRIMARY KEY,state TEXT NOT NULL);
++                        CREATE INDEX occupancy_active ON task_occupancy(state) WHERE state IN ('waiting','holding');""")
++                    db.executemany('INSERT INTO tasks VALUES(?,?)',((f'h-{i}','completed' if mode=='settled' else 'unknown') for i in range(historical)))
++                    db.executemany('INSERT INTO task_occupancy VALUES(?,?)',((f'h-{i}','released') for i in range(historical)))
++                    db.executemany('INSERT INTO tasks VALUES(?,?)',((f'a-{i}','received') for i in range(128)))
++                    db.executemany('INSERT INTO task_occupancy VALUES(?,?)',((f'a-{i}','waiting') for i in range(128)))
++                    db.commit();db.execute('ANALYZE')
++                    measure(db,OLD);measure(db,NEW)
++                    old=[];new=[]
++                    for i in range(15):
++                        order=((OLD,old),(NEW,new)) if i%2==0 else ((NEW,new),(OLD,old))
++                        for sql,samples in order:
++                            elapsed,count=measure(db,sql);samples.append(elapsed)
++                    old_count=db.execute(OLD).fetchone()[0];new_count=db.execute(NEW).fetchone()[0]
++                    assert new_count==128
++                    assert old_count==(128 if mode=='settled' else historical+128)
++                    plan=[list(r) for r in db.execute('EXPLAIN QUERY PLAN '+NEW)]
++                    assert any('occupancy_active' in str(r) for r in plan)
++                    results.append({'mode':mode,'historical_rows':historical,'actual_active':128,
++                        'old_result':old_count,'candidate_result':new_count,'old':stats(old),'candidate':stats(new),'candidate_plan':plan})
++                finally:db.close()
++    report={'passed':True,'samples_each':15,'warmups_each':1,'paired_alternating_order':True,
++        'results':results,'notes':'settled mode is equivalent-result performance; released_unknown mode intentionally changes active admission semantics',
++        'production_ledger_writes':0,'native_submissions':0,'wechat_sends':0}
++    output.write_text(json.dumps(report,indent=2));print(json.dumps({'passed':True,'cases':len(results),'output':str(output)}))
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',required=True)
++    main(parser.parse_args())
+--- a/tests/integration/performance_writes.py
++++ b/tests/integration/performance_writes.py
+@@ -7,6 +7,7 @@
+ import sys
+ import tempfile
+ import time
++from contextlib import closing
+ 
+ from performance import output_path, source_hash, stats
+ 
+@@ -23,7 +24,7 @@
+         credentials=Credentials('fixture-bot','fixture-owner','https://ilinkai.weixin.qq.com/','synthetic')
+         state=await RuntimeState.open(path,credentials)
+         await state.close()
+-        with sqlite3.connect(path) as db:
++        with closing(sqlite3.connect(path)) as db, db:
+             db.executemany("INSERT INTO tasks(id,client_id,target,thread_id,input,state,created_at,updated_at,turn_id) VALUES(?,?,?,'history','synthetic','completed',0,0,?)",
+                 ((f'task-{i}',f'client-{i}','{}',f'turn-{i}') for i in range(100000)))
+             db.executemany("INSERT INTO outbox(id,text,priority,state,task_id,kind,created_at,body_sha256) VALUES(?,'synthetic history',1,'accepted',?,'final',0,?)",
+--- /dev/null
++++ b/tests/integration/admission_recovery.py
+@@ -0,0 +1,214 @@
++"""Offline REC01 bridge recovery and soak against a local Unix peer; no external I/O."""
++
++import argparse
++import asyncio
++import gc
++import json
++from pathlib import Path
++import random
++import resource
++import tempfile
++import time
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++from websockets.asyncio.server import unix_serve
++from wx_clawbot.agents.codex import CodexConnection
++from wx_clawbot.catalog import CatalogSession
++from wx_clawbot.channels.wechat import Credentials
++from wx_clawbot.commands import parse_command
++from wx_clawbot.config import Project
++from wx_clawbot.controller import Controller
++from wx_clawbot.delivery import Sender
++from wx_clawbot.execution import Execution
++from wx_clawbot.hosts.visible import LaunchRegistry
++from wx_clawbot.routing import Target
++from wx_clawbot.runtime_state import RuntimeState
++from wx_clawbot.service import poll
++from wx_clawbot.managed import source_digest
++from wx_clawbot.sessions import SessionUnbound
++
++
++PROJECT = Path(__file__).resolve().parents[2]
++
++
++def output_path(value):
++    path = Path(value).absolute()
++    if not path.resolve().is_relative_to((PROJECT/'.tmp').resolve()):
++        raise argparse.ArgumentTypeError('Reports must stay in this candidate project .tmp')
++    path.parent.mkdir(parents=True,exist_ok=True)
++    return path
++
++
++async def until(check, jobs, timeout=15):
++    async with asyncio.timeout(timeout):
++        while not await check():
++            for job in jobs:
++                if job.done():
++                    job.result()
++            await asyncio.sleep(.01)
++
++
++async def main(args):
++    source_before=source_digest()
++    rng = random.Random(20261103)
++    with tempfile.TemporaryDirectory(prefix='rec01-',dir=args.output.parent) as temp, \
++            tempfile.TemporaryDirectory(prefix='wx-rec01-',dir='/tmp') as socktemp:
++        root=Path(temp)
++        project=Project('fixture',root/'project');project.root.mkdir()
++        credentials=Credentials('fixture-bot','fixture-owner','https://ilinkai.weixin.qq.com/','synthetic')
++        state=await RuntimeState.open(root/'private/runtime.sqlite3',credentials)
++        thread=lambda identity:{'id':identity,'sessionId':'native-'+identity,'cwd':str(project.root),
++            'status':{'type':'idle'},'model':'synthetic','modelProvider':'synthetic'}
++        threads={identity:thread(identity) for identity in ('thread-old','thread-new')}
++        histories={'thread-old':[],'thread-new':[]}
++        submitted=[];calls=[];blocked_read=asyncio.Event();read_entered=asyncio.Event()
++        async def peer(ws):
++            async for raw in ws:
++                msg=json.loads(raw)
++                method=msg.get('method');params=msg.get('params',{})
++                if method=='initialized':continue
++                calls.append((method,params.get('threadId')))
++                if method=='initialize':
++                    result={'userAgent':'synthetic/0.166.0','platformFamily':'unix','platformOs':'macos','codexHome':str(root)}
++                elif method in {'thread/read','thread/resume'}:
++                    if method=='thread/resume' and params['threadId']=='thread-old':
++                        raise AssertionError('Historical thread must never be restored or subscribed')
++                    result={'thread':threads[params['threadId']]}
++                elif method=='thread/loaded/list':result={'data':list(threads),'nextCursor':None}
++                elif method=='thread/unsubscribe':result={'status':'unsubscribed'}
++                elif method=='thread/queue/list':result={'data':[],'nextCursor':None}
++                elif method=='thread/turns/list':
++                    identity=params['threadId']
++                    if identity=='thread-old' and not blocked_read.is_set():
++                        read_entered.set()
++                        await blocked_read.wait()
++                    rows=list(reversed(histories[identity]))
++                    offset=int(params.get('cursor','0'));limit=params.get('limit',1)
++                    result={'data':rows[offset:offset+limit],
++                            'nextCursor':str(offset+limit) if offset+limit<len(rows) else None}
++                elif method=='thread/queue/add':
++                    if params['threadId']!='thread-new':raise AssertionError('Old task was replayed')
++                    client=params['clientUserMessageId']
++                    if client in submitted:raise AssertionError('Duplicate native submission')
++                    submitted.append(client)
++                    turn={'id':'turn-'+client,'status':'completed','items':[
++                        {'type':'userMessage','clientId':client},
++                        {'type':'agentMessage','text':'REC01-NATIVE-END'}]}
++                    histories['thread-new'].append(turn)
++                    await ws.send(json.dumps({'id':msg['id'],'result':{'queuedSubmission':{'id':'queue-'+client,'clientUserMessageId':client}}}))
++                    await ws.send(json.dumps({'method':'item/started','params':{'threadId':'thread-new','turnId':turn['id'],'item':turn['items'][0]}}))
++                    await ws.send(json.dumps({'method':'turn/completed','params':{'threadId':'thread-new','turn':{'id':turn['id']}}}))
++                    continue
++                else:raise AssertionError('Unexpected native method: '+str(method))
++                await ws.send(json.dumps({'id':msg['id'],'result':result}))
++        socket=Path(socktemp)/'peer.sock'
++        server=await unix_serve(peer,socket);socket.chmod(0o600)
++        native=await CodexConnection.connect(socket)
++        session=CatalogSession(Target('session-new','fixture',project.root,'managed'),SimpleNamespace(thread_id='thread-new'),'REC01 fixture')
++        async def require(target):
++            if target!=session.target:raise SessionUnbound('Historical endpoint is absent')
++            return session
++        catalog=SimpleNamespace(agent=native,sessions={session.target.session_id:session},managed_threads=set(),
++            unverified=[],discover=AsyncMock(return_value=(session,)),
++            require=AsyncMock(side_effect=require))
++        controller=Controller((project,),catalog,state,SimpleNamespace(registry=LaunchRegistry(root/'launches')),Path('/fixture/codex'),root)
++        engine=Execution(controller)
++        incoming=asyncio.Queue();counter=0;sent=[]
++        class Api:
++            async def updates(self,*_):return {'ret':0,'msgs':[await incoming.get()]}
++            async def send_text(self,*_,**kwargs):
++                sent.append(kwargs['client_id'])
++                return {'ret':0,'message_id':len(sent)}
++        def message(text):
++            nonlocal counter
++            counter+=1
++            return {'message_id':counter,'from_user_id':credentials.owner_id,'to_user_id':credentials.bot_id,
++                'message_type':1,'message_state':2,'seq':counter,'create_time_ms':counter,'context_token':'synthetic',
++                'item_list':[{'type':1,'text_item':{'text':text}}]}
++        async def seed_unknown(index):
++            raw=message('synthetic historical task')
++            batch=await state.accept_batch({'ret':0,'msgs':[raw]},phase='runtime')
++            target={'session_id':'session-old','project_alias':'fixture','cwd':str(project.root),'origin':'managed',
++                'thread_id':'thread-old','repository':'directory:'+str(project.root)}
++            task=await state.task_intent(batch['accepted'][0].message_id,target,'synthetic historical task')
++            turn_id='old-turn-'+str(index)
++            await state.task_update(task['id'],'unknown',queue_id='old-queue-'+str(index),turn_id=turn_id)
++            external=await state.external_task(target,turn_id,native_client_id='desktop-'+str(index))
++            await state.task_update(external['id'],'unknown')
++            histories['thread-old'].append({'id':turn_id,'status':'failed','items':[
++                {'type':'userMessage','clientId':task['client_id']},
++                {'type':'userMessage','clientId':'desktop-'+str(index)}]})
++            return await state.tasks(task_id=task['id']),await state.tasks(task_id=external['id'])
++        original=await seed_unknown(0)
++        controller.routes.snapshot((session.target,))
++        controller.routes.focus(controller.routes.select(1),expected=controller.routes.revision)
++        api=Api();jobs=[asyncio.create_task(work) for work in (poll(controller,api),Sender(state,api).run(),engine.run(),engine.maintain())]
++        latencies=[];cycles=0;peak_active=0
++        try:
++            await incoming.put(message('REC01 initial task'))
++            await read_entered.wait()
++            async def waiting():return any(t['state']=='received' for t in await state.tasks(active_only=True))
++            await until(waiting,jobs)
++            for _ in range(20):
++                started=time.perf_counter();result=await engine.control(parse_command('/status'))
++                latencies.append((time.perf_counter()-started)*1000)
++                assert 'received' in result
++            blocked_read.set()
++            async def completed():return any(t['state']=='completed' for t in await state.tasks())
++            await until(completed,jobs)
++            assert len(submitted)==1
++            for task in original:
++                assert (await state.tasks(task_id=task['id']))['state']=='unknown'
++            assert (await state.occupancy_counts())['released_unknown']==2
++            if args.action=='soak':
++                started=time.monotonic()
++                while time.monotonic()-started<args.duration:
++                    cycles+=1
++                    pair=await seed_unknown(cycles)
++                    # Exercise late activity after proof and exact revalidation.
++                    if rng.random()<.3:
++                        await engine.recovery.reconcile(force=True)
++                        await state.reactivate_occupancy('thread-old',pair[0]['turn_id'])
++                    await incoming.put(message('REC01 soak task '+str(cycles)))
++                    peak_active=max(peak_active,len(await state.tasks(active_only=True)))
++                    expected=len(submitted)+1
++                    await until(lambda:asyncio.sleep(0,result=len(submitted)>=expected),jobs)
++                    async def idle():return not await state.tasks(active_only=True)
++                    await until(idle,jobs)
++                    if cycles%10==0:
++                        # The actual recovery transition must preserve released
++                        # history rather than restoring ownership from unknown.
++                        await state.native_disconnected()
++                        assert (await state.occupancy_counts())['released_unknown']==2*(cycles+1)
++                    await asyncio.sleep(.05)
++            async def drained():return not (await state.delivery_counts()).get('pending',0)
++            await until(drained,jobs)
++            assert len(sent)==len(set(sent))
++            assert not any(method in {'thread/resume','thread/queue/add','turn/start'} and tid=='thread-old' for method,tid in calls)
++            assert max(latencies)<1000
++            assert source_digest()==source_before,'Candidate source changed during this run'
++            result={'action':args.action,'passed':True,'duration_seconds':args.duration if args.action=='soak' else None,
++                'seed':20261103,'cycles':cycles,'source_sha256':source_before,'original_unknown_preserved':True,'original_intent_native_submissions':1,
++                'native_submissions':len(submitted),'fake_sends':len(sent),'duplicate_client_ids':0,
++                'control_p95_ms':sorted(latencies)[18],'control_max_ms':max(latencies),'peak_active_observed':peak_active,
++                'historical_mutating_native_calls':0,'wechat_sends':0,'production_ledger_writes':0,
++                'occupancy':await state.occupancy_counts(),'native_calls':len(calls),
++                'max_rss_bytes':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}
++            args.output.write_text(json.dumps(result,indent=2));print(json.dumps(result),flush=True)
++        finally:
++            blocked_read.set()
++            for job in jobs:job.cancel()
++            await asyncio.gather(*jobs,return_exceptions=True)
++            await engine.close();await state.close();await native.close()
++            server.close();await server.wait_closed();gc.collect()
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('action',choices=('flow','soak'))
++    parser.add_argument('--output',required=True,type=output_path)
++    parser.add_argument('--duration',type=int,default=120)
++    args=parser.parse_args()
++    if not 120<=args.duration<=300:parser.error('Soak duration must be 120..300 seconds')
++    asyncio.run(main(args))
+--- a/tests/integration/performance_migration.py
++++ b/tests/integration/performance_migration.py
+@@ -1,4 +1,4 @@
+-"""Synthetic schema-3 to schema-4 migration with full business-row digests."""
++"""Synthetic schema-3 to current supported schema, preserving all old business rows."""
+ import argparse
+ import asyncio
+ import hashlib
+@@ -7,6 +7,7 @@
+ import sqlite3
+ import tempfile
+ import time
++from contextlib import closing
+ 
+ from wx_clawbot import schema
+ from wx_clawbot.channels.wechat import Credentials
+@@ -15,7 +16,7 @@
+ 
+ 
+ def snapshot(path):
+-    with sqlite3.connect(path) as db:
++    with closing(sqlite3.connect(path)) as db:
+         tables=[r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
+         result={}
+         for table in tables:
+@@ -33,7 +34,11 @@
+         credentials=Credentials('synthetic-bot','synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic')
+         state=await RuntimeState.open(path,credentials)
+         await state.close()
+-        with sqlite3.connect(path) as db:
++        with closing(sqlite3.connect(path)) as db:
++            for statement in getattr(schema,'OCCUPANCY_INDEXES',()):
++                db.execute('DROP INDEX IF EXISTS '+statement.split()[2])
++            for table in reversed(list(getattr(schema,'V5_COLUMNS',{}))):
++                db.execute('DROP TABLE '+table)
+             for statement in schema.PERFORMANCE_UPGRADE:db.execute('DROP INDEX '+statement.split()[2])
+             db.execute('PRAGMA user_version=3')
+             db.executemany("INSERT INTO tasks(id,client_id,target,thread_id,input,state,created_at,updated_at,turn_id) VALUES(?,?,?,'history','synthetic','completed',0,0,?)",
+@@ -48,16 +53,20 @@
+         started=time.perf_counter(); result=schema.upgrade(root,credentials)
+         seconds=time.perf_counter()-started
+         after=snapshot(path); backup=snapshot(root/result['backup'])
+-        assert before==after==backup
++        assert before==backup
++        assert {name:after[name] for name in before}==before
++        added=set(after)-set(before)
++        assert added==(set(schema.V5_COLUMNS) if schema.VERSION>=5 else set())
++        assert all(after[name]['rows']==0 for name in added)
+         assert seconds<60
+-        with sqlite3.connect(path) as db:
+-            assert schema.validate(db,credentials)==4
++        with closing(sqlite3.connect(path)) as db:
++            assert schema.validate(db,credentials)==schema.VERSION
+             assert db.execute('PRAGMA quick_check').fetchall()==[('ok',)]
+             assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
+             index_bytes={name:db.execute('SELECT COALESCE(sum(pgsize),0) FROM dbstat WHERE name=?',(name,)).fetchone()[0]
+-                         for name in ('reply_task_kind','task_native_turn','task_active')}
++                         for name in [s.split()[2] for s in schema.PERFORMANCE_UPGRADE+getattr(schema,'OCCUPANCY_INDEXES',())]}
+         assert schema.upgrade(root,credentials)['status']=='current'
+-        report={'scope':'synthetic ledger only','from_schema':3,'to_schema':4,
++        report={'scope':'synthetic ledger only','from_schema':3,'to_schema':schema.VERSION,
+                 'seconds':seconds,'business_rows':before,'all_business_rows_and_backup_exact':True,
+                 'database_bytes_before':before_bytes,'database_bytes_after':path.stat().st_size,
+                 'new_index_bytes':index_bytes,
+--- /dev/null
++++ b/tests/integration/admission_native.py
+@@ -0,0 +1,311 @@
++"""Explicit REC01 owned-terminal smoke, per-process footer only; no WeChat I/O."""
++
++import argparse
++import asyncio
++from dataclasses import asdict
++import hashlib
++import json
++import os
++import re
++from pathlib import Path
++import shlex
++import sys
++import tomllib
++import uuid
++
++from wx_clawbot.admission import repository_key
++from wx_clawbot.agents.codex import CodexConnection
++from wx_clawbot.agents.queue import NativeQueue
++from wx_clawbot.catalog import SessionCatalog
++from wx_clawbot.channels.private import private_directory, read_json, write_json
++from wx_clawbot.channels.wechat import Credentials
++from wx_clawbot.config import load_projects
++from wx_clawbot.controller import Controller, target_record
++from wx_clawbot.delivery import Sender
++from wx_clawbot.execution import Execution
++from wx_clawbot.hosts.discovery import ItermDirectory, inspect_terminal
++from wx_clawbot.hosts.identity import UUID
++from wx_clawbot.hosts.lifecycle import HostLifecycle
++from wx_clawbot.hosts.process import read_process
++from wx_clawbot.hosts.visible import ItermWindowStarter, LaunchPending, LaunchRegistry, VisibleStarter, reconcile_launch
++from wx_clawbot.launcher import launch_argv
++from wx_clawbot.managed import source_digest
++from wx_clawbot.output import native_output
++from wx_clawbot.runtime_discovery import discover_runtime
++from wx_clawbot.runtime_state import RuntimeState
++
++
++class FixtureRegistry(LaunchRegistry):
++    def command(self, launch_id):
++        return shlex.join([str(Path(sys.executable).absolute()),str(Path(__file__).resolve()),'launch',
++                          '--report-dir',str(self.root.parent),'--launch-id',launch_id])
++
++
++def launch(args):
++    registry=FixtureRegistry(args.report_dir/'launches')
++    record=registry.load(args.launch_id)
++    if record['phase'] not in {'starting','handshaking'}:
++        raise ValueError('Owned launch intent is not active')
++    argv=launch_argv(record)
++    identity=read_process(os.getpid())
++    if identity is None:raise ValueError('Own launcher process identity unavailable')
++    write_json(registry.root/(args.launch_id+'.boot.json'),
++               {'launch_id':args.launch_id,'pid':identity.pid,'started':identity.started,'tty_device':identity.tty_device})
++    # Explicit remote avoids -c disabling implicit daemon reuse. Only the TUI's
++    # local footer is overridden; the registered root already has exact trust.
++    if record.get('rec01_footer_override'):
++        argv=[*argv[:-1],'--remote','unix://'+record['rec01_socket'],
++              '-c','tui.status_line='+json.dumps(record['rec01_footer']),argv[-1]]
++    os.chdir(record['cwd'])
++    os.execv(argv[0],argv)
++
++
++async def main(args):
++    import iterm2
++    workspace=Path(__file__).resolve().parents[2]
++    report=args.report_dir.absolute()
++    if not report.resolve().is_relative_to((workspace/'.tmp').resolve()):
++        raise ValueError('Native case must stay in the candidate project .tmp')
++    report=private_directory(report)
++    path=report/'case.json'
++    if args.action=='report':
++        case=read_json(path)
++        print(json.dumps({'phase':case['phase'],'owned_terminals':len(case.get('fixtures',[])),
++                          'wechat_sends':0,'production_ledger_writes':0}));return
++    if not args.confirm_dedicated:
++        raise ValueError('Explicit owned-fixture confirmation required')
++    if args.action=='prepare' and path.exists():raise FileExistsError('Existing launch intent cannot be replayed')
++    if args.action!='prepare' and not path.exists():raise ValueError('An owned case is required')
++    home=Path.home()/'.codex'
++    production=Path.home()/'Library/Application Support/wx-clawbot'
++    protected=[home/'config.toml',production/'config.json',production/'credentials.json',
++               Path.home()/'Library/LaunchAgents/local.wx-clawbot.plist']
++    hashes=lambda:[hashlib.sha256(p.read_bytes()).hexdigest() for p in protected]
++    projects=load_projects(production/'config.json')
++    project=next(p for p in projects if p.alias=='wx-clawbot')
++    config=tomllib.loads((home/'config.toml').read_text())
++    if config.get('projects',{}).get(str(project.root),{}).get('trust_level')!='trusted':
++        raise ValueError('Exact registered root is not already trusted; no automatic trust change')
++    footer=list(config.get('tui',{}).get('status_line',[]))
++    override=not any(item in {'thread-id','session-id'} for item in footer)
++    if override:footer=['thread-id',*footer]
++    host=HostLifecycle();native=None;engine=None;state=None;jobs=[]
++    try:
++        await host.ensure();host.verified(host.generation)
++        socket,executable=await asyncio.to_thread(discover_runtime,home)
++        native=await CodexConnection.connect(socket)
++        directory=ItermDirectory(lifecycle=host)
++        registry=FixtureRegistry(report/'launches')
++        if args.action=='prepare':
++            app=await iterm2.async_get_app(host.connection)
++            case={'phase':'prepared','source_sha256':source_digest(),'protected_hashes':hashes(),
++                'runtime_identity':list(native.runtime_identity),'version':native.server_version,'fixtures':[],
++                'before_terminal_ids':[s.session_id for w in app.windows for t in w.tabs for s in t.sessions]}
++            write_json(path,case)
++            creator=ItermWindowStarter(lifecycle=host)
++            starter=VisibleStarter(registry,creator)
++            for index in range(2):
++                launch_id=uuid.uuid4().hex
++                record=registry.prepare(launch_id,project,project.root,executable,home,f'REC01-{index+1}-owned')
++                record.update(rec01_socket=str(socket),rec01_footer=footer,rec01_footer_override=override);registry.save(record)
++                fixture={'launch_id':launch_id,'phase':'launch_intent','cwd':str(project.root)}
++                case['fixtures'].append(fixture);case['phase']='starting';write_json(path,case,replace=True)
++                await starter.start(launch_id,project,project.root,executable,home,f'REC01-{index+1}-owned')
++                record=registry.load(launch_id)
++                fixture.update({k:record[k] for k in ('window_id','tab_id','terminal_id')});write_json(path,case,replace=True)
++                async with asyncio.timeout(180):
++                    while True:
++                        try:
++                            binding=await reconcile_launch(registry,launch_id,directory,native);break
++                        except LaunchPending:await asyncio.sleep(.25)
++                fixture.update(thread_id=binding.thread_id,phase='ready')
++                write_json(path,case,replace=True)
++                print(json.dumps({'owned_fixture_ready':index+1}),flush=True)
++            assert hashes()==case['protected_hashes']
++            case['phase']='ready';write_json(path,case,replace=True)
++            print(json.dumps({'phase':'ready','owned_terminals':2,'global_configuration_writes':0}),flush=True)
++        elif args.action=='retire-prepare':
++            case=read_json(path)
++            if case['phase']!='starting':raise ValueError('Only incomplete owned preparation can be retired')
++            app=await iterm2.async_get_app(host.connection)
++            for fixture in case['fixtures']:
++                boot=read_json(registry.root/(fixture['launch_id']+'.boot.json'))
++                session=app.get_session_by_id(fixture.get('terminal_id'))
++                if session is None:raise ValueError('Owned endpoint is missing; inspect before retry')
++                endpoint=await inspect_terminal(session)
++                if endpoint.process is None or endpoint.process.pid!=boot['pid'] or list(endpoint.process.started)!=boot['started']:
++                    raise ValueError('Owned process changed')
++                marker='WX-LAUNCH-'+fixture['launch_id']
++                page=await native.list_project_threads(Path(fixture['cwd']))
++                matches=[t for t in page['data'] if t.get('preview','').startswith(marker)]
++                if page.get('nextCursor') or len(matches)!=1:raise ValueError('Own startup nonce is not unique')
++                thread=await native.inspect(matches[0]['id'])
++                if thread.get('status',{}).get('type')!='idle':raise ValueError('Own handshake is not idle')
++                screen=await session.async_get_screen_contents()
++                row=screen.line(screen.number_of_lines-2).string.replace('\0',' ')
++                visible=set(UUID.findall(row))
++                if visible!={thread['id'],thread['sessionId']}:
++                    raise ValueError('Own duplicate identity footer does not exactly match the native pair')
++                if await NativeQueue(native,thread['id'],Path(fixture['cwd'])).list():raise ValueError('Own queue is not empty')
++                history=await native.read_turns(thread['id'],limit=2)
++                turns=history['data']
++                if history.get('nextCursor') or len(turns)!=1 or turns[0].get('status')!='completed':
++                    raise ValueError('Owned handshake contains unexpected or unfinished work')
++                if marker not in native_output(turns[0]):raise ValueError('Own handshake output differs')
++                fixture.update(thread_id=thread['id'],phase='close_intent');write_json(path,case,replace=True)
++                await session.async_close(force=True)
++                fixture['phase']='closed';write_json(path,case,replace=True)
++            assert hashes()==case['protected_hashes']
++            case['phase']='retired_duplicate_footer';write_json(path,case,replace=True)
++            print(json.dumps({'phase':case['phase'],'own_terminals_closed':len(case['fixtures']),'global_configuration_writes':0}),flush=True)
++        elif args.action=='inspect':
++            case=read_json(path)
++            app=await iterm2.async_get_app(host.connection)
++            results=[]
++            for fixture in case['fixtures']:
++                receipt=registry.root/(fixture['launch_id']+'.boot.json')
++                if not receipt.exists():
++                    results.append({'boot_receipt':False});continue
++                boot=read_json(receipt)
++                session=app.get_session_by_id(fixture.get('terminal_id'))
++                if session is None:
++                    results.append({'owned_endpoint_present':False});continue
++                endpoint=await inspect_terminal(session)
++                if endpoint.process is None or endpoint.process.pid!=boot['pid'] or list(endpoint.process.started)!=boot['started']:
++                    results.append({'own_process_unchanged':False});continue
++                screen=await session.async_get_screen_contents()
++                text='\n'.join(screen.line(i).string.replace('\0',' ') for i in range(screen.number_of_lines))
++                text=re.sub(r'/Users/[^\s]+','<local-path>',text)
++                text=re.sub(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}','<uuid>',text,flags=re.I)
++                results.append({'own_process_unchanged':True,'visible_identity':await directory.current_thread_id(endpoint) is not None,'screen_tail':text[-2400:]})
++            print(json.dumps({'findings':results,'wechat_sends':0},ensure_ascii=False),flush=True)
++        elif args.action=='run':
++            case=read_json(path)
++            if case['phase']!='ready' or hashes()!=case['protected_hashes'] or list(native.runtime_identity)!=case['runtime_identity']:
++                raise ValueError('Exact ready fixtures, configuration and runtime required; no replay')
++            catalog=SessionCatalog(projects,directory,native)
++            catalog.managed_threads={f['thread_id'] for f in case['fixtures']}
++            found=await catalog.discover()
++            owned=[]
++            for fixture in case['fixtures']:
++                matches=[s for s in found if s.binding.thread_id==fixture['thread_id'] and s.binding.endpoint.terminal_id==fixture['terminal_id']]
++                if len(matches)!=1:raise ValueError('Own visible binding not uniquely verified')
++                await catalog.require(matches[0].target);owned.append(matches[0])
++            a,b=owned
++            before=[await native.inspect(s.binding.thread_id) for s in owned]
++            state=await RuntimeState.open(report/'isolated/runtime.sqlite3',Credentials('synthetic-bot','synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic'))
++            controller=Controller(projects,catalog,state,VisibleStarter(registry,None),executable,home,host=host)
++            engine=Execution(controller)
++            counter=0;sent=[]
++            async def incoming(text):
++                nonlocal counter
++                counter+=1
++                raw={'message_id':counter,'from_user_id':state.credentials.owner_id,'to_user_id':state.credentials.bot_id,
++                    'message_type':1,'message_state':2,'seq':counter,'create_time_ms':counter,'context_token':'synthetic',
++                    'item_list':[{'type':1,'text_item':{'text':text}}]}
++                return (await state.accept_batch({'ret':0,'msgs':[raw]},phase='runtime'))['accepted'][0]
++            class FakeApi:
++                async def send_text(self,*_,**kwargs):
++                    sent.append(kwargs['client_id']);return {'ret':0,'message_id':len(sent)}
++            marker_a='REC01-A-'+uuid.uuid4().hex
++            prompt_a='只回复 '+marker_a+'。不要调用工具，不读取或修改文件，不运行命令。'
++            msg=await incoming(prompt_a)
++            target=target_record(a);target['repository']=await repository_key(a.target.cwd,project.root)
++            task_a=await state.task_intent(msg.message_id,target,prompt_a)
++            case.update(phase='task_a_intent',task_a={'id':task_a['id'],'client_id':task_a['client_id']});write_json(path,case,replace=True)
++            await catalog.require(a.target)
++            await state.task_update(task_a['id'],'dispatching')
++            receipt=await NativeQueue(native,a.binding.thread_id,a.target.cwd).add(prompt_a,task_a['client_id'])
++            case.update(phase='task_a_queued',queue_a=receipt['id']);write_json(path,case,replace=True)
++            async with asyncio.timeout(180):
++                while True:
++                    page=await native.rpc.request('thread/turns/list',{'threadId':a.binding.thread_id,'limit':1,'itemsView':'full','sortDirection':'desc'})
++                    turns=page['data']
++                    if turns and any(i.get('type')=='userMessage' and i.get('clientId')==task_a['client_id'] for i in turns[0]['items']):
++                        turn_a=turns[0]
++                        if turn_a['status'] in {'completed','failed','interrupted'}:break
++                    await asyncio.sleep(.2)
++            if turn_a['status']!='completed' or marker_a not in native_output(turn_a):
++                raise ValueError('Real A marker did not complete; no retry')
++            await state.task_update(task_a['id'],'unknown',queue_id=receipt['id'],turn_id=turn_a['id'])
++            external=await state.external_task(target,turn_a['id'],native_client_id=task_a['client_id'])
++            await state.task_update(external['id'],'unknown')
++            # A valid bridge record plus a conflicting external association form
++            # an isolated fixture, not a claim that the native TUI merged input.
++            # Recover A's exact result; only the ambiguous external row stays unknown.
++            controller.routes.snapshot(tuple(s.target for s in owned))
++            controller.routes.focus(b.target,expected=controller.routes.revision)
++            marker_b='REC01-B-'+uuid.uuid4().hex
++            case.update(phase='task_b_intent',marker_b=marker_b);write_json(path,case,replace=True)
++            await controller.prepare(await incoming('只回复 '+marker_b+'。不要调用工具，不读取或修改文件，不运行命令。'))
++            waiting=[t for t in await state.tasks(active_only=True) if t['state']=='received']
++            if len(waiting)!=1:raise ValueError('New intent was not held before recovery')
++            task_b=waiting[0];case.update(phase='recovering',task_b={'id':task_b['id'],'client_id':task_b['client_id']});write_json(path,case,replace=True)
++            jobs=[asyncio.create_task(work) for work in (engine.run(),engine.maintain(),Sender(state,FakeApi()).run())]
++            async with asyncio.timeout(180):
++                while True:
++                    for job in jobs:
++                        if job.done():job.result()
++                    current=await state.tasks(task_id=task_b['id'])
++                    if current['state'] in {'completed','failed','interrupted'}:break
++                    await asyncio.sleep(.1)
++            if current['state']!='completed':raise ValueError('New real task did not complete')
++            turn_b=await engine.read_turn(b.binding.thread_id,current['turn_id'])
++            assert marker_b in native_output(turn_b)
++            for turn in (turn_a,turn_b):
++                assert not any(i.get('type') in {'commandExecution','fileChange','mcpToolCall','dynamicToolCall','webSearch'} for i in turn['items'])
++            assert (await state.tasks(task_id=task_a['id']))['state']=='completed'
++            assert (await state.tasks(task_id=external['id']))['state']=='unknown'
++            for old in (task_a,external):
++                assert (await state.occupancy_snapshot(task_id=old['id']))[0]['occupancy']['state']=='released'
++            after=[await native.inspect(s.binding.thread_id) for s in owned]
++            assert all(all(old.get(k)==new.get(k) for k in ('model','modelProvider','cwd','sessionId')) for old,new in zip(before,after))
++            assert hashes()==case['protected_hashes'] and source_digest()==case['source_sha256']
++            assert len(sent)==len(set(sent))
++            evidence={'passed':True,'runtime_version':native.server_version,'source_sha256':source_digest(),
++                'actual_sdk_binding_verified':True,'owned_terminals':2,'real_tasks_completed':2,
++                'unknown_fixture_results_preserved':1,'released_unknown_holds':1,'normal_result_recovered':True,'new_intent_submitted_once':True,
++                'global_configuration_unchanged':True,'model_provider_unchanged':True,'task_tools':0,
++                'wechat_sends':0,'production_ledger_writes':0,'historical_native_task_replays':0}
++            case.update(phase='verified',proof=evidence);write_json(path,case,replace=True)
++            (report/'proof.json').write_text(json.dumps(evidence,indent=2));print(json.dumps(evidence),flush=True)
++        elif args.action=='cleanup':
++            case=read_json(path)
++            if case['phase']!='verified':raise ValueError('Only verified completed owned fixtures may close')
++            app=await iterm2.async_get_app(host.connection)
++            for fixture in case['fixtures']:
++                boot=read_json(registry.root/(fixture['launch_id']+'.boot.json'))
++                session=app.get_session_by_id(fixture['terminal_id'])
++                if session is None:raise ValueError('Own endpoint missing; inspect instead of retry')
++                endpoint=await inspect_terminal(session)
++                if endpoint.process is None or endpoint.process.pid!=boot['pid'] or list(endpoint.process.started)!=boot['started']:
++                    raise ValueError('Own endpoint process changed')
++                if await directory.current_thread_id(endpoint)!=fixture['thread_id']:
++                    raise ValueError('Own current thread changed')
++                if (await native.inspect(fixture['thread_id'])).get('status',{}).get('type')!='idle':
++                    raise ValueError('Own thread is not idle')
++                if await NativeQueue(native,fixture['thread_id'],Path(fixture['cwd'])).list():
++                    raise ValueError('Own queue is not empty')
++                fixture['phase']='close_intent';write_json(path,case,replace=True)
++                await session.async_close(force=True)
++                fixture['phase']='closed';write_json(path,case,replace=True)
++            case['phase']='cleaned';write_json(path,case,replace=True)
++            print(json.dumps({'phase':'cleaned','own_terminals_closed':2,'user_terminal_inputs':0,'global_configuration_writes':0}),flush=True)
++    finally:
++        for job in jobs:job.cancel()
++        await asyncio.gather(*jobs,return_exceptions=True)
++        if engine is not None:await engine.close()
++        if state is not None:await state.close()
++        if native is not None:await native.close()
++        await host.close()
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('action',choices=('prepare','run','cleanup','report','launch','inspect','retire-prepare'))
++    parser.add_argument('--report-dir',required=True,type=Path)
++    parser.add_argument('--confirm-dedicated',action='store_true')
++    parser.add_argument('--launch-id')
++    args=parser.parse_args()
++    if args.action=='launch':launch(args)
++    else:asyncio.run(main(args))
+--- a/tests/integration/performance.py
++++ b/tests/integration/performance.py
+@@ -115,6 +115,9 @@
+     tree = ast.parse(textwrap.dedent(inspect.getsource(RuntimeState.claim_reply)))
+     claim = next(n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str) and 'SELECT o.id' in n.value)
+     active = "SELECT id FROM tasks" + (" INDEXED BY task_active" if schema.VERSION>=4 else "") + " WHERE state NOT IN ('completed','failed','interrupted','cancelled') ORDER BY rowid LIMIT 129"
++    if schema.VERSION>=5:
++        from wx_clawbot.occupancy import ACTIVE_FROM,ACTIVE_WHERE
++        active=f"SELECT t.id FROM {ACTIVE_FROM} WHERE {ACTIVE_WHERE} ORDER BY t.rowid LIMIT 129"
+     native = 'SELECT id FROM tasks WHERE thread_id=? AND turn_id=?'
+     def measured(db, query, params=()):
+         values=[]
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@
+ 
+ [project]
+ name = "wx-clawbot"
+-version = "0.1.0"
++version = "0.1.1"
+ description = "WeChat bridge for native Codex sessions in iTerm2"
+ requires-python = ">=3.14,<3.15"
+ dependencies = ["iterm2==2.30", "websockets==17.3", "segno==1.6.6", "cryptography==50.0.2", "Pillow==13.0.0", "markdown-it-py==4.2.0"]

@@ -9,6 +9,7 @@ from websockets.asyncio.client import unix_connect
 
 from .rpc import JsonRpc
 from .base import Capabilities, SubmissionReceipt, thread_is_loaded
+from .. import __version__
 
 SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0", "0.165.0", "0.166.0"})
 
@@ -34,7 +35,7 @@ class CodexConnection:
         connection.runtime_identity = (metadata.st_dev, metadata.st_ino)
         try:
             result = await connection.rpc.request("initialize", {
-                "clientInfo": {"name": "wx-clawbot", "version": "0.1.0.dev0"},
+                "clientInfo": {"name": "wx-clawbot", "version": __version__},
                 "capabilities": {"experimentalApi": True},
             })
             if not isinstance(result, dict) or not all(
