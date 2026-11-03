@@ -1,6 +1,6 @@
 {
   "version": "0.1.1",
-  "phase": "authorized_preflight",
+  "phase": "published",
   "repository": "https://github.com/benarchen/wx-clawbot",
   "visibility": "public",
   "branches": [
@@ -37,19 +37,52 @@
     "compileall": true,
     "pip_check": true,
     "diff_check": true,
-    "patch_context_whitespace": "标准 unified patch 的空白上下文标记为合法单空格；仅正式 .patch 设 -whitespace，保留其字节／摘要及正反向 apply 验证，源码与文档仍执行空白检查。"
+    "patch_context_whitespace": "标准 unified patch 的空白上下文标记为合法单空格；仅正式 .patch 设 -whitespace，保留其字节／摘要及正反向 apply 验证，源码与文档仍执行空白检查。",
+    "postcommit_history": {
+      "candidate_files": 218,
+      "reachable_objects": 974,
+      "object_types": {
+        "commit": 42,
+        "tree": 302,
+        "blob": 629,
+        "tag": 1
+      },
+      "private_exact_needles": 2422,
+      "private_matches": 0,
+      "credential_shape_matches": 0,
+      "source_test_lock_files_identical": 140,
+      "regression_reused": {
+        "tests": 580,
+        "seconds": 36.153,
+        "source_sha256": "58fae4fc5b58475d7a08bd1bcb62afdc99e1703e856447dc51621d7e7eacc4c4"
+      },
+      "staged_files": 0
+    }
   },
   "restart": {
     "required": false,
     "reason": "托管进程已加载相同 0.1.1 源码摘要，bridge／host／native ready；本次仅 Git 元数据及发布文档变化。",
     "performed": false
   },
-  "commit": null,
-  "merge_completed": false,
-  "tag_created": false,
-  "pushed": false,
+  "commit": "387e7acd806af66b8bb821331f32152d072a8e08",
+  "merge_completed": true,
+  "tag_created": true,
+  "pushed": true,
   "force_push": false,
   "history_rewrite": false,
   "github_release_created": false,
-  "changed_files": 47
+  "changed_files": 47,
+  "published_at_beijing": "2026-11-03 08:07",
+  "verified_remote": {
+    "main": "387e7acd806af66b8bb821331f32152d072a8e08",
+    "dev": "387e7acd806af66b8bb821331f32152d072a8e08",
+    "tag_object": "cd030a79c0a5188dbd98618dea0ccf4865e654a5",
+    "tag_commit": "387e7acd806af66b8bb821331f32152d072a8e08",
+    "verified_at_beijing": "2026-11-03 08:07",
+    "method": "independent git ls-remote --heads --tags origin after successful atomic push"
+  },
+  "documentation_followup": {
+    "scope": "只追加实际发布结果，不改变运行代码或移动标签",
+    "final_branch_reference": "最终 dev／main 引用以 Git 实际引用为准，避免文档自引用本次记录提交摘要。"
+  }
 }
