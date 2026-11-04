@@ -37,4 +37,6 @@ async def probe() -> dict:
 
 
 if __name__ == "__main__":
+    from ..release import verify_active
+    verify_active()
     print(json.dumps(asyncio.run(probe()), ensure_ascii=False))

@@ -10,6 +10,7 @@ from pathlib import Path
 from .agents.queue import NativeQueue, QueueFull
 from .admission import conflict, repository_key
 from .commands import CommandError
+from .catalog import DiscoveryUnavailable
 from .controller import target_record
 from .interactions import APPROVAL, QUESTION, InteractionBroker
 from .routing import Target
@@ -141,7 +142,10 @@ class Execution:
             raise CommandError("当前原生运行时的图片输入尚未核验，任务未提交；不会更换模型或运行时。")
         if not (await self.state.admission_budget())["allowed"]:
             raise CommandError("待核对回执已达容量上限，新任务未接收；请先恢复通道并处理未知投递。")
-        await self.catalog.discover()  # Include newly opened desktop sessions before repository admission.
+        try:
+            await self.catalog.discover()  # Include newly opened desktop sessions before repository admission.
+        except DiscoveryUnavailable as exc:
+            raise CommandError(str(exc) + '任务未提交。') from None
         session = await self.catalog.require(dispatch.target)
         record = target_record(session)
         record["repository"] = await repository_key(dispatch.target.cwd,
@@ -230,7 +234,13 @@ class Execution:
         async with self.admission_gate:
             active = await self.state.tasks(active_only=True)
             if any(task["state"] == "received" for task in active):
-                await self.catalog.discover()
+                try:
+                    await self.catalog.discover()
+                except DiscoveryUnavailable as exc:
+                    for task in active:
+                        if task['state'] == 'received':
+                            await self.state.admission_wait(task, str(exc), ())
+                    return
             for task in active:
                 if task["state"] != "received":
                     continue
@@ -746,7 +756,7 @@ class Execution:
             task = await self.state.tasks(task_id=command.argument)
         else:
             target = self.controller.routes.target
-            candidates = [t for t in await self.state.tasks() if t["state"] not in TERMINAL
+            candidates = [t for t in await self.state.tasks(active_only=True) if t["state"] not in TERMINAL
                           and target and t["target"]["session_id"] == target.session_id]
             if len(candidates) != 1:
                 raise CommandError("请提供准确的任务 ID；不会猜测要停止哪一条任务。")
@@ -758,6 +768,11 @@ class Execution:
                     + await self.state.describe_admission(task) + '\n' + await self.async_questions.status(task['id']))
         if task["state"] in TERMINAL:
             return f"任务已结束：{task['id']}｜{task['state']}。"
+        if task['state'] == 'unknown':
+            holds = await self.state.occupancy_snapshot(task_id=task['id'])
+            if holds and holds[0]['occupancy']['state'] == 'released':
+                return (f"历史执行结果仍未知，仓库占用已释放：{task['id']}。"
+                        '本次未发送取消或中断，不会因停止查询重新占用仓库；请核对原终端记录。')
         if task["state"] == "received":
             if await self.state.task_finish(task["id"], "cancelled",
                     f"已撤销尚未提交的准入等待：{task['id']}；没有发送原生任务。",

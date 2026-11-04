@@ -1,0 +1,29 @@
+{
+  "version": "0.1.3",
+  "schema": 6,
+  "phase": "precommit_verified",
+  "repository": "https://github.com/benarchen/wx-clawbot",
+  "baseline_commit": "27ae435b006adddf3c2bb25b0297f3b0f961cc23",
+  "planned_tag": "v0.1.3",
+  "annotated_tag": true,
+  "annotation_sha256": "d75c961c43dbfc8862b668b6edc8ff2a217341639151881b98137229d6ad18b1",
+  "regression": {"tests": 680, "seconds": 39.681, "passed": true, "skips": 0},
+  "checks": {"compile": true, "dependencies": true, "diff": true, "documents": true},
+  "privacy_precommit": {
+    "public_text_files": 250,
+    "private_values_compared": 2637,
+    "reachable_objects": {"tree": 318, "blob": 688, "commit": 45, "tag": 2},
+    "matches": 0,
+    "new_publication_summary_and_postcommit_review_pending": true
+  },
+  "running_source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+  "public_source_commit": null,
+  "tag_object": null,
+  "remote_verified": false,
+  "service_restarted": false,
+  "wechat_sends": 0,
+  "native_submissions": 0,
+  "force_push": false,
+  "existing_tags_moved": false,
+  "github_release_created": false
+}

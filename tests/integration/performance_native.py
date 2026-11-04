@@ -90,7 +90,8 @@ async def main(args):
                     current=await native.rpc.request('thread/resume',{'threadId':b.binding.thread_id,'excludeTurns':True})
                     if settings(current)=={**original,'collaborationMode':plan}:break
                     await asyncio.sleep(.1)
-            state=await RuntimeState.open(report/'isolated-ledger/runtime.sqlite3',Credentials('perf01-synthetic-bot','perf01-synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic'))
+            synthetic_bot='perf01-synthetic-bot-'+hashlib.sha256(str(report).encode()).hexdigest()[:16]
+            state=await RuntimeState.open(report/'isolated-ledger/runtime.sqlite3',Credentials(synthetic_bot,'perf01-synthetic-owner','https://ilinkai.weixin.qq.com/','synthetic'))
             controller=Controller(projects,catalog,state,VisibleStarter(LaunchRegistry(report/'unused-launches'),None),executable,home,host=host)
             engine=Execution(controller)
             counter=0;fake_sends=[];jobs=[];questions=[]
@@ -167,6 +168,51 @@ async def main(args):
                 tools=[i.get('type') for turn in (turn_a,turn_b) for i in turn['items'] if i.get('type') not in {'userMessage','agentMessage','reasoning','plan','tool'}]
                 forbidden={'commandExecution','fileChange','mcpToolCall','webSearch'}
                 assert not any(kind in forbidden for kind in tools)
+                if args.verify_controls:
+                    controller.routes.focus(b.target, expected=controller.routes.revision)
+                    prompt_c=('ENG01 独立控制验收。本次只输出 10000 行文字，'
+                        '每行格式为 ENG01-CONTROL-WAIT- 加连续五位序号，从 00000 开始，'
+                        '不省略、不总结。不调用工具，不读写文件、不运行命令、不联网、不提问。'
+                        '取消或中断后不得重试。')
+                    case['phase']='control_task_intent';write_json(path,case,replace=True)
+                    await command(prompt_c)
+                    candidates=[t for t in await state.tasks(active_only=True) if t['input']==prompt_c]
+                    if len(candidates)!=1:raise ValueError('Unique owned control task required')
+                    task_c=candidates[0]
+                    case['task_c']=task_c['id'];write_json(path,case,replace=True)
+                    async def pending_control():
+                        current=await state.tasks(task_id=task_c['id'])
+                        if current['state'] in {'completed','failed','interrupted','cancelled'}:
+                            raise ValueError('Owned control task ended before queue checks; never resubmit')
+                        if not current.get('turn_id'):return False
+                        turn=await engine.read_turn(b.binding.thread_id,current['turn_id'])
+                        return turn['status']=='inProgress'
+                    await wait_for(pending_control)
+                    control=await state.tasks(task_id=task_c['id'])
+                    turn_c=await engine.read_turn(b.binding.thread_id,control['turn_id'])
+                    users=[i for i in turn_c['items'] if i.get('type')=='userMessage']
+                    if len(users)!=1 or users[0].get('clientId')!=task_c['client_id']:
+                        raise ValueError('Control wait is not the exact owned input')
+                    prompt_d='ENG01 待取消队列验收。不要调用工具，只回复 ENG01-UNEXPECTED-RUN。'
+                    case.update(phase='queued_control_intent',task_c=task_c['id']);write_json(path,case,replace=True)
+                    await command(prompt_d)
+                    queued=[t for t in await state.tasks(active_only=True) if t['input']==prompt_d]
+                    if len(queued)!=1 or queued[0]['state']!='queued':
+                        raise ValueError('Owned second input was not confirmed queued; no retry')
+                    task_d=queued[0]
+                    case.update(phase='cancel_queued_intent',task_d=task_d['id']);write_json(path,case,replace=True)
+                    await command('/stop '+task_d['id'])
+                    assert (await state.tasks(task_id=task_d['id']))['state']=='cancelled'
+                    assert not await NativeQueue(native,b.binding.thread_id,b.target.cwd).list()
+                    case['phase']='interrupt_owned_intent';write_json(path,case,replace=True)
+                    await command('/stop '+task_c['id'])
+                    async def interrupted():
+                        return (await state.tasks(task_id=task_c['id']))['state']=='interrupted'
+                    await wait_for(interrupted)
+                    turn_c=await engine.read_turn(b.binding.thread_id,control['turn_id'])
+                    assert turn_c['status']=='interrupted'
+                    assert not any(i.get('type') in forbidden for i in turn_c['items'])
+                    case.update(queued_cancelled=True,running_interrupted=True)
                 await native.rpc.request('thread/settings/update',{'threadId':b.binding.thread_id,'collaborationMode':original['collaborationMode']})
                 async with asyncio.timeout(5):
                     while True:
@@ -185,6 +231,8 @@ async def main(args):
                     'real_native_long_result_end':True,'task_a_state':'completed','task_b_state':'completed',
                     'settings_restored':True,'protected_configuration_unchanged':True,
                     'fake_sends':len(fake_sends),'wechat_sends':0,'production_ledger_writes':0}
+                if args.verify_controls:
+                    evidence.update(queued_cancelled=True,running_interrupted=True,control_task_tools=0)
                 (report/'native-proof.json').write_text(json.dumps(evidence,indent=2))
                 print(json.dumps(evidence),flush=True)
             finally:
@@ -330,4 +378,5 @@ if __name__=='__main__':
     parser.add_argument('action',choices=('prepare','report','inspect','retire-prepare','run','cleanup'))
     parser.add_argument('--report-dir',required=True,type=Path)
     parser.add_argument('--confirm-dedicated',action='store_true')
+    parser.add_argument('--verify-controls',action='store_true',help='Explicit ENG01 owned queue cancellation and interruption')
     asyncio.run(main(parser.parse_args()))

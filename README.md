@@ -4,7 +4,7 @@
 
 本项目自有代码和文档采用 [MIT License](LICENSE)。第三方依赖保持原授权，其中 iterm2 Python SDK 声明 GPLv2+；本项目 MIT 授权不代表完整组合产品可按 MIT 闭源再发行。依赖清单和发行边界见 [第三方声明](THIRD_PARTY_NOTICES.md)。
 
-当前版本为 [`0.1.2`](https://github.com/benarchen/wx-clawbot/tree/v0.1.2)，已在本机使用原托管入口运行。已有账本须通过显式备份升级到 schema 6，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)及[本机交付记录](docs/validation/local-release.md)。
+当前代码版本为 `0.1.3`，运行使用独立的非 editable 制品；具体本机加载状态见[本机交付记录](docs/validation/local-release.md)。已有账本须通过显式备份升级到 schema 6，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)。
 
 当前提供前台微信桥接：本人绑定、项目选择、原终端会话发现与切换、单次派发与持续聚焦、独立观察订阅，以及在 iTerm2 可见创建新 Codex 会话。任务通过原生 daemon 队列提交，回复区分入队、执行和最终结果。[实际行为与验证范围](docs/validation/w05.md) 说明各入口的范围。
 
@@ -26,7 +26,9 @@ Python 模块另提供目录校验、环境诊断、显式绑定复核，以及�
 
 ## 安装与使用
 
-使用 Python 3.14，并准备可用的 Git、iTerm2 与已登录的 Codex。实际执行任务需要受支持的既有原生 daemon；宿主或运行时暂时缺席时，微信帮助、项目列表和状态仍可用，桥接不自动启动 daemon。Git 用于核对同仓库与 worktree 的准入冲突；在仓库根目录执行：
+使用 Python 3.14，并准备可用的 Git、iTerm2 与已登录的 Codex。实际执行任务需要受支持的既有原生 daemon；宿主或运行时暂时缺席时，微信帮助、项目列表和状态仍可用，桥接不自动启动 daemon。Git 用于核对同仓库与 worktree 的准入冲突。
+
+日常托管使用独立版本目录中的 wheel，按[制品准备与切换操作卡](docs/operations.md#eng01独立运行制品与开发隔离)准备。以下是开发检出的环境安装，不用于生产托管：
 
 ```sh
 python3 -m venv .venv
@@ -34,6 +36,8 @@ python3 -m venv .venv
 .venv/bin/python -m pip install --no-deps -e .
 .venv/bin/wx-clawbot doctor
 ```
+
+本地统一检查入口为 `.venv/bin/python scripts/check.py`，默认只执行离线单元／契约、编译、依赖和文档检查；真实原生流程显式运行，步骤见同一运维说明。制品准备入口 `scripts/build_release.py` 默认只输出计划，明确 `--apply` 才创建新版本环境，不启动服务。
 
 按 [配置模板](config/config.example.json) 准备本机配置，项目 root 使用真实绝对路径，再运行：
 
@@ -80,9 +84,13 @@ python3 -m venv .venv
 
 微信中发送 `/projects` 查看注册项目，`/sessions` 获取会话编号，`/focus 1` 选择后续普通消息目标，或 `/send 1 指令` 单次派发。`/cd 项目别名` 复用受管会话，没有时可见创建；`/new 标题` 在当前目录新建。有效的 `/sessions`、`/cd`、`/new` 可按需拉起未运行的 iTerm2；其他命令和普通消息不触发应用启动。`/help` 返回命令说明，`/status` 查看目标、任务及宿主／原生就绪状态。独立 `/attach`／`/detach` 语义见[命令契约](docs/command-contract-proposal.md)。
 
+不带 ID 的 `/stop` 只在当前目标存在唯一有效占用任务时操作；多个候选须给准确任务 ID，历史已结数量不影响判断。已释放占用的 unknown 继续保留未知结果，不作为裸停止的活动候选。会话发现支持每个准确 cwd 最多十页／1000 条，单轮另受端点、总页数、条数、字节和 25 秒总时限限制；发现不完整会明确拒绝新派发，不截断后猜目标。
+
+原生中断后队列可能保留暂停状态；若新任务持续 queued，先在原终端核对，不重发未知输入。准确处置与恢复边界见[运维说明](docs/operations.md#eng01本地检查性能与真实原生交接)。
+
 宿主连接失效后，桥接保持微信收发并在 iTerm2 重新运行时自动重连；用户主动退出应用后，后台不会反复拉起。重新连接后需要完整核验原会话，旧数字列表失效；只恢复窗口内容不能证明原 Codex 仍在。认证和 API 等待有时限，系统授权仍须本人处理，不自动改设置。真实验收状态及限制见 [HOST01 证据](docs/validation/host-lifecycle-recovery.md)。
 
-按收到的准确请求 ID 使用 `/approve`／`/deny`；追问使用 `/answer`，多题答案须为实际题目 ID 到回答数组的 JSON 对象。单独发送选项文字会按普通任务处理，不自动猜测要回答哪道题。交互十分钟过期后只拒绝微信迟到答复，不自动批准或拒绝原生请求；仍可在原终端核对处理。
+按收到的准确请求 ID 使用 `/approve`／`/deny`；追问使用 `/answer`。同步追问的多题答案是原生题目 ID 到回答数组的 JSON 对象，例如 `{"choice":["PHONE_ALPHA"]}`；异步 `q-` 请求的多题答案是全部 q 题键到字符串的 JSON 对象，例如 `{"q1":"答案一","q2":"答案二"}`，不能传数组。单题按收到的准确请求 ID 回答，不自行猜 ID；具体格式见[异步答复契约](docs/async-questions.md)。单独发送选项文字会按普通任务处理，不自动猜测要回答哪道题。同步交互十分钟过期只拒绝微信迟到答复，不自动批准或拒绝原生请求；异步补充入口有效 600 秒，任务可能继续运行，两端仍可能同时被接受。
 
 前台运行使用独立 `runtime.sqlite3`，首次只从本项目旧诊断库读取游标和回复上下文，不导入诊断消息为任务，不修改旧库 schema。初始化运行账本后，指定口令 `wechat echo` 不再使用旧诊断游标；微信通道同时只允许一个本项目消费者。退出前台进程会保留原生终端和其中可能仍在执行的任务。重启先启动微信通道，再恢复依赖和通过完整身份核验的选择；恢复期间拒绝新派发，不能核验的目标保持未选并提示刷新，旧列表编号失效，未知任务不自动重放。
 
@@ -121,6 +129,6 @@ git diff --check
 
 [排版模块与自测](docs/wechat-markdown.md) · [项目规范](AGENTS.md) · [当前进度与阻塞](ROADMAP.md) · [产品设计](docs/product-design.md) · [架构](docs/architecture-design.md) · [技术决策](docs/technical-decisions.md) · [开发契约](docs/development-contracts.md) · [施工清单](goals/implementation-plan.md)
 
-本人可在已聚焦的原生会话中直接发送一张静态 JPEG／PNG，图片通过原队列处理，结果以文本返回；发送前使用 `/sessions` 和 `/focus <编号>` 选择目标。图片输入的原生版本准入为 0.165.0／0.166.0，当前已有账本须显式升级到 schema 4（包含 IMG01 的附件结构）。详细操作与边界见 [图片输入指南](docs/image-input.md)。
+本人可在已聚焦的原生会话中直接发送一张静态 JPEG／PNG，图片通过原队列处理，结果以文本返回；发送前使用 `/sessions` 和 `/focus <编号>` 选择目标。图片输入的原生版本准入为 0.165.0／0.166.0，当前已有账本须显式升级到 schema 6，其中包含 IMG01 附件结构及后续变更。详细操作与边界见 [图片输入指南](docs/image-input.md)。
 
 独立二维码登录、本人确认及指定口令文本诊断的操作入口见 [微信通道协议与联调说明](docs/wechat-protocol.md)。诊断命令不会执行 Agent 任务，只有已明确确认的本人绑定才能进行测试收发。

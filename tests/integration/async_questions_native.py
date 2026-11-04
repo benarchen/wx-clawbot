@@ -117,6 +117,10 @@ async def main(args):
             while not question_delivered.is_set():
                 for job in jobs:
                     if job.done(): job.result()
+                current=await state.tasks(task_id=task['id'])
+                if current['state'] in {'completed','failed','interrupted','cancelled'} and not await state.async_rows(task_id=task['id']):
+                    record['phase']='ended_without_structured_async_question'
+                    raise ValueError('Native task ended without a structured async question; check model/tool availability')
                 await asyncio.sleep(.05)
         rows=await state.async_rows(task_id=task['id'])
         assert len(rows)==1 and rows[0]['state']=='pending'

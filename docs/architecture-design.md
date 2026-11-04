@@ -79,7 +79,7 @@ flowchart TD
     L[launchd 服务管理] --> R
 ```
 
-建议代码职责：`channel/wechat` 管通信；`commands` 管确定性命令；`projects` 管目录与规则入口；`sessions` 管目录、选择和控制权；`tasks` 管调度与恢复；`agents/codex` 管协议；`hosts` 管原终端；`delivery` 管回执；`state` 管持久化；`service` 管生命周期。职责模块可以同进程运行，不拆成微服务。
+当前职责：`channels/` 管通信与本人绑定；`commands` 管确定性命令；`config`／`routing` 管注册目录和冻结目标；`catalog`／`sessions`／`subscriptions` 管准确会话与订阅；`controller` 管命令与选择事务；`execution`、`admission` 系列及 `results` 管准入、恢复与结果；`agents/codex` 管协议；`hosts` 管原终端；`delivery` 管回执；`runtime_state`、`occupancy`、`async_state` 与 `schema` 管同一账本；`service`／`runtime_lifecycle`／`managed` 管生命周期，`release` 核对独立运行制品。它们同进程协作，不拆成微服务。
 
 图中共享运行时是首选技术路径，尚未代表现场已有会话均满足条件。独立运行时会话必须单独识别并验证接入；不能自动重启或迁移。实际 Python 目录结构见开发契约。
 
@@ -233,7 +233,7 @@ HOST01 将实际前台实现拆成持久的微信收发与可恢复的依赖生�
 
 原生 reader 仅丢弃明确不用且不带 request ID 的四类文本增量。关键事件仍有原队列上界，未知请求、response、终态和 resolved 保留。`Execution.run` 在同一个 TaskGroup 内管理事件消费和 `ResultWork`；后者最多两个活动结果、活动及等待身份合计 128 份，只保存 thread／turn 键，同 thread 保序、跨 thread 可推进，活动键去重。每个工作实例只属于当前连接代次；退出取消并等待实际子工作，异常传到 supervisor，再按既有未知状态对账，不重新提交。
 
-渲染在 SQLite 事务外。少于 65536 字符使用线程；大结果使用最多两个临时 Python 子进程，槽位由同一 state 共享，20 秒截止，输入／输出各限 8 MiB，返回的源切片、前后缀和段数均校验。取消先终止／回收实际子进程再释放槽位；线程无法强杀时等待它结束。子进程不读取认证或原生状态，不执行正文。前缀仍在父进程附加；没有跨任务正文缓存或常驻进程池。
+渲染在 SQLite 事务外。至少 32768 字符使用最多两个临时 Python 子进程；8192 至 32767 字符的线程渲染也占用同一 state 的两个 CPU 槽位，更小的控制回执不等待这些槽位。进程创建与管道生命周期在工作线程自己的事件循环内执行，避免同步创建阻塞主控制循环；取消通知该工作，等待实际回收后释放槽位。子进程 20 秒截止，输入／输出各限 8 MiB，返回的源切片、前后缀和段数均校验。线程无法强杀时等待它结束。子进程不读取认证或原生状态，不执行正文；独立运行制品下先校验继承的 release manifest。前缀仍在父进程附加；没有跨任务正文缓存或常驻进程池。
 
 SDK 的 `async_get_app` 会刷新全列表，因此 catalog 只在单次 discover 内取得一个独立 `discovery_view`。视图固定宿主连接，换代即拒绝；每个目标仍重读 PID／启动代次／TTY、前后 footer 和原生身份，屏幕读取仍限注册目录。视图不存入长期目录；下一轮 discover、独立 require 重新刷新，不能用枚举快照取得派发资格。
 

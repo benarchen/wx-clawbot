@@ -28,6 +28,8 @@ def launch_argv(record):
 
 
 def main(argv=None):
+    from .release import ENVIRONMENT_KEY, verify_active
+    verify_active()
     parser = argparse.ArgumentParser(prog="wx-clawbot-launcher")
     parser.add_argument("--registry", required=True, type=Path)
     parser.add_argument("--launch-id", required=True)
@@ -44,6 +46,7 @@ def main(argv=None):
                {"launch_id": args.launch_id, "pid": process.pid, "started": process.started,
                 "tty_device": process.tty_device})
     os.chdir(record["cwd"])  # This dedicated child only; never the bridge process.
+    os.environ.pop(ENVIRONMENT_KEY, None)  # The external Codex process is not a bridge Python child.
     os.execv(native_argv[0], native_argv)
 
 

@@ -99,7 +99,7 @@ unknown 可能已经送达手机；只有明确接受可能重复时才额外传
 
 ## 用户级 launchd 托管、日志与卸载
 
-[用户级模板](../config/launchd.example.plist) 使用 `.venv/bin/python -m wx_clawbot.managed --config <原配置> --state-dir <原运行目录>`。仅在本人明确授权部署后，将占位绝对路径替换并保存至本人 `~/Library/LaunchAgents/local.wx-clawbot.plist`，不覆盖其他来源文件。保持 argv 数组，不拼接 Shell，不放入凭据。PATH 须能找到同一 Codex CLI；默认由既有只读发现机制核验运行时，沿用该用户的 Codex home，不固定一次性的 socket。
+[用户级模板](../config/launchd.example.plist) 使用独立版本目录的 `.venv/bin/python -I -m wx_clawbot.managed`，显式传入 release manifest、原配置和原运行目录；制品准备及切换见下方 ENG01 操作卡。仅在本人明确授权部署后替换占位绝对路径并保存至本人 `~/Library/LaunchAgents/local.wx-clawbot.plist`，不覆盖其他来源文件。保持 argv 数组，不拼接 Shell，不放入凭据。PATH 须能找到同一 Codex CLI；默认由既有只读发现机制核验运行时，沿用该用户的 Codex home，不固定一次性的 socket。旧 editable 安装是历史入口，不能作为新增生产版本的默认布局。
 
 模板的 `RunAtLoad=true` 使用户登录后启动；`KeepAlive.SuccessfulExit=false` 只在异常退出后重新启动，`ThrottleInterval=30` 限制快速失败循环。`stop` 的正常退出码为 0，主动停止后保持停止，恢复需明确执行 kickstart；下次登录仍按已安装的启动项启动。macOS 注销、睡眠、关机或网络中断时不承诺在线，不修改电源设置，也不自动启动 Codex daemon。非零的持久配置／认证错误会继续限速失败，应先 stop／bootout 后定位，不反复扫码或改库。
 
@@ -201,3 +201,71 @@ launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/local.wx-clawbot.
 旧库须先正常停止本项目唯一消费者，用 `migrate-state` 只读核对，再明确执行 `migrate-state --apply`；支持旧版本到 6，验证私有备份及旧业务／冻结回执。已有新版本写入后不直接覆盖旧备份，也不让 0.1.1 读 schema 6。恢复应保留现状并使用兼容 schema 6 的代码；不能通过清库解决。
 
 本机 ASK01 已按前述 stop／kickstart 路径一次恢复原 Label，未改 plist／凭据／全局配置，不重启 Codex 或 iTerm2。自动原生测试使用专用可核验会话，输出原始 ID／答案只存私有证据；额外微信验收须有具体条数与内容授权。实际加载与手机状态见[本机记录](validation/local-release.md)和 ROADMAP。
+
+## ENG01：独立运行制品与开发隔离
+
+开发检出与生产版本分别安装。正式布局为 `<state-dir>/releases/<version>-<wheel摘要前12位>/`，内含 `.venv/`、固定 wheel、`requirements.lock` 和 `release.json`；解释器与所有新子进程从该版本环境加载。私有状态根、账本、凭据和原 Label 保持；不把虚拟环境复制到新位置，也不原地覆盖正在运行的版本目录。
+
+manifest 分别记录 wheel SHA-256、锁摘要、项目包文件摘要、源码树摘要、依赖版本、Python 和 schema。源码树摘要与 wheel 压缩文件摘要不是同一对象。托管入口显式 `--release-manifest`，在连接服务前验证；渲染、图片、宿主探测与可见启动子进程继承准确 manifest，并使用隔离导入。开发前台仍支持不带 manifest 的明确启动，这不代表它具备正式制品隔离。
+
+先在开发项目虚拟环境中安装原固定构建后端 `setuptools==80.9.0`，不要全局安装；准备全新且父目录已存在的项目临时输出路径。以下绝对路径均须替换为本次准确对象：
+
+```sh
+.venv/bin/python -m pip install setuptools==80.9.0
+.venv/bin/python scripts/build_release.py --output /absolute/path/to/project/.tmp/eng01-artifacts
+.venv/bin/python scripts/build_release.py --output /absolute/path/to/project/.tmp/eng01-artifacts --apply
+```
+
+默认只读计划；apply 构建源码包和 wheel，再按现有哈希锁建立全新环境、非 editable 安装并验证。不连接微信／原生运行时，不启动服务。目录已存在就拒绝，失败目录作为本次证据保留，核对后另用新路径；不能机械覆盖或继续一个未知构建。构建进程默认固定 `SOURCE_DATE_EPOCH` 以稳定 wheel 时间戳，不调整系统时钟。
+
+审核测试通过的 frozen wheel、lock、manifest 及准确摘要后，在私有 releases 父目录准备正式安装，沿用同一个 wheel，不重新构建一份不同制品：
+
+```sh
+.venv/bin/python scripts/build_release.py --artifacts /absolute/path/to/project/.tmp/eng01-artifacts --wheel-sha256 EXACT_WHEEL_SHA256 --output /absolute/path/to/private/state/releases/VERSION-DIGEST
+.venv/bin/python scripts/build_release.py --artifacts /absolute/path/to/project/.tmp/eng01-artifacts --wheel-sha256 EXACT_WHEEL_SHA256 --output /absolute/path/to/private/state/releases/VERSION-DIGEST --apply
+/absolute/path/to/private/state/releases/VERSION-DIGEST/.venv/bin/python -I -m wx_clawbot.release verify --manifest /absolute/path/to/private/state/releases/VERSION-DIGEST/release.json
+```
+
+VERSION-DIGEST 必须是 manifest 版本加短 wheel 摘要；父目录权限 0700、记录文件 0600。只准备环境不等于切换运行版本。任何真实写入须在当次授权覆盖的目录执行，不由此命令触碰其他项目或 Label。
+
+切换操作卡按以下顺序执行：
+
+1. 核对原 Label／进程、consumer、schema、完整活动占用、待答交互和发送状态。没有关键执行或 sending 后，用原 `stop` 正常退出并确认消费者锁释放；不强停正在发送／执行的任务，不杀 Codex／iTerm2。
+2. 在停止状态保存私有账本一致性备份、原 plist／配置摘要、已冻结回执行及 unknown 证据；校验新包支持当前 schema。ENG01 保持 schema 6，无隐式迁移。已升级 schema 的恢复也不能覆盖回旧备份。
+3. 根据原 plist 生成准确差异，只替换本项目的解释器、隔离导入参数、manifest 及必要 WorkingDirectory；配置、状态根、PATH、Label、KeepAlive、节流、日志策略保持。先 `plutil -lint`，审核原件备份与差异，不复制模板覆盖用户其他设置。
+4. 原消费者已正常退出后，仅 `launchctl bootout` 本项目 service target，替换经过核对的本项目 plist，再 `launchctl bootstrap` 原 gui domain。修改 ProgramArguments 后必须重新载入 job，单独 kickstart 不能证明已读取新 plist。
+5. 独立核对实际进程 argv、消费者锁、supervision、包及父子摘要、schema、旧行保护与 component 状态。host 未运行与 bridge 失败分开；没有授权不拉起原应用，不将 API accepted 写成手机实收。
+6. 新启动失败时保持停止，保留当前账本与故障证据；只恢复兼容当前 schema 的已核验代码及原配置。不能用回滚代码为由恢复旧数据、清 unknown 或重放任务。未完成的切换保留未完成状态。
+
+旧版本目录只在确认不再加载、无相关子进程且保留策略／删除授权明确后清理；不自动删除旧版本、私有备份或整个 `.tmp`。
+
+## ENG01：本地检查、性能与真实原生交接
+
+基础入口 `.venv/bin/python scripts/check.py` 不安装依赖、不访问微信、不产生原生模型任务、不维护生产数据；结果保存在本项目 `.tmp/check/`。它执行非零且无跳过的 unittest、编译、pip check、Git 差异及文档一致性检查。没有对应 Git 检出时单独标记 diff 不适用，不把它写成已核验差异。失败步骤返回非零并保留摘要和日志。
+
+性能入口 `tests/integration/engineering_performance.py measure --output <本项目.tmp内的新JSON>` 使用合成原生分页、私有合成 SQLite 和实际渲染；`load` 默认至少 120 秒，路径为入站校验／游标与 Inbox、controller、Outbox、Sender 和假发送端，统计完整本地处理时延，零真实微信。输出保留原始样本与准确源码摘要，基线／候选交替执行，不能在并发跑其他 CPU 压测时比较。原生／外部网络耗时不属于该基准 SLA；门槛和矩阵见 [ENG01 清单](../goals/20261103-2356-engineering-hardening.md)。
+
+`compare` 要求明确的 `--baseline-python` 与 `--candidate-python`，候选 frozen 环境另传 `--release-manifest`；先丢弃一组预热，再完整交替执行七组。两侧父／隔离子进程源码摘要必须相同。微基准另在各进程内预热，历史查询保留 100 次、小渲染保留 7 次样本；冷启动另列，失败不参与提速百分比，不删慢样本。
+
+冻结制品可用 `tests/integration/engineering_release.py --release <准确版本目录> --output <本项目.tmp内的新目录>` 核对开发路径干扰、渲染子进程、错误 manifest 拒绝、单消费者、SIGTERM 和兼容恢复后的合成账本行保持。此入口只在自己新建的合成状态根执行；它不操作 launchd 或实际生产数据，不能替代后续真实服务切换验证。
+
+真实原生验收与基础检查分开，先确认本轮专用资源及测试任务范围；以下需要受支持运行时和专用宿主，不得放入默认检查或 CI：
+
+```sh
+.venv/bin/python tests/integration/engineering_native.py prepare --case-dir /absolute/path/to/project/.tmp/eng01-native --confirm-dedicated
+.venv/bin/python tests/integration/engineering_native.py report --case-dir /absolute/path/to/project/.tmp/eng01-native
+.venv/bin/python tests/integration/engineering_native.py run --case-dir /absolute/path/to/project/.tmp/eng01-native --confirm-dedicated
+.venv/bin/python tests/integration/engineering_native.py cleanup --case-dir /absolute/path/to/project/.tmp/eng01-native --confirm-dedicated
+```
+
+prepare 登记一窗口、至多两个自有标签，调用正式 `admission_native.py` 准备流程；run 先准确核验映射，依次调用 `performance_native.py` 的同步交互／结果、`async_questions_native.py` 的异步补充、`admission_native.py` 的结果／占用恢复，最后在独立合成身份下调用控制小样验证排队取消／运行中断，分别保存原始证据。所有交付发送使用假通道；测试的准确原生输入与答案只在所登记自有终端执行。临时 Plan 设置只用于自有线程并恢复，不能修改全局设置。四个阶段都通过后才允许 cleanup，逐一核验进程／原 thread／idle／空队列再关闭；用户终端保持。
+
+工作流在每次外部动作前先记录意图；非 ready 状态拒绝再次 run，cleanup 也不能越过未知结果。失败时使用 report 和子步骤日志只读定位，先核对准确原生 client／turn 与任务是否仍执行；不要删除 case、重跑旧步骤或把 phase 改成 verified。需要补充动作时形成新意图和明确处置方案，不自动重放。原始 ID、路径、问题与答案均留私有证据，公开报告只保留脱敏结果。
+
+原生中断后可能由客户端保留队列暂停状态：本轮实测一个已确认加入的输入在 idle thread 上保持 queued，尚无任何 turn；桥接没有将其冒充运行，也未强制启动或重发。真实工作流将中断关卡放在最后；遇到日常相同现象，先核对准确队列／原终端状态，再由本人决定原端继续或选择新会话，不重发未知任务。自动恢复暂停队列需要独立确认启动语义，不作为 ENG01 的隐式功能改造。
+
+临时模型验收仅用于明确授权的专用线程，不是生产桥接能力。原生模型／工具环境须实际产生结构化 async 问题；已终态且未产生该通知会明确失败，不把普通文字问题转换成授权，也不自动切模型。有具体授权时，prepare 和 run 均显式追加 `--async-test-model gpt-6.1-sol --confirm-temporary-model`；该选择随准备记录冻结，run 不接受临时换成另一模型。底层 `engineering_async_model.py` 保存原模型／完整受保护设置，严格核验身份／idle／空队列后只改测试线程，结束后精确恢复；任务或设置不确定时保留证据，不重试输入／答案。独立使用该入口的 run／report／cleanup 仍须准确 owned case 和全新报告目录。未取得具体授权不能把确认参数当成授权来源。
+
+日常桥接与测试使用不同账本和假发送端，真实原生自测不默认要求停日常服务。先完成能力和资源预检，再把必要的正常停止、备份和 bootstrap 单独放进最终切换窗口；不能把模型等待或授权等待留在停服窗口。本轮原生阶段过早停服的实际时长已在交付记录单列，未当作程序启动时间。
+
+回退到旧代码时，不能盲目恢复指向 editable 开发目录的旧 plist：开发源码已经提升后，该路径不再代表旧版本。应使用事先核验、兼容当前 schema 的独立旧版本解释器和目录。ENG01 准备的旧 0.1.2 不认识 `--release-manifest`，其恢复 argv 使用准确旧版本的 `.venv/bin/python -I -m wx_clawbot.managed --config <原配置> --state-dir <原状态根>`，WorkingDirectory 为旧版本目录；其他原 Label 设置保持，先正常停并核对锁，再 bootout／bootstrap。它没有新版本运行时 manifest 保护，必须单独复核非 editable、旧源码摘要和依赖；保留现有账本，不把代码回退变成旧数据覆盖。旧版本目录、备份和安装说明仅在明确保留策略／删除授权后清理。

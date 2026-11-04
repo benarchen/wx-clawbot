@@ -66,7 +66,7 @@ class LaunchRegistry:
     def command(self, launch_id):
         check_launch_id(launch_id)
         # Preserve the venv interpreter path: resolving its symlink loses the venv.
-        return shlex.join([str(Path(sys.executable).absolute()), "-m", "wx_clawbot.launcher",
+        return shlex.join([str(Path(sys.executable).absolute()), "-I", "-m", "wx_clawbot.launcher",
                            "--registry", str(self.root), "--launch-id", launch_id])
 
 

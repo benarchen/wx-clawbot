@@ -18,27 +18,46 @@ wx-clawbot/
     cli.py
     service.py
     commands.py
-    projects.py
+    config.py
+    routing.py
+    catalog.py
+    controller.py
     sessions.py
-    tasks.py
+    execution.py
+    subscriptions.py
     interactions.py
-    state.py
+    async_questions.py
+    async_state.py
+    runtime_state.py
+    occupancy.py
+    admission.py
+    admission_recovery.py
+    admission_ops.py
+    schema.py
+    retention.py
     delivery.py
+    output.py
+    render_worker.py
+    release.py
     channels/wechat.py
     agents/base.py
     agents/codex.py
     hosts/iterm2.py
   tests/
-    unit/
-    contract/
+    test_*.py
     integration/
     fixtures/
   docs/
   config/
+  scripts/
+    check.py
+    build_release.py
   .tmp/
 ```
 
 先写 AGENTS.md，再创建实现目录；职责不足以独立成文件时允许暂时合并，不创建空壳。docs 保存正式设计和施工记录；config 只存无密钥模板；.tmp 不进入 Git。README 只写当前可用能力，未完成项放 ROADMAP。运行数据不在源码目录。
+
+上图是当前核心入口映射，不是全部文件清单。配置／目录边界由 config 与 routing 实现，会话目录由 catalog／sessions／hosts 实现；任务协调在 execution，占用恢复拆至 admission 系列。runtime_state 与其同 worker 的占用／异步状态模块共同管理账本；结果并发在 results，生命周期在 runtime_lifecycle，托管在 managed。单元与契约测试当前直接放 tests 下，真实接口入口在 integration，不为早期目录建议创建空的 unit／contract 层。
 
 ## 2. 模块边界
 

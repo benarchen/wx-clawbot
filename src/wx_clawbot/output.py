@@ -4,8 +4,10 @@ import asyncio
 import json
 import re
 import sys
+import threading
 import unicodedata
 from dataclasses import dataclass
+from contextlib import nullcontext
 
 from markdown_it import MarkdownIt
 
@@ -707,7 +709,7 @@ def display_segments(text, *, prefix=None):
     return [segment.text for segment in render_segments(text, prefix=prefix)]
 
 
-async def _render_process(text):
+async def _render_process_io(text):
     """One killable CPU worker; the protocol contains display data, never code."""
     limit = 8 * 1024 * 1024
     payload = json.dumps({"text": text}, ensure_ascii=False).encode()
@@ -722,7 +724,8 @@ async def _render_process(text):
         process.stdin.write(payload)
         await process.stdin.drain()
         process.stdin.close()
-        await process.stdin.wait_closed()
+        # Cancellation must not cancel the protocol's shared close future.
+        await asyncio.shield(process.stdin.wait_closed())
     async def read_output():
         chunks, size = [], 0
         while chunk := await process.stdout.read(65536):
@@ -759,20 +762,59 @@ async def _render_process(text):
             raise ValueError("Invalid display worker memory metric")
         return result, value["peak_rss_bytes"]
     finally:
+        if process.returncode is None:
+            process.kill()
         for job in io:
             if not job.done():
                 job.cancel()
         await asyncio.gather(*io, return_exceptions=True)
-        if process.returncode is None:
-            process.kill()
-            await process.wait()
+        await process.wait()
+
+
+async def _wait_cancelled_worker(worker):
+    # Repeated cancellation must not release a CPU lane while its thread lives.
+    while not worker.done():
+        try:
+            await asyncio.shield(worker)
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            break
+    if not worker.cancelled():
+        worker.exception()
+
+
+async def _render_process(text):
+    """Keep synchronous OS spawn and pipe callbacks off the control loop."""
+    stopped = threading.Event()
+    def run():
+        async def owned():
+            job = asyncio.create_task(_render_process_io(text))
+            async def cancel_when_stopped():
+                while not stopped.is_set():
+                    await asyncio.sleep(.02)
+                job.cancel()
+            watcher = asyncio.create_task(cancel_when_stopped())
+            try:
+                return await job
+            finally:
+                watcher.cancel()
+                await asyncio.gather(watcher, return_exceptions=True)
+        return asyncio.run(owned())
+    worker = asyncio.create_task(asyncio.to_thread(run))
+    try:
+        return await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        stopped.set()
+        await _wait_cancelled_worker(worker)
+        raise
 
 
 async def render_in_worker(text, *, renderer=None, slots=None, **kwargs):
     """A cancelled owner retains its CPU lane until the actual renderer exits."""
     if not isinstance(text, str) or not text or len(text) > 512000:
         raise ValueError("Bounded nonempty display source required")
-    if len(text) >= 65536 and (renderer is None or renderer is render_segments):
+    if len(text) >= 32768 and (renderer is None or renderer is render_segments):
         prefix = kwargs.pop("prefix", None)
         if kwargs:
             raise ValueError("Unsupported display worker options")
@@ -788,12 +830,15 @@ async def render_in_worker(text, *, renderer=None, slots=None, **kwargs):
                 raise ValueError("Display payload exceeds local transport bound")
             result.append(segment)
         return result
-    job = asyncio.create_task(asyncio.to_thread(renderer or render_segments, text, **kwargs))
-    try:
-        return await asyncio.shield(job)
-    except asyncio.CancelledError:
-        await job
-        raise
+    # Medium result bursts must not fill the default executor ahead of short
+    # control receipts. Share the state's CPU lanes, retaining them on cancel.
+    async with (slots if slots is not None and len(text) >= 8192 else nullcontext()):
+        job = asyncio.create_task(asyncio.to_thread(renderer or render_segments, text, **kwargs))
+        try:
+            return await asyncio.shield(job)
+        except asyncio.CancelledError:
+            await _wait_cancelled_worker(job)
+            raise
 
 
 def native_output(turn):

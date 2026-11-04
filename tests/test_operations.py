@@ -140,7 +140,12 @@ class DiscoveryAndFailureTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(value["ThrottleInterval"], 30)
         self.assertEqual(value["ExitTimeOut"], 120)
         self.assertEqual(value["Umask"], 0o077)
-        self.assertEqual(value["ProgramArguments"][1:3], ["-m", "wx_clawbot.managed"])
+        self.assertEqual(value["ProgramArguments"][1:4], ["-I", "-m", "wx_clawbot.managed"])
+        arguments = value['ProgramArguments']
+        manifest = Path(arguments[arguments.index('--release-manifest') + 1])
+        self.assertEqual(manifest.name, 'release.json')
+        self.assertEqual(Path(arguments[0]).parents[2], manifest.parent)
+        self.assertEqual(Path(value['WorkingDirectory']), manifest.parent)
         self.assertEqual(value["StandardOutPath"], "/dev/null")
         self.assertEqual(value["StandardErrorPath"], "/dev/null")
         self.assertEqual(set(value["EnvironmentVariables"]), {"PATH"})

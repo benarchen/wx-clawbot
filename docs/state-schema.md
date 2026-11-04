@@ -2,7 +2,7 @@
 
 本文件说明程序自有私有账本，状态以 [ROADMAP](../ROADMAP.md) 为准。真实业务项目数据库与 Codex 历史不属于升级对象。
 
-当前 `0.1.2` 使用版本 6，本机已备份并显式升级、核验。以下旧版本章节保留结构演进和数据边界；升级链支持 1／2／3／4／5→6，新增结构见本页 ASK01 节及[部署证据](validation/local-release.md)。
+当前代码 `0.1.3` 使用版本 6，延续 ASK01 已备份并显式升级的账本结构；具体本机加载状态见[部署证据](validation/local-release.md)。以下旧版本章节保留结构演进和数据边界；升级链支持 1／2／3／4／5→6，新增结构见本页 ASK01 节。
 
 `<state-dir>/runtime.sqlite3` 的 application_id 固定为 wx-clawbot runtime，user_version 管理结构版本；本人 bot／owner 绑定必须匹配。默认先检查计划：
 

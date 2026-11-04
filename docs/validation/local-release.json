@@ -2143,5 +2143,84 @@
     "release_commit": "ab8f8b954d9c4df168ae3a60b175b340595dd932",
     "tag": "v0.1.2",
     "publication_record": "ask01-publication.json"
+  },
+  "record_scope": "Historical W08/REC01/ASK01 retained; current runtime described by current_runtime and eng01_update",
+  "current_runtime": {
+    "version": "0.1.3",
+    "schema": 6,
+    "non_editable": true,
+    "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679"
+  },
+  "eng01_update": {
+    "deployed": true,
+    "validation_record": "engineering-hardening.json",
+    "regression": {
+      "tests": 680,
+      "seconds": 43.102,
+      "passed": true,
+      "scope": "promoted root checkout",
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "check_entry": "scripts/check.py",
+      "check_summary_sha256": "8798f4a363f0dc6e6e7be7b169d1212fe03940c41ddd9c76b5644eb2c8149ca4",
+      "unittest_log_sha256": "281d4fc8cf2a37547b245d7505a886316af3fd087eca51cc9729845bd4665d38",
+      "compile_dependencies_diff_documents_passed": true
+    },
+    "deployment": {
+      "version": "0.1.3",
+      "schema": 6,
+      "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+      "wheel_sha256": "0c1bd67c89927b34c284d6769c36786c1e4c77f95e51d5ce47699118f5c60f67",
+      "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+      "non_editable": true,
+      "production_independent_before_worktree_promotion": true,
+      "actual_version_directory_and_launch_arguments_verified": true,
+      "parent_and_child_provenance_verified": true,
+      "source_matches_installed_package": true,
+      "unique_consumer": true,
+      "health": {
+        "host": {
+          "state": "ready",
+          "phase": "ready"
+        },
+        "native": {
+          "state": "ready"
+        }
+      },
+      "normal_stop_exit_codes": [
+        0,
+        0
+      ],
+      "initial_native_isolation_downtime_seconds": 2906.9623918533325,
+      "final_version_switch_downtime_seconds": 189.51832914352417,
+      "launchagent_changed_keys": [
+        "ProgramArguments",
+        "WorkingDirectory"
+      ],
+      "consistent_backup_tables": 13,
+      "persistent_private_backup_verified": true,
+      "no_schema_migration_or_database_restore": true,
+      "old_frozen_rows_retained": 539,
+      "all_preswitch_outbox_rows_retained": 540,
+      "historical_unknown_results_retained": 2,
+      "table_changes_on_final_startup": [
+        "routes"
+      ],
+      "route_changed_fields": [
+        "revision"
+      ],
+      "unverified_old_selection_cleared_during_original_service_restore": true,
+      "normal_lifecycle_notices_accepted": 1,
+      "wechat_test_sends": 0,
+      "configuration_credentials_codex_global_byte_unchanged": true,
+      "compatible_frozen_rollback_prepared": true,
+      "rollback_environment_not_activated": true,
+      "worktree_promotion_files": 41,
+      "git_writes": false
+    },
+    "git_published": false,
+    "native_goal_status": "complete",
+    "completed_at_beijing": "2026-11-04 13:36"
   }
 }

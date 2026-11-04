@@ -96,7 +96,7 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
                                        self.home, "title $(touch NEVER)")
         command = shlex.split(self.registry.command(self.identity))
         self.assertEqual(command[0], str(Path(sys.executable).absolute()))
-        self.assertEqual(command[1:3], ["-m", "wx_clawbot.launcher"])
+        self.assertEqual(command[1:4], ["-I", "-m", "wx_clawbot.launcher"])
         self.assertNotIn(str(self.project.root), command)
         self.assertNotIn(record["title"], command)
         before = os.environ.get("PATH")
@@ -107,6 +107,21 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any(flag in argv for flag in ("--model", "-c", "--remote")))
         self.assertEqual(os.environ.get("PATH"), before)
         self.assertFalse((self.root / "NEVER").exists())
+
+    async def test_bridge_manifest_is_verified_but_not_inherited_by_external_codex(self):
+        from wx_clawbot.launcher import main
+        record = self.registry.prepare(self.identity, self.project, self.project.root, self.executable, self.home)
+        record['phase'] = 'starting'
+        self.registry.save(record)
+        with patch.dict(os.environ, {'WX_CLAWBOT_RELEASE_MANIFEST': '/fixture/release.json'}), \
+                patch('wx_clawbot.release.verify_active') as verify, \
+                patch('wx_clawbot.launcher.read_process', return_value=ProcessIdentity(123, (1, 2), '/fixture/python', 101)), \
+                patch('wx_clawbot.launcher.os.chdir'), \
+                patch('wx_clawbot.launcher.os.execv', side_effect=lambda *_:
+                    self.assertNotIn('WX_CLAWBOT_RELEASE_MANIFEST', os.environ)) as execute:
+            main(['--registry', str(self.registry.root), '--launch-id', self.identity])
+            verify.assert_called_once()
+            execute.assert_called_once()
 
     async def test_iterm_uses_a_new_owned_window_then_only_its_own_tabs(self):
         tab = SimpleNamespace(tab_id="fixture-tab", current_session=SimpleNamespace(session_id="fixture-terminal"))

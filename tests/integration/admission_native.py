@@ -37,11 +37,15 @@ from wx_clawbot.runtime_state import RuntimeState
 
 class FixtureRegistry(LaunchRegistry):
     def command(self, launch_id):
-        return shlex.join([str(Path(sys.executable).absolute()),str(Path(__file__).resolve()),'launch',
+        if not self.load(launch_id).get('rec01_footer_override'):
+            return super().command(launch_id)
+        return shlex.join([str(Path(sys.executable).absolute()),'-I',str(Path(__file__).resolve()),'launch',
                           '--report-dir',str(self.root.parent),'--launch-id',launch_id])
 
 
 def launch(args):
+    from wx_clawbot.release import verify_active
+    verify_active()
     registry=FixtureRegistry(args.report_dir/'launches')
     record=registry.load(args.launch_id)
     if record['phase'] not in {'starting','handshaking'}:
@@ -57,6 +61,7 @@ def launch(args):
         argv=[*argv[:-1],'--remote','unix://'+record['rec01_socket'],
               '-c','tui.status_line='+json.dumps(record['rec01_footer']),argv[-1]]
     os.chdir(record['cwd'])
+    os.environ.pop('WX_CLAWBOT_RELEASE_MANIFEST', None)
     os.execv(argv[0],argv)
 
 
@@ -106,11 +111,11 @@ async def main(args):
             starter=VisibleStarter(registry,creator)
             for index in range(2):
                 launch_id=uuid.uuid4().hex
-                record=registry.prepare(launch_id,project,project.root,executable,home,f'REC01-{index+1}-owned')
+                record=registry.prepare(launch_id,project,project.root,executable,home,f'{args.title_prefix}-{index+1}-owned')
                 record.update(rec01_socket=str(socket),rec01_footer=footer,rec01_footer_override=override);registry.save(record)
                 fixture={'launch_id':launch_id,'phase':'launch_intent','cwd':str(project.root)}
                 case['fixtures'].append(fixture);case['phase']='starting';write_json(path,case,replace=True)
-                await starter.start(launch_id,project,project.root,executable,home,f'REC01-{index+1}-owned')
+                await starter.start(launch_id,project,project.root,executable,home,f'{args.title_prefix}-{index+1}-owned')
                 record=registry.load(launch_id)
                 fixture.update({k:record[k] for k in ('window_id','tab_id','terminal_id')});write_json(path,case,replace=True)
                 async with asyncio.timeout(180):
@@ -306,6 +311,7 @@ if __name__=='__main__':
     parser.add_argument('--report-dir',required=True,type=Path)
     parser.add_argument('--confirm-dedicated',action='store_true')
     parser.add_argument('--launch-id')
+    parser.add_argument('--title-prefix',default='REC01')
     args=parser.parse_args()
     if args.action=='launch':launch(args)
     else:asyncio.run(main(args))

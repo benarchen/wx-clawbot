@@ -8,6 +8,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .commands import Command, CommandError, parse_command
+from .catalog import DiscoveryUnavailable
 from .hosts.visible import LaunchPending, reconcile_launch
 from .hosts.lifecycle import HostUnavailable
 from .routing import RouteError, Routes, Target
@@ -220,7 +221,7 @@ class Controller:
             if not self.retired:
                 raise
             await self.reply(message, "原生连接已断开，本条操作未重放；未知任务请查询状态。", priority=0)
-        except (CommandError, RouteError) as exc:
+        except (CommandError, RouteError, DiscoveryUnavailable) as exc:
             await self.reply(message, str(exc), priority=0)
         except HostUnavailable as exc:
             await self.reply(message, str(exc), priority=0)

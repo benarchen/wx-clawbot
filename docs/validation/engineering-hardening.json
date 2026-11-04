@@ -1,0 +1,1816 @@
+{
+  "goal": "ENG01",
+  "status": "complete",
+  "native_goal_status": "complete",
+  "baseline_commit": "27ae435b006adddf3c2bb25b0297f3b0f961cc23",
+  "baseline_version": "0.1.2",
+  "baseline_schema": 6,
+  "baseline_source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+  "candidate_version": "0.1.3",
+  "candidate_schema": 6,
+  "initial_frozen_outbox_rows": 539,
+  "initial_unknown_results": 2,
+  "initial_boundary_tests": {
+    "tests": 14,
+    "baseline_failures": 4,
+    "baseline_errors": 6,
+    "candidate_passed": true
+  },
+  "g02_regression": {
+    "tests": 639,
+    "seconds": 39.195,
+    "passed": true,
+    "final_acceptance": false
+  },
+  "release_unit_tests": {
+    "tests": 13,
+    "passed": true
+  },
+  "render_unit_tests": {
+    "tests": 11,
+    "passed": true,
+    "slow_spawn_before_failed": true,
+    "repeated_cancellation_before_failed": true,
+    "full_pipe_cancellation_passed": true,
+    "deadline_and_resource_reclamation_passed": true
+  },
+  "exploratory_load": {
+    "baseline": {
+      "samples": 73,
+      "p95_ms": 1651.918542018393,
+      "max_ms": 1694.7876659978647,
+      "acceptance_passed": false
+    },
+    "candidate_thread_limit": {
+      "samples": 169,
+      "p95_ms": 819.5170419930946,
+      "max_ms": 831.6072080051526,
+      "acceptance_passed": false
+    },
+    "latency_assertions_added": true,
+    "mixed_interpreter_scale_profiles_excluded_from_final_comparison": true
+  },
+  "final_performance_passed": true,
+  "final_regression_passed": true,
+  "real_native_passed": true,
+  "production_deployed": true,
+  "wechat_sends": 1,
+  "wechat_ui_operations": 0,
+  "global_configuration_writes": 0,
+  "git_published": false,
+  "latest_candidate": {
+    "version": "0.1.3",
+    "schema": 6,
+    "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+    "wheel_sha256": "0c1bd67c89927b34c284d6769c36786c1e4c77f95e51d5ce47699118f5c60f67",
+    "non_editable": true,
+    "package_modules": 57
+  },
+  "clean_checkout_regression": {
+    "tests": 676,
+    "seconds": 47.512,
+    "passed": true,
+    "prior_tmp_copied": false,
+    "development_environment_copied": false,
+    "compile_dependencies_documents_passed": true,
+    "log_sha256": "82eb003366ef14a693cf8ce0d6d6c252a080f5566c642911a659faab23795699"
+  },
+  "isolated_release_probe": {
+    "status": "passed",
+    "version": "0.1.3",
+    "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+    "non_editable_manifest_verified": true,
+    "development_shadow_ignored": true,
+    "isolated_render_child_verified": true,
+    "invalid_release_refused": true,
+    "compatible_recovery_preserves_new_rows": true,
+    "single_managed_consumer": true,
+    "sigterm_exit_code": 143,
+    "state_schema": 6,
+    "service_backend": "synthetic_runtime_state",
+    "compatible_previous_version": {
+      "version": "0.1.2",
+      "source_sha256": "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323"
+    },
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0,
+    "launchd_writes": 0
+  },
+  "phase_performance_comparison": {
+    "alternating_pairs": 7,
+    "cases": 33,
+    "candidate_source_sha256": "8bf1618c2ebf3ca99800852f01ddd2104cb37fe7fcaa266a06ba3a5ab7cfc73b",
+    "final_acceptance": false,
+    "unchanged_native_history_delta_percent": [
+      2.4,
+      1.5,
+      5.1
+    ],
+    "ledger_microtiming_precision_recheck_pending": false,
+    "status": "superseded_exploratory_phase"
+  },
+  "performance": {
+    "comparison": {
+      "status": "measured",
+      "seed": 20261103,
+      "warmup_pairs": 1,
+      "alternating_pairs": 7,
+      "harness_sha256": "cd3f05783340e57415bf91f3f263c7e4353bb0d2f1e0a648685337a0e4008e98",
+      "source_sha256": {
+        "baseline": [
+          "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+          "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+          "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+          "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+          "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+          "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323",
+          "452f3ce0add43356337f4d2fabe108e7e6cffcbacebaef0394238bb47fd25323"
+        ],
+        "candidate": [
+          "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+          "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+          "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+          "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+          "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+          "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+          "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679"
+        ]
+      },
+      "rss_peak_bytes": {
+        "baseline": [
+          111067136,
+          109887488,
+          111837184,
+          126763008,
+          122241024,
+          120717312,
+          119717888
+        ],
+        "candidate": [
+          55787520,
+          55607296,
+          63586304,
+          63995904,
+          64077824,
+          63733760,
+          63897600
+        ]
+      },
+      "child_rusage_maxrss_bytes": {
+        "baseline": [
+          36044800,
+          35782656,
+          35749888,
+          35864576,
+          35962880,
+          35602432,
+          36093952
+        ],
+        "candidate": [
+          41009152,
+          40910848,
+          41123840,
+          41025536,
+          41041920,
+          40992768,
+          41058304
+        ]
+      },
+      "cases": [
+        {
+          "case": [
+            "catalog",
+            1,
+            1,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.3232500166632235,
+            0.7011670095380396,
+            0.25245800497941673,
+            0.3282079997006804,
+            0.392707996070385,
+            0.27012499049305916,
+            0.28199999360367656
+          ],
+          "candidate_ms": [
+            0.3994169819634408,
+            0.3255829797126353,
+            0.3403330047149211,
+            0.6402919825632125,
+            0.3371250058989972,
+            0.4052500007674098,
+            0.3846249892376363
+          ],
+          "median_ms": {
+            "baseline": 0.3232500166632235,
+            "candidate": 0.3846249892376363
+          },
+          "delta_percent": 18.986842818435502
+        },
+        {
+          "case": [
+            "catalog",
+            1,
+            100,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            2.470541017828509,
+            3.014625021023676,
+            2.354291995288804,
+            2.5378329737577587,
+            2.593750017695129,
+            2.6487499999348074,
+            2.6910000015050173
+          ],
+          "candidate_ms": [
+            0.4880419874098152,
+            0.40716599323786795,
+            0.41474998579360545,
+            0.7370829989667982,
+            0.4097500059287995,
+            0.4587909788824618,
+            0.5315830057952553
+          ],
+          "median_ms": {
+            "baseline": 2.593750017695129,
+            "candidate": 0.4587909788824618
+          },
+          "delta_percent": -82.3116732240004
+        },
+        {
+          "case": [
+            "catalog",
+            1,
+            101,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_status": "refused",
+          "candidate_status": "passed",
+          "speedup_claim": false
+        },
+        {
+          "case": [
+            "catalog",
+            1,
+            1000,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_status": "refused",
+          "candidate_status": "passed",
+          "speedup_claim": false
+        },
+        {
+          "case": [
+            "catalog",
+            8,
+            1,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            2.2012080007698387,
+            0.8259589958470315,
+            0.7111250015441328,
+            0.814375001937151,
+            0.807167001767084,
+            0.8014999912120402,
+            0.9269999864045531
+          ],
+          "candidate_ms": [
+            0.9163329959847033,
+            0.7870830013416708,
+            0.787208991823718,
+            1.0054159793071449,
+            1.1374999885447323,
+            0.8500000112690032,
+            0.8378339989576489
+          ],
+          "median_ms": {
+            "baseline": 0.814375001937151,
+            "candidate": 0.8500000112690032
+          },
+          "delta_percent": 4.374521473167903
+        },
+        {
+          "case": [
+            "catalog",
+            8,
+            100,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            3.578458010451868,
+            3.086458018515259,
+            2.8762919828295708,
+            3.272000001743436,
+            3.2404579978901893,
+            3.0121250019874424,
+            3.160041000228375
+          ],
+          "candidate_ms": [
+            1.0704169981181622,
+            0.9226670081261545,
+            0.9064580081030726,
+            1.0560000082477927,
+            1.4612080121878535,
+            0.9314590133726597,
+            0.993207999272272
+          ],
+          "median_ms": {
+            "baseline": 3.160041000228375,
+            "candidate": 0.993207999272272
+          },
+          "delta_percent": -68.5697749111327
+        },
+        {
+          "case": [
+            "catalog",
+            8,
+            101,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_status": "refused",
+          "candidate_status": "passed",
+          "speedup_claim": false
+        },
+        {
+          "case": [
+            "catalog",
+            8,
+            1000,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_status": "refused",
+          "candidate_status": "passed",
+          "speedup_claim": false
+        },
+        {
+          "case": [
+            "catalog",
+            16,
+            1,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            1.9677079981192946,
+            1.4793750015087426,
+            1.338125002803281,
+            1.4472909970209002,
+            1.4517079980578274,
+            1.5819580003153533,
+            1.4456250064540654
+          ],
+          "candidate_ms": [
+            2.535374980652705,
+            1.4375409809872508,
+            1.4404579997062683,
+            1.3882500061299652,
+            2.0494999771472067,
+            1.4137079997453839,
+            1.5047079941723496
+          ],
+          "median_ms": {
+            "baseline": 1.4517079980578274,
+            "candidate": 1.4404579997062683
+          },
+          "delta_percent": -0.774949119699686
+        },
+        {
+          "case": [
+            "catalog",
+            16,
+            100,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            6.84666697634384,
+            4.471124993870035,
+            3.7815829855389893,
+            4.682083992520347,
+            4.129875014768913,
+            3.8991659821476787,
+            4.717834002804011
+          ],
+          "candidate_ms": [
+            3.4557500039227307,
+            2.8632500034291297,
+            3.117207990726456,
+            3.3431250194553286,
+            6.841791007900611,
+            2.8623339894693345,
+            2.998707990627736
+          ],
+          "median_ms": {
+            "baseline": 4.471124993870035,
+            "candidate": 3.117207990726456
+          },
+          "delta_percent": -30.281349883973608
+        },
+        {
+          "case": [
+            "catalog",
+            16,
+            101,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_status": "refused",
+          "candidate_status": "passed",
+          "speedup_claim": false
+        },
+        {
+          "case": [
+            "catalog",
+            16,
+            1000,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "baseline_status": "refused",
+          "candidate_status": "passed",
+          "speedup_claim": false
+        },
+        {
+          "case": [
+            "native_history",
+            null,
+            null,
+            null,
+            null,
+            1,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.027709000278264284,
+            0.026312496629543602,
+            0.024999986635521054,
+            0.026249996153637767,
+            0.025957997422665358,
+            0.025792018277570605,
+            0.027458503609523177
+          ],
+          "candidate_ms": [
+            0.027791509637609124,
+            0.024979482986964285,
+            0.025979505153372884,
+            0.025854504201561213,
+            0.026374997105449438,
+            0.025917004677467048,
+            0.026458001229912043
+          ],
+          "median_ms": {
+            "baseline": 0.026249996153637767,
+            "candidate": 0.025979505153372884
+          },
+          "delta_percent": -1.030442056759684
+        },
+        {
+          "case": [
+            "native_history",
+            null,
+            null,
+            null,
+            null,
+            50,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.20095851505175233,
+            0.3659999929368496,
+            0.18222899234388024,
+            0.18983350310008973,
+            0.19093751325272024,
+            0.18991698743775487,
+            0.20233349641785026
+          ],
+          "candidate_ms": [
+            0.1933330058818683,
+            0.1830629917094484,
+            0.1901039941003546,
+            0.18883298616856337,
+            0.19233301281929016,
+            0.1884795055957511,
+            0.188604011782445
+          ],
+          "median_ms": {
+            "baseline": 0.19093751325272024,
+            "candidate": 0.18883298616856337
+          },
+          "delta_percent": -1.10220723434864
+        },
+        {
+          "case": [
+            "native_history",
+            null,
+            null,
+            null,
+            null,
+            200,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.7755834958516061,
+            1.2443125015124679,
+            0.660375488223508,
+            0.6870004872325808,
+            0.6813749932916835,
+            0.6883540045237169,
+            0.6938745209481567
+          ],
+          "candidate_ms": [
+            0.7269164925673977,
+            0.6864579918328673,
+            0.6978540041018277,
+            0.6833129882579669,
+            0.6882919988129288,
+            0.6862289883429185,
+            0.7045829843264073
+          ],
+          "median_ms": {
+            "baseline": 0.6883540045237169,
+            "candidate": 0.6882919988129288
+          },
+          "delta_percent": -0.009007823064965947
+        },
+        {
+          "case": [
+            "ledger",
+            null,
+            null,
+            0,
+            1,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.06445799954235554,
+            0.062479492044076324,
+            0.060165999457240105,
+            0.06316648796200752,
+            0.05983299342915416,
+            0.0619589991401881,
+            0.066250009695068
+          ],
+          "candidate_ms": [
+            0.05972950020805001,
+            0.05949998740106821,
+            0.06220900104381144,
+            0.06160449993330985,
+            0.06235449109226465,
+            0.06012499216012657,
+            0.06004201713949442
+          ],
+          "median_ms": {
+            "baseline": 0.062479492044076324,
+            "candidate": 0.06012499216012657
+          },
+          "delta_percent": -3.7684363411417787
+        },
+        {
+          "case": [
+            "ledger",
+            null,
+            null,
+            0,
+            16,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.10556250344961882,
+            0.10295800166204572,
+            0.10162501712329686,
+            0.09958299051504582,
+            0.10429200483486056,
+            0.09975000284612179,
+            0.10629100142978132
+          ],
+          "candidate_ms": [
+            0.10075001046061516,
+            0.09733301703818142,
+            0.10564601689111441,
+            0.10204099817201495,
+            0.10316699626855552,
+            0.1008334947982803,
+            0.10766700142994523
+          ],
+          "median_ms": {
+            "baseline": 0.10295800166204572,
+            "candidate": 0.10204099817201495
+          },
+          "delta_percent": -0.8906578170007395
+        },
+        {
+          "case": [
+            "ledger",
+            null,
+            null,
+            10000,
+            1,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.12379151303321123,
+            0.06108300294727087,
+            0.0585000088904053,
+            0.06262498209252954,
+            0.07479148916900158,
+            0.05937498644925654,
+            0.06239549838937819
+          ],
+          "candidate_ms": [
+            0.059270503697916865,
+            0.05820899968966842,
+            0.06427049811463803,
+            0.062167004216462374,
+            0.061875005485489964,
+            0.059708007029257715,
+            0.05958348629064858
+          ],
+          "median_ms": {
+            "baseline": 0.06239549838937819,
+            "candidate": 0.059708007029257715
+          },
+          "delta_percent": -4.30718790536655
+        },
+        {
+          "case": [
+            "ledger",
+            null,
+            null,
+            10000,
+            16,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.11856250057462603,
+            0.10785448830574751,
+            0.10997948993463069,
+            0.10283300071023405,
+            0.10931299766525626,
+            0.10212499182671309,
+            0.11031251051463187
+          ],
+          "candidate_ms": [
+            0.10112498421221972,
+            0.09850002243183553,
+            0.10670849587768316,
+            0.10597900836728513,
+            0.10716650285758078,
+            0.10570899758022279,
+            0.10485449456609786
+          ],
+          "median_ms": {
+            "baseline": 0.10931299766525626,
+            "candidate": 0.10570899758022279
+          },
+          "delta_percent": -3.2969547647662467
+        },
+        {
+          "case": [
+            "ledger",
+            null,
+            null,
+            100000,
+            1,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.06366650632116944,
+            0.05941701238043606,
+            0.06320849934127182,
+            0.06225000834092498,
+            0.0646044936729595,
+            0.06006250623613596,
+            0.06418699922505766
+          ],
+          "candidate_ms": [
+            0.05391650483943522,
+            0.058854493545368314,
+            0.06191700231283903,
+            0.06108300294727087,
+            0.0636249897070229,
+            0.06049999501556158,
+            0.059124999097548425
+          ],
+          "median_ms": {
+            "baseline": 0.06320849934127182,
+            "candidate": 0.06049999501556158
+          },
+          "delta_percent": -4.285031845300791
+        },
+        {
+          "case": [
+            "ledger",
+            null,
+            null,
+            100000,
+            16,
+            null,
+            null,
+            null
+          ],
+          "baseline_ms": [
+            0.10608301090542227,
+            0.0985420192591846,
+            0.09837502148002386,
+            0.10362498869653791,
+            0.11399999493733048,
+            0.10372899123467505,
+            0.10575001942925155
+          ],
+          "candidate_ms": [
+            0.09674998000264168,
+            0.09952050459105521,
+            0.10733399540185928,
+            0.11283298954367638,
+            0.10862498311325908,
+            0.10527050471864641,
+            0.10383299377281219
+          ],
+          "median_ms": {
+            "baseline": 0.10372899123467505,
+            "candidate": 0.10527050471864641
+          },
+          "delta_percent": 1.4860970550497843
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            1,
+            1024
+          ],
+          "baseline_ms": [
+            1.3122500095050782,
+            1.1598339769989252,
+            1.1927500017918646,
+            1.2950419913977385,
+            1.6018330061342567,
+            1.2070419907104224,
+            1.3488330005202442
+          ],
+          "candidate_ms": [
+            1.1567500187084079,
+            1.221249985974282,
+            1.2703329848591238,
+            1.586124999448657,
+            1.2392500066198409,
+            1.256708987057209,
+            1.3295419921632856
+          ],
+          "median_ms": {
+            "baseline": 1.2950419913977385,
+            "candidate": 1.256708987057209
+          },
+          "delta_percent": -2.959981575512982
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            1,
+            8192
+          ],
+          "baseline_ms": [
+            9.459916997002438,
+            7.477334002032876,
+            7.185333000961691,
+            7.907208026153967,
+            8.938042010413483,
+            7.693375024246052,
+            8.049833006225526
+          ],
+          "candidate_ms": [
+            7.9595829884056,
+            7.928334001917392,
+            8.144708001054823,
+            9.921916003804654,
+            8.054416015511379,
+            8.069250005064532,
+            7.974625012138858
+          ],
+          "median_ms": {
+            "baseline": 7.907208026153967,
+            "candidate": 8.054416015511379
+          },
+          "delta_percent": 1.861693645475171
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            1,
+            64512
+          ],
+          "baseline_ms": [
+            68.53887499892153,
+            58.730583026772365,
+            53.43091598479077,
+            62.010624998947605,
+            76.82374998694286,
+            70.97183298901655,
+            64.19766700128093
+          ],
+          "candidate_ms": [
+            151.0030839999672,
+            165.82600001129322,
+            165.8980420033913,
+            171.1543329874985,
+            158.0714579904452,
+            174.17349998140708,
+            154.28179199807346
+          ],
+          "median_ms": {
+            "baseline": 64.19766700128093,
+            "candidate": 165.82600001129322
+          },
+          "delta_percent": 158.3053368714855
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            1,
+            65536
+          ],
+          "baseline_ms": [
+            583.5186670010444,
+            124.81083400780335,
+            122.56920800427906,
+            131.16170797729865,
+            149.34904198162258,
+            145.77254201867618,
+            143.70362501358613
+          ],
+          "candidate_ms": [
+            156.43533298862167,
+            228.3881659968756,
+            155.80462498473935,
+            168.75704101403244,
+            167.10329198394902,
+            171.79758398560807,
+            157.63237499049865
+          ],
+          "median_ms": {
+            "baseline": 143.70362501358613,
+            "candidate": 167.10329198394902
+          },
+          "delta_percent": 16.283282323706594
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            8,
+            1024
+          ],
+          "baseline_ms": [
+            13.495624996721745,
+            8.718500001123175,
+            8.879374974640086,
+            10.453750001033768,
+            9.453582984860986,
+            9.344374993816018,
+            9.402374998899177
+          ],
+          "candidate_ms": [
+            8.665208995807916,
+            12.965707981493324,
+            9.681750001618639,
+            9.377292008139193,
+            9.755417006090283,
+            9.318459022324532,
+            9.271041984902695
+          ],
+          "median_ms": {
+            "baseline": 9.402374998899177,
+            "candidate": 9.377292008139193
+          },
+          "delta_percent": -0.266772924531522
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            8,
+            8192
+          ],
+          "baseline_ms": [
+            69.00254101492465,
+            58.672583021689206,
+            59.8722500144504,
+            64.29545799619518,
+            67.458292003721,
+            69.23245900543407,
+            67.43891700170934
+          ],
+          "candidate_ms": [
+            67.34891698579304,
+            80.36550000542775,
+            66.74670800566673,
+            75.97674999851733,
+            68.42550000874326,
+            64.93933298042975,
+            63.978874997701496
+          ],
+          "median_ms": {
+            "baseline": 67.43891700170934,
+            "candidate": 67.34891698579304
+          },
+          "delta_percent": -0.13345412399493606
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            8,
+            64512
+          ],
+          "baseline_ms": [
+            675.5058749986347,
+            680.6309999956284,
+            499.38829100574367,
+            557.4957920180168,
+            550.1089169993065,
+            548.5816669824999,
+            560.7352920051198
+          ],
+          "candidate_ms": [
+            1230.5062499945052,
+            1362.316958984593,
+            774.383999989368,
+            800.0658749951981,
+            787.339291011449,
+            806.506458990043,
+            773.7398339959327
+          ],
+          "median_ms": {
+            "baseline": 557.4957920180168,
+            "candidate": 800.0658749951981
+          },
+          "delta_percent": 43.510657201398594
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            8,
+            65536
+          ],
+          "baseline_ms": [
+            580.1880830258597,
+            717.0816249854397,
+            488.8073749898467,
+            629.1127910080831,
+            700.3369170124643,
+            664.5195419841912,
+            656.8411250191275
+          ],
+          "candidate_ms": [
+            954.8314580169972,
+            755.2852919907309,
+            973.260124999797,
+            770.9341660083737,
+            773.2985409966204,
+            783.3275409939233,
+            781.5213750000112
+          ],
+          "median_ms": {
+            "baseline": 656.8411250191275,
+            "candidate": 781.5213750000112
+          },
+          "delta_percent": 18.981797154867984
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            32,
+            1024
+          ],
+          "baseline_ms": [
+            35.50437500234693,
+            41.86462500365451,
+            33.71370799141005,
+            38.82200000225566,
+            43.02974999882281,
+            42.63645800529048,
+            39.46537501178682
+          ],
+          "candidate_ms": [
+            42.67466699820943,
+            36.737042013555765,
+            41.85691601014696,
+            39.20649999054149,
+            39.58370798500255,
+            39.30320800282061,
+            39.279916003579274
+          ],
+          "median_ms": {
+            "baseline": 39.46537501178682,
+            "candidate": 39.30320800282061
+          },
+          "delta_percent": -0.4109095857261602
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            32,
+            8192
+          ],
+          "baseline_ms": [
+            248.48041599034332,
+            277.2382500115782,
+            220.87770799407735,
+            277.26066700415686,
+            375.9620420169085,
+            372.3838329897262,
+            279.8783330072183
+          ],
+          "candidate_ms": [
+            350.90645798482,
+            254.32112498674542,
+            281.9302499992773,
+            271.8887080263812,
+            270.6621250254102,
+            270.55133300018497,
+            271.11370899365284
+          ],
+          "median_ms": {
+            "baseline": 277.26066700415686,
+            "candidate": 271.11370899365284
+          },
+          "delta_percent": -2.217032108060202
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            32,
+            64512
+          ],
+          "baseline_ms": [
+            3002.614208991872,
+            3326.775416993769,
+            2551.0802089993376,
+            2422.985625016736,
+            2292.6927499938756,
+            2294.9600419960916,
+            2270.3733749804087
+          ],
+          "candidate_ms": [
+            3030.8777909958735,
+            5026.762374996906,
+            3125.610957999015,
+            3259.311667003203,
+            3114.429832989117,
+            3126.080832997104,
+            3163.108624983579
+          ],
+          "median_ms": {
+            "baseline": 2422.985625016736,
+            "candidate": 3126.080832997104
+          },
+          "delta_percent": 29.017720977007944
+        },
+        {
+          "case": [
+            "render",
+            null,
+            null,
+            null,
+            null,
+            null,
+            32,
+            65536
+          ],
+          "baseline_ms": [
+            3265.2145420142915,
+            2215.551166998921,
+            2606.806958996458,
+            2561.301584006287,
+            2595.0393750099465,
+            2592.495290999068,
+            2653.5081250185613
+          ],
+          "candidate_ms": [
+            3957.5604169804137,
+            4003.440958011197,
+            3121.946500003105,
+            3142.7432500058785,
+            3137.826332997065,
+            3336.6914999787696,
+            3142.762583011063
+          ],
+          "median_ms": {
+            "baseline": 2595.0393750099465,
+            "candidate": 3142.762583011063
+          },
+          "delta_percent": 21.106547101969
+        }
+      ]
+    },
+    "comparison_report_sha256": "bfbd2aba552cba232f03e5d973835f037ec6bc50e30310f1e7bcdfe8fe4c1295",
+    "acceptance_loads": [
+      {
+        "status": "passed",
+        "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+        "harness_sha256": "cd3f05783340e57415bf91f3f263c7e4353bb0d2f1e0a648685337a0e4008e98",
+        "report_sha256": "d24ab6429ce90096c159591f80d46df34f1f7e5950ed394d6f4f4a8d399798f7",
+        "seconds": 120.04177179100225,
+        "controls": {
+          "samples": 4070,
+          "median_ms": 3.963166498579085,
+          "p95_ms": 22.64575002482161,
+          "max_ms": 179.8926670162473
+        },
+        "render_launches": 832,
+        "peak_render_jobs": 32,
+        "remaining_render_jobs": 0,
+        "last_30_seconds_pending_max": 32,
+        "cpu_user_seconds": 11.378006999999998,
+        "cpu_system_seconds": 5.981482,
+        "parent_rss_peak_bytes": 50298880,
+        "child_rusage_maxrss_bytes": 41009152
+      },
+      {
+        "status": "passed",
+        "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+        "harness_sha256": "cd3f05783340e57415bf91f3f263c7e4353bb0d2f1e0a648685337a0e4008e98",
+        "report_sha256": "031e13ddbf0220129ba9a709160543bb1ccbc925524bffceb77be30d66b20737",
+        "seconds": 120.03136399999494,
+        "controls": {
+          "samples": 4320,
+          "median_ms": 3.4918750025099143,
+          "p95_ms": 19.251792022259906,
+          "max_ms": 203.26683300663717
+        },
+        "render_launches": 1024,
+        "peak_render_jobs": 32,
+        "remaining_render_jobs": 0,
+        "last_30_seconds_pending_max": 32,
+        "cpu_user_seconds": 11.394421,
+        "cpu_system_seconds": 5.882729,
+        "parent_rss_peak_bytes": 50577408,
+        "child_rusage_maxrss_bytes": 41074688
+      }
+    ],
+    "earlier_failed_runs_retained": true,
+    "source_display_functions_ast_unchanged": true,
+    "unchanged_paths_within_ten_percent": true,
+    "necessary_costs": [
+      "catalog singleton bounded-response validation",
+      "medium results use isolated per-call worker",
+      "release provenance verification in each child"
+    ],
+    "child_peak_rss_increase_explained_as_explicit_provenance_cost": true,
+    "simultaneous_process_tree_rss_not_claimed": true
+  },
+  "production_preparation": {
+    "normal_stop_exit_code": 0,
+    "consumer_released": true,
+    "consistent_backup_tables": 13,
+    "schema": 6,
+    "new_release_installed_not_activated": true,
+    "compatible_rollback_installed_not_activated": true,
+    "original_service_restored": true,
+    "old_unverified_selection_cleared": true,
+    "scope": "historical pre-deployment stage; final state is deployment"
+  },
+  "native_attempts": [
+    {
+      "round": 1,
+      "status": "prepare_failed_transport",
+      "owned_test_terminals_created": 0,
+      "native_submissions": 0
+    },
+    {
+      "round": 2,
+      "status": "retired_failed_sync",
+      "actual_tasks_completed": 3,
+      "settings_restored": true,
+      "owned_terminals_closed": 2,
+      "user_terminals_preserved": true,
+      "old_input_replays": 0
+    },
+    {
+      "round": 3,
+      "status": "retired_failed_async",
+      "sync_controls_verified": true,
+      "async_native_executions": 0,
+      "unstarted_native_queue_cancelled": true,
+      "owned_terminals_closed": 2
+    },
+    {
+      "round": 4,
+      "status": "partial_verified_cleaned",
+      "sync_verified": true,
+      "admission_verified": true,
+      "async_task_completed_without_structured_question": true,
+      "owned_terminals_closed": 2
+    },
+    {
+      "round": 5,
+      "status": "authorized_async_verified_cleaned",
+      "owned_terminals_closed": 2,
+      "temporary_settings_restored": true,
+      "user_terminals_preserved": true,
+      "old_input_replays": 0
+    }
+  ],
+  "native_validation_basis": "Same frozen artifact; independent actual component cases, failed workflows retained; one explicitly authorized async model exception",
+  "native_proofs": {
+    "sync_controls": {
+      "phase": "verified",
+      "runtime_version": "0.166.0",
+      "owned_terminals": 2,
+      "candidate_sdk_identity_verified": true,
+      "original_native_queue": true,
+      "question_calls": 1,
+      "resolved": true,
+      "selected_marker": "PERF01_BETA",
+      "real_native_long_result_end": true,
+      "task_a_state": "completed",
+      "task_b_state": "completed",
+      "settings_restored": true,
+      "protected_configuration_unchanged": true,
+      "fake_sends": 15,
+      "wechat_sends": 0,
+      "production_ledger_writes": 0,
+      "queued_cancelled": true,
+      "running_interrupted": true,
+      "control_task_tools": 0
+    },
+    "admission": {
+      "passed": true,
+      "runtime_version": "0.166.0",
+      "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+      "actual_sdk_binding_verified": true,
+      "owned_terminals": 2,
+      "real_tasks_completed": 2,
+      "unknown_fixture_results_preserved": 1,
+      "released_unknown_holds": 1,
+      "normal_result_recovered": true,
+      "new_intent_submitted_once": true,
+      "global_configuration_unchanged": true,
+      "model_provider_unchanged": true,
+      "task_tools": 0,
+      "wechat_sends": 0,
+      "production_ledger_writes": 0,
+      "historical_native_task_replays": 0
+    },
+    "async": {
+      "passed": true,
+      "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+      "native_version": "0.166.0",
+      "schema": 6,
+      "original_task_submissions": 1,
+      "answer_submissions": 1,
+      "original_client_occurrences": 1,
+      "answer_client_occurrences": 1,
+      "user_messages": 2,
+      "original_turn_preserved": true,
+      "question_delivered_before_answer": true,
+      "answer_observed": true,
+      "model_observed_answer": true,
+      "task_status": "completed",
+      "protected_files_unchanged": true,
+      "wechat_sends": 0,
+      "production_ledger_writes": 0
+    },
+    "model_exception": {
+      "passed": true,
+      "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+      "temporary_model": "gpt-6.1-sol",
+      "settings_restored": true,
+      "global_configuration_unchanged": true,
+      "original_task_submissions": 1,
+      "answer_submissions": 1,
+      "wechat_sends": 0,
+      "production_ledger_writes": 0
+    }
+  },
+  "native_resource_cleanup": {
+    "all_owned_test_terminals_closed": true,
+    "user_terminals_preserved": true,
+    "temporary_model_and_settings_restored": true,
+    "global_configuration_unchanged": true
+  },
+  "wechat_test_sends": 0,
+  "normal_lifecycle_notices": 1,
+  "deployment": {
+    "version": "0.1.3",
+    "schema": 6,
+    "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+    "wheel_sha256": "0c1bd67c89927b34c284d6769c36786c1e4c77f95e51d5ce47699118f5c60f67",
+    "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+    "non_editable": true,
+    "production_independent_before_worktree_promotion": true,
+    "actual_version_directory_and_launch_arguments_verified": true,
+    "parent_and_child_provenance_verified": true,
+    "source_matches_installed_package": true,
+    "unique_consumer": true,
+    "health": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "normal_stop_exit_codes": [
+      0,
+      0
+    ],
+    "initial_native_isolation_downtime_seconds": 2906.9623918533325,
+    "final_version_switch_downtime_seconds": 189.51832914352417,
+    "launchagent_changed_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "consistent_backup_tables": 13,
+    "persistent_private_backup_verified": true,
+    "no_schema_migration_or_database_restore": true,
+    "old_frozen_rows_retained": 539,
+    "all_preswitch_outbox_rows_retained": 540,
+    "historical_unknown_results_retained": 2,
+    "table_changes_on_final_startup": [
+      "routes"
+    ],
+    "route_changed_fields": [
+      "revision"
+    ],
+    "unverified_old_selection_cleared_during_original_service_restore": true,
+    "normal_lifecycle_notices_accepted": 1,
+    "wechat_test_sends": 0,
+    "configuration_credentials_codex_global_byte_unchanged": true,
+    "compatible_frozen_rollback_prepared": true,
+    "rollback_environment_not_activated": true,
+    "worktree_promotion_files": 41,
+    "git_writes": false
+  },
+  "final_regression": {
+    "tests": 680,
+    "seconds": 43.102,
+    "passed": true,
+    "scope": "promoted root checkout",
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "check_entry": "scripts/check.py",
+    "check_summary_sha256": "8798f4a363f0dc6e6e7be7b169d1212fe03940c41ddd9c76b5644eb2c8149ca4",
+    "unittest_log_sha256": "281d4fc8cf2a37547b245d7505a886316af3fd087eca51cc9729845bd4665d38",
+    "compile_dependencies_diff_documents_passed": true
+  },
+  "final_checked_at_beijing": "2026-11-04 13:30",
+  "candidate_regression": {
+    "tests": 680,
+    "seconds": 42.165,
+    "passed": true,
+    "scope": "isolated candidate, including model exception guards"
+  },
+  "final_production_audit": {
+    "status": "passed",
+    "version": "0.1.3",
+    "schema": 6,
+    "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+    "release_verify": {
+      "status": "release_verified",
+      "version": "0.1.3",
+      "schema": 6,
+      "source_sha256": "9505722aedd7cb976867fddaf97e6764dd1f5347e2bc2a8df97312ee97189679",
+      "package_files": 57
+    },
+    "production_ready": true,
+    "unique_consumer": true,
+    "actual_launch_arguments_and_cwd_verified": true,
+    "protected_configuration_unchanged": true,
+    "launchagent_changed_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "full_tables_equal_to_preswitch_except_routes": 12,
+    "baseline_frozen_rows_retained": 539,
+    "current_outbox_rows": 540,
+    "unknown_results": 2,
+    "no_service_restart_during_final_audit": true
+  },
+  "test_results": {
+    "T01": {
+      "status": "passed",
+      "method": "基线、旧文件逐字保护及隔离候选核对",
+      "result": "baseline 27ae435b；41 文件受保护提升；原工作改动保持"
+    },
+    "T02": {
+      "status": "passed",
+      "method": "test_engineering_boundaries.py；完整单测",
+      "result": "旧 running＋100／10000 completed 不漏候选"
+    },
+    "T03": {
+      "status": "passed",
+      "method": "test_engineering_boundaries.py；完整单测",
+      "result": "历史窗口外的第二有效任务仍导致歧义，零取消"
+    },
+    "T04": {
+      "status": "passed",
+      "method": "test_engineering_boundaries.py；完整单测",
+      "result": "released unknown 不误停止或重新占用；holding／其他会话保护"
+    },
+    "T05": {
+      "status": "passed",
+      "method": "test_controller.py／test_admission.py；真实同步控制",
+      "result": "received 取消、准确原生队列取消／中断及竞争保护通过"
+    },
+    "T06": {
+      "status": "passed",
+      "method": "test_engineering_boundaries.py；33 场景基准",
+      "result": "101／1000 会话完整分页，首／后页准确目标核对"
+    },
+    "T07": {
+      "status": "passed",
+      "method": "test_engineering_boundaries.py",
+      "result": "损坏形态／cursor 循环／跨页与跨 cwd 矛盾拒绝，不替换旧映射"
+    },
+    "T08": {
+      "status": "passed",
+      "method": "catalog／admission 既有回归及新增边界",
+      "result": "完整目录与外部活动核验保留，失败零派发"
+    },
+    "T09": {
+      "status": "passed",
+      "method": "test_engineering_boundaries.py",
+      "result": "25 秒、页／条／字节／端点预算和取消拒绝，维护保留 waiting"
+    },
+    "T10": {
+      "status": "passed",
+      "method": "身份／可见启动既有回归及实际 SDK 原生",
+      "result": "PID／启动代次／TTY／thread／runtime／cwd 门禁保留"
+    },
+    "T11": {
+      "status": "passed",
+      "method": "routing／recovery 既有回归及实际启动比较",
+      "result": "目标冻结、观察独立；最终 routes 仅 revision／时间变化"
+    },
+    "T12": {
+      "status": "passed",
+      "method": "同步／异步既有回归及两类实际原生问题",
+      "result": "同步数组、异步字符串及错误输入拒绝；单次准确答复"
+    },
+    "T13": {
+      "status": "passed",
+      "method": "scripts/check.py documents 与文档逐项核对",
+      "result": "当前 0.1.3／schema 6；历史保留，示例类型一致"
+    },
+    "T14": {
+      "status": "passed",
+      "method": "build_release.py；全新非 editable 安装",
+      "result": "冻结 wheel／sdist、精确依赖、57 模块和许可材料核对"
+    },
+    "T15": {
+      "status": "passed",
+      "method": "engineering_release.py；实际生产父子探测",
+      "result": "managed／render 子进程同 manifest；启动器守卫及实际 SDK 入口通过"
+    },
+    "T16": {
+      "status": "passed",
+      "method": "engineering_release.py；旧根目录中探测新生产",
+      "result": "同名开发包／PYTHONPATH 未被导入；开发提升不影响服务"
+    },
+    "T17": {
+      "status": "passed",
+      "method": "test_release.py；实际错误 manifest 托管启动",
+      "result": "源码／wheel／锁／安装身份损坏或混用拒绝"
+    },
+    "T18": {
+      "status": "passed",
+      "method": "schema 既有回归；新旧制品实际合成库",
+      "result": "schema 6，旧库／错误身份／不支持结构拒绝，不迁移生产"
+    },
+    "T19": {
+      "status": "passed",
+      "method": "engineering_release.py；兼容独立旧 0.1.2",
+      "result": "新冻结行在新启动失败和旧代码读取后精确保持；未覆盖旧备份"
+    },
+    "T20": {
+      "status": "passed",
+      "method": "engineering_release.py；两次生产正常退出",
+      "result": "单消费者、SIGTERM／恢复及空闲切换；未在生产注入故障"
+    },
+    "T21": {
+      "status": "passed",
+      "method": "test_engineering_check.py；根统一检查",
+      "result": "零测试／子命令失败非零；默认零微信／原生／生产写入"
+    },
+    "T22": {
+      "status": "passed",
+      "method": "engineering_native.py／engineering_async_model.py",
+      "result": "正式准备、身份验证、报告、失败拒绝及准确归属清理实际执行"
+    },
+    "T23": {
+      "status": "passed",
+      "method": "完整既有 peer 集成；engineering_performance.py load",
+      "result": "真实 SQLite、收件到路由／Outbox／假发送端闭环与去重"
+    },
+    "T24": {
+      "status": "passed",
+      "method": "同一源码 9505722a 的实际原生组件证据",
+      "result": "0.166.0 同步／队列取消／中断／准入／授权异步分别通过；失败 case 不伪造整链通过"
+    },
+    "T25": {
+      "status": "passed",
+      "method": "engineering_performance.py compare",
+      "result": "固定 seed 20261103，33 场景、一次预热、七组完整交替"
+    },
+    "T26": {
+      "status": "passed",
+      "method": "最终两轮 load",
+      "result": "120.042／120.031 秒；4070／4320 样本；p95 22.646／19.252，最大 179.893／203.267 毫秒"
+    },
+    "T27": {
+      "status": "passed",
+      "method": "同机七配对机器数据",
+      "result": "1／8 终端百会话稳定改善 82.31％／68.57％；历史／小渲染不虚报收益"
+    },
+    "T28": {
+      "status": "passed",
+      "method": "11 项 test_render_worker.py 及媒体既有回归",
+      "result": "慢 spawn、完整管道、重复取消和超时回收；末 30 秒资源有界"
+    },
+    "T29": {
+      "status": "passed",
+      "method": "恢复／准入／异步既有回归及实际原生",
+      "result": "未知不重放、历史精确恢复、歧义保留，原结果与占用分离"
+    },
+    "T30": {
+      "status": "passed",
+      "method": "原 539 行逐行摘要；切换前完整 13 表比较",
+      "result": "两条 unknown、最终 540 冻结和其他 12 表保持；原设置恢复、用户端点保留"
+    },
+    "T31": {
+      "status": "passed",
+      "method": "全新工程副本＋冻结解释器；独立正式版本启动",
+      "result": "未复制旧 .tmp／venv／editable；676 项通过，最终正式源码同一摘要"
+    },
+    "T32": {
+      "status": "passed",
+      "method": "documents 检查、入口／模块／包发现核对",
+      "result": "57 个源码模块，动态入口有引用；无新增空框架、断链或孤儿"
+    },
+    "T33": {
+      "status": "passed",
+      "method": "根 scripts/check.py",
+      "result": "680 项／43.102 秒零失败／错误／跳过；编译／依赖／diff／文档通过"
+    },
+    "T34": {
+      "status": "passed",
+      "method": "实际私密值扫描、wheel／sdist 审查",
+      "result": "正式候选及制品隐私检查，依赖锁／LICENSE／第三方声明保持"
+    },
+    "T35": {
+      "status": "passed",
+      "method": "实际 launchd／PID／cwd／manifest／status",
+      "result": "独立 0.1.3，唯一消费者，schema 6，host／native ready，开发与运行隔离"
+    },
+    "T36": {
+      "status": "passed",
+      "method": "G／T／A 与交付／进度／资源／Git／Goal 汇总",
+      "result": "G／T／A、资源、文档、Git 已核对；原生 Goal 实际 complete，无 Git 写操作"
+    }
+  },
+  "acceptance_results": {
+    "A01": {
+      "status": "passed",
+      "basis": "T02–T05；最小反例旧失败、新通过"
+    },
+    "A02": {
+      "status": "passed",
+      "basis": "T06–T10；有界完整发现与失败拒绝"
+    },
+    "A03": {
+      "status": "passed",
+      "basis": "T12／T13；同步／异步说明及当前版本修正"
+    },
+    "A04": {
+      "status": "passed",
+      "basis": "T14–T17／T31；生产与开发隔离"
+    },
+    "A05": {
+      "status": "passed",
+      "basis": "T18–T20／T35；schema 6、正常切换和兼容恢复实测"
+    },
+    "A06": {
+      "status": "passed",
+      "basis": "T21／T31／T33；单入口和干净工程验证"
+    },
+    "A07": {
+      "status": "passed",
+      "basis": "T22／T32；正式原生入口、操作卡和安全清理"
+    },
+    "A08": {
+      "status": "passed",
+      "basis": "T25／T27；三类数据、必要成本及不优化决策"
+    },
+    "A09": {
+      "status": "passed",
+      "basis": "T26–T28；两轮硬门槛通过，安全核验／独立渲染成本明确接受"
+    },
+    "A10": {
+      "status": "passed",
+      "basis": "T14／T23／T24／T33；实际原生组件、680 项及安装通过"
+    },
+    "A11": {
+      "status": "passed",
+      "basis": "T08–T11／T29／T30；准确身份、unknown、回执及用户资源保持"
+    },
+    "A12": {
+      "status": "passed",
+      "basis": "T15／T20／T30／T35；独立制品已真实本机运行"
+    },
+    "A13": {
+      "status": "passed",
+      "basis": "第 8 节交付齐全；正式文档与机器数据一致"
+    },
+    "A14": {
+      "status": "passed",
+      "basis": "原生 Goal 实际 complete；必要关卡通过，Git 和后置边界如实记录"
+    }
+  },
+  "handoff": {
+    "human_actions_required": false,
+    "git_commit_merge_tag_push_performed": false,
+    "public_version_remains": "v0.1.2",
+    "runtime_version": "0.1.3",
+    "retained_boundaries": [
+      "Mac 完整排版／复制",
+      "同消息图文",
+      "自然上下文失效的新真人观察",
+      "原生模型／工具环境须产生结构化异步问题",
+      "原生中断后 queued 输入继续语义待独立核对"
+    ],
+    "private_evidence_and_backups_retained": true,
+    "new_runtime_dependencies": 0,
+    "temporary_model_exception_consumed_and_restored": true,
+    "production_rollback_environment_prepared_not_activated": true
+  },
+  "final_privacy_review": {
+    "status": "passed",
+    "public_text_files": 249,
+    "private_values_compared": 2637,
+    "private_matches": [],
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.3-py3-none-any.whl",
+        "members": 64,
+        "sha256": "0c1bd67c89927b34c284d6769c36786c1e4c77f95e51d5ce47699118f5c60f67"
+      },
+      {
+        "name": "wx_clawbot-0.1.3.tar.gz",
+        "members": 75,
+        "sha256": "a6480f0ab502e46a0a1539bef1d5d403d8aff0560e16c5fca3a8048d034362fe"
+      }
+    ],
+    "raw_private_values_published": false
+  },
+  "structure_review": {
+    "source_modules": 57,
+    "unchanged_display_functions": 20,
+    "only_changed_output_entry_points": [
+      "_render_process",
+      "render_in_worker"
+    ],
+    "new_file_whitespace_errors": 0,
+    "requirements_lock_license_notices_unchanged": true,
+    "new_runtime_dependencies": 0,
+    "dynamic_entries_reviewed": [
+      "managed",
+      "render_worker",
+      "launcher",
+      "cli",
+      "hosts.iterm2"
+    ],
+    "current_docs_json_local_links_anchors_checked": true
+  },
+  "git_state": {
+    "head": "27ae435b006adddf3c2bb25b0297f3b0f961cc23",
+    "branch": "dev",
+    "index_has_changes": false,
+    "pending_paths": 48,
+    "writes_performed": false
+  },
+  "completed_at_beijing": "2026-11-04 13:36",
+  "native_goal_result": {
+    "status": "complete",
+    "tokens_used": 426118,
+    "tool_time_used_seconds": 2846,
+    "previous_status": "usageLimited",
+    "token_budget": null,
+    "clock_note": "Tool-reported accumulated usage; not total wall-clock work or service downtime"
+  },
+  "goal_result_record": "complete after engineering, deployment and privacy validation; one normal lifecycle notice accepted, zero test WeChat sends"
+}

@@ -9,6 +9,8 @@ from .output import render_segments
 
 
 def main():
+    from .release import verify_active
+    verify_active()
     raw = sys.stdin.buffer.read(8 * 1024 * 1024 + 1)
     if len(raw) > 8 * 1024 * 1024:
         raise ValueError("Display worker input exceeds bound")

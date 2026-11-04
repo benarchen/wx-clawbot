@@ -4,6 +4,8 @@
 
 ## 能力边界与原生依据
 
+桥接只处理原生实际发出的结构化异步通知，不能为模型补造追问工具，也不将普通自然语言问句猜成 q 请求。当前模型／工具环境未提供此能力时，需在原端按其实际支持方式处理；测试工具会如实拒绝而非冒充通过。临时使用另一测试模型须有具体授权并恢复，不能自动改用户默认模型。
+
 仅对现场已实证的 app-server 0.166.0 开启结构化异步问题处理。准确已订阅 thread 的 `item/completed` 中，`agentMessage` 同时具有 `delivery=async`、非空合法 questions、item ID 和 turn ID，才可登记；started 不完整事件不生成卡，普通疑问句不生成请求。其他版本或损坏结构提示原终端处理，不生成可提交入口。
 
 异步问题不暂停任务。答案通过 `turn/steer` 的准确 `threadId`、`expectedTurnId`、稳定 `clientUserMessageId` 和单个 text input 补充到原活动轮次；原生没有问题级答复原语或首答独占。同步审批或确实需要阻塞的动作继续依靠原生同步请求及真实执行门禁。不得用异步答案授予执行权限。
@@ -45,6 +47,6 @@ schema 6 在 RuntimeState 的同一 SQLite 单写入执行器下增加 `async_qu
 
 ## 实施及验证入口
 
-状态持久化放在 `src/wx_clawbot/async_state.py`，协议校验／展示／Execution 协作放在 `src/wx_clawbot/async_questions.py`；不创建第二个消费者、daemon 或通道。基础测试继续 unittest，真实原生测试显式入口为 `tests/integration/async_questions_native.py`，120 秒本地负载为 `tests/integration/async_questions_load.py`；原生入口要求准确 owned case、显式确认和全新报告，不接入用户工作终端。当前版本为 0.1.2。手机发送须另有准确内容与条数授权，API 接受和手机实收分列。
+状态持久化放在 `src/wx_clawbot/async_state.py`，协议校验／展示／Execution 协作放在 `src/wx_clawbot/async_questions.py`；不创建第二个消费者、daemon 或通道。基础测试继续 unittest，真实原生测试显式入口为 `tests/integration/async_questions_native.py`，120 秒本地负载为 `tests/integration/async_questions_load.py`；原生入口要求准确 owned case、显式确认和全新报告，不接入用户工作终端。当前代码版本为 0.1.3，沿用 ASK01 的 schema 6 和已核验异步协议。准备至清理的串联入口见[运维操作卡](operations.md#eng01本地检查性能与真实原生交接)。手机发送须另有准确内容与条数授权，API 接受和手机实收分列。
 
 示例：单题 `/answer q-<收到的准确 ID> PHONE_ALPHA`；多题 `/answer q-<收到的准确 ID> {"q1":"答案一","q2":"答案二"}`。不要发送尖括号占位符或自行猜 ID。`/status` 查看活动入口，`/status <原任务 ID>` 查看准确状态、题目摘要及原因。已结束问题需要补充时，由本人明确选择目标并发送新的普通任务，旧 `/answer` 不会自动启动它。

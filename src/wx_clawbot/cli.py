@@ -18,7 +18,7 @@ from .config import ConfigError, load_projects
 def probe_host() -> dict:
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "wx_clawbot.hosts.iterm2"],
+            [sys.executable, "-I", "-m", "wx_clawbot.hosts.iterm2"],
             capture_output=True, text=True, timeout=20,
         )
         if result.returncode == 0:

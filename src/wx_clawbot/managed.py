@@ -175,10 +175,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="wx-clawbot 的 launchd 托管入口")
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--state-dir", type=Path, required=True)
+    parser.add_argument("--release-manifest", type=Path)
     args = parser.parse_args(argv)
     # New rotated files, SDK children and any state created by serve stay private.
     os.umask(0o077)
     try:
+        from .release import verify_active
+        verify_active(args.release_manifest)
         return run(args.config, args.state_dir)
     except Exception:
         # launchctl retains the nonzero status even if logging could not initialize.

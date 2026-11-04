@@ -269,6 +269,8 @@ def download_image(image):
 
 
 if __name__ == "__main__":
+    from ..release import verify_active
+    verify_active()
     try:
         payload = sys.stdin.buffer.read(65537)
         if len(payload) > 65536:

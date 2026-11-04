@@ -75,10 +75,14 @@ class CodexConnection:
         result = await self.rpc.request("thread/list", params)
         if not isinstance(result, dict) or not isinstance(result.get("data"), list):
             raise ValueError("Invalid native thread page")
+        directories = {}
         for thread in result["data"]:
-            if not isinstance(thread, dict) or not isinstance(thread.get("cwd"), str) or (
-                Path(thread["cwd"]).resolve() != project
-            ):
+            if not isinstance(thread, dict) or not isinstance(thread.get("cwd"), str):
+                raise ValueError("Native thread escaped requested project scope")
+            cwd = thread['cwd']
+            if cwd not in directories:
+                directories[cwd] = Path(cwd).resolve()
+            if directories[cwd] != project:
                 raise ValueError("Native thread escaped requested project scope")
         return result
 
