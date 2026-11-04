@@ -57,7 +57,7 @@
   "wechat_sends": 1,
   "wechat_ui_operations": 0,
   "global_configuration_writes": 0,
-  "git_published": false,
+  "git_published": true,
   "latest_candidate": {
     "version": "0.1.3",
     "schema": 6,
@@ -1743,8 +1743,8 @@
   },
   "handoff": {
     "human_actions_required": false,
-    "git_commit_merge_tag_push_performed": false,
-    "public_version_remains": "v0.1.2",
+    "git_commit_merge_tag_push_performed": true,
+    "public_version_remains": "v0.1.3",
     "runtime_version": "0.1.3",
     "retained_boundaries": [
       "Mac 完整排版／复制",
@@ -1801,7 +1801,8 @@
     "branch": "dev",
     "index_has_changes": false,
     "pending_paths": 48,
-    "writes_performed": false
+    "writes_performed": false,
+    "scope": "Engineering closeout snapshot before later authorized Git publication"
   },
   "completed_at_beijing": "2026-11-04 13:36",
   "native_goal_result": {
@@ -1812,5 +1813,14 @@
     "token_budget": null,
     "clock_note": "Tool-reported accumulated usage; not total wall-clock work or service downtime"
   },
-  "goal_result_record": "complete after engineering, deployment and privacy validation; one normal lifecycle notice accepted, zero test WeChat sends"
+  "goal_result_record": "complete after engineering, deployment and privacy validation; one normal lifecycle notice accepted, zero test WeChat sends",
+  "git_publication": {
+    "record": "eng01-publication.json",
+    "functional_commit": "425fda51016e15a5282b1def2e8a9fb83ba4ec15",
+    "tag": "v0.1.3",
+    "tag_object": "9f352f8b9d8020fa14417a2cc020a190752f50ed",
+    "remote_verified": true,
+    "service_restarted": false,
+    "published_at_beijing": "2026-11-04 22:46"
+  }
 }

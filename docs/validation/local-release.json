@@ -2219,8 +2219,9 @@
       "worktree_promotion_files": 41,
       "git_writes": false
     },
-    "git_published": false,
+    "git_published": true,
     "native_goal_status": "complete",
-    "completed_at_beijing": "2026-11-04 13:36"
+    "completed_at_beijing": "2026-11-04 13:36",
+    "git_publication_record": "eng01-publication.json"
   }
 }
