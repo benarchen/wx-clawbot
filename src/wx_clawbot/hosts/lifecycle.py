@@ -76,6 +76,28 @@ class ItermBackend:
         except (OSError, TimeoutError):
             raise HostUnavailable("connect") from None
 
+    async def wait_ready(self, identity, *, timeout=5):
+        """Wait for this process's API without requesting authorization or creating terminals."""
+        try:
+            async with asyncio.timeout(timeout):
+                delay = .1
+                while True:
+                    if await self.identity() != identity:
+                        raise HostUnavailable("changed")
+                    try:
+                        await self._probe_auth_transport()
+                    except HostUnavailable as exc:
+                        if exc.phase != "connect":
+                            raise
+                    else:
+                        if await self.identity() != identity:
+                            raise HostUnavailable("changed")
+                        return
+                    await asyncio.sleep(delay)
+                    delay = min(delay * 2, .5)
+        except TimeoutError:
+            raise HostUnavailable("connect") from None
+
     async def identity(self):
         code, output = await run_process(["/usr/bin/pgrep", "-x", "iTerm2"], timeout=2)
         if code == 1:
@@ -250,6 +272,10 @@ class HostLifecycle:
             self.state, self.phase = "connecting", "authentication"
             try:
                 async with asyncio.timeout(15):
+                    if launch:
+                        self.phase = "connect"
+                        await self.backend.wait_ready(identity)
+                        self.phase = "authentication"
                     connection = await self.backend.connect()
                 self._connection = connection
                 self.generation += 1

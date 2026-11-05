@@ -8,7 +8,7 @@
     "main",
     "dev"
   ],
-  "production_deployed": false,
+  "production_deployed": true,
   "wechat_sends": 0,
   "native_submissions": 0,
   "recorded_at_beijing": "2026-11-05 21:18",
@@ -102,5 +102,11 @@
     "host_native_ready": true
   },
   "tag_fixed_to_functional_commit": true,
-  "result_documents_followup": true
+  "result_documents_followup": true,
+  "production_deployed_at_git_publication": false,
+  "subsequent_local_deployment": {
+    "version": "0.1.4",
+    "record": "aud01-local-deployment.json",
+    "verified_at_beijing": "2026-11-05 21:47"
+  }
 }

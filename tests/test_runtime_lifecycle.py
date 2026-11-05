@@ -41,7 +41,7 @@ class RuntimeLifecycleTests(RuntimeFixture):
     async def asyncSetUp(self):
         await super().asyncSetUp()
         self.backend = SimpleNamespace(identity=AsyncMock(return_value=None),
-                                       connect=AsyncMock(), launch=AsyncMock(), probe=AsyncMock())
+                                       connect=AsyncMock(), launch=AsyncMock(), probe=AsyncMock(), wait_ready=AsyncMock())
         self.host = HostLifecycle(self.backend)
         self.addAsyncCleanup(self.host.close)
         self.starter = SimpleNamespace(registry=LaunchRegistry(self.root / "launches"), start=AsyncMock())

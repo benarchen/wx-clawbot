@@ -2229,7 +2229,15 @@
     "record": "aud01-publication.json",
     "functional_commit": "88ba09f29d9a86b6469301dcdd6aaec44b513c7e",
     "git_published": true,
-    "production_deployed": false,
-    "production_version": "0.1.3"
+    "production_deployed": true,
+    "production_version": "0.1.4",
+    "subsequent_deployment_record": "aud01-local-deployment.json"
+  },
+  "aud01_local_deployment": {
+    "version": "0.1.4",
+    "schema": 6,
+    "production_deployed": true,
+    "record": "aud01-local-deployment.json",
+    "verified_at_beijing": "2026-11-05 21:47"
   }
 }

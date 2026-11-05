@@ -1,0 +1,84 @@
+{
+  "version": "0.1.5",
+  "schema": 6,
+  "status": "prepublication_checks_passed",
+  "repository": "https://github.com/benarchen/wx-clawbot",
+  "tag": "v0.1.5",
+  "production_deployed": false,
+  "real_cold_start_retested": false,
+  "test_wechat_sends": 0,
+  "native_submissions": 0,
+  "recorded_at_beijing": "2026-11-05 22:13",
+  "base_commit": "71c747f551e6288a0b7c40fcf40a9a89c062fbac",
+  "regression": {
+    "tests": 711,
+    "seconds": 51.851,
+    "status": "passed",
+    "checks": [
+      "unittest",
+      "compile",
+      "dependencies",
+      "diff",
+      "documents"
+    ]
+  },
+  "artifact": {
+    "version": "0.1.5",
+    "schema": 6,
+    "source_sha256": "4c6e33289c707dd1b2801275d21ad6dfba046815178bb9db146fdf7232c0d4d6",
+    "wheel_sha256": "40a174fdc33674334c83d16590200a0e28b1b55aab2b31a3fb1832c845e32f09",
+    "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96"
+  },
+  "privacy_precommit": {
+    "status": "passed",
+    "public_files": 264,
+    "private_values_compared": 2770,
+    "private_matches": 0,
+    "reachable_objects": {
+      "tree": 347,
+      "blob": 777,
+      "commit": 49,
+      "tag": 4
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.5-py3-none-any.whl",
+        "sha256": "40a174fdc33674334c83d16590200a0e28b1b55aab2b31a3fb1832c845e32f09"
+      },
+      {
+        "name": "wx_clawbot-0.1.5.tar.gz",
+        "sha256": "8240b1576a11f04247c1ebc37c4cdd606d3b6783b372e76385cd912de0736e03"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "previous_release_changed_package_files": [
+      "__init__.py",
+      "hosts/lifecycle.py"
+    ],
+    "validated_fix_files_unchanged": true,
+    "production_configuration_preserved": true,
+    "deployment_phase": false,
+    "production_version": "0.1.4",
+    "production_schema": 6,
+    "host_native_ready": true
+  },
+  "preflight": {
+    "status": "passed",
+    "idle_counts": {
+      "active_tasks": 0,
+      "active_occupancy": 0,
+      "pending_replies": 0,
+      "sending_attempts": 0,
+      "active_interactions": 0,
+      "active_async_questions": 0
+    },
+    "child_render_parts": 5,
+    "new_manifest_verified": true,
+    "original_plist_backed_up": true
+  },
+  "remote_preflight": {
+    "main_dev_match_base": true,
+    "tag_absent": true,
+    "default_branch": "main"
+  }
+}

@@ -1,6 +1,6 @@
 # 项目规则加载责任与当前边界
 
-本文定义本人已明确接受的“原生限制方案”，记录 AUD01 的源码与真实原会话验证。当前状态见 [ROADMAP](../ROADMAP.md)，要求和验收见 [AUD01](../goals/20261104-2338-native-diagnostics-rules.md)。本轮交付为已验证候选与使用契约，生产服务尚未切换。
+本文定义本人已明确接受的“原生限制方案”，记录 AUD01 的源码与真实原会话验证。当前状态见 [ROADMAP](../ROADMAP.md)，要求和验收见 [AUD01](../goals/20261104-2338-native-diagnostics-rules.md)。工程验收后，日志修复已按本人后续授权切换到本机独立 0.1.4，见[本机记录](validation/aud01-local-deployment.md)；本页的原生规则限制仍然适用。
 
 ## 当前责任
 

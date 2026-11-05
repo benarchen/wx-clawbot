@@ -4,7 +4,7 @@
   "recorded_at_beijing": "2026-11-05 21:09",
   "version": "0.1.3",
   "schema": 6,
-  "production_deployed": false,
+  "production_deployed": true,
   "native_goal": "complete",
   "wechat_sends": 0,
   "native_submissions": 10,
@@ -382,11 +382,18 @@
     "record": "aud01-publication.json",
     "status": "published_verified",
     "engineering_candidate_version": "0.1.3",
-    "production_deployed": false,
+    "production_deployed": true,
     "functional_commit": "88ba09f29d9a86b6469301dcdd6aaec44b513c7e",
     "tag": "v0.1.4",
     "tag_object": "2de1b4fdc9fb77c3683a1680b8efe8ec13887eba",
     "remote_verified": true,
     "published_at_beijing": "2026-11-05 21:21"
+  },
+  "production_deployed_at_engineering_closeout": false,
+  "subsequent_local_deployment": {
+    "version": "0.1.4",
+    "record": "aud01-local-deployment.json",
+    "verified_at_beijing": "2026-11-05 21:47",
+    "status": "passed"
   }
 }

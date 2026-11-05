@@ -4,11 +4,17 @@
 
 ## 当前阶段
 
-AUD01 后续 Git 交付已完成：22 文件功能提交 88ba09f、main 正常快进合并、annotated v0.1.4 和 main／dev／标签原子推送通过，独立远端引用一致。当前代码 0.1.4／schema 6，本机仍运行独立 0.1.3；只归档实际发布结果，不移动版本标签。[发布记录](docs/validation/aud01-publication.md)。
+冷启动修复发布／上线：本人已明确授权提交、打 tag、推送及本机切换，当前准备 0.1.5／schema 6 制品与公开检查；尚未宣称完成。[发布与切换记录](docs/validation/iterm-cold-start-release.md)。
+
+iTerm2 冷启动修复已完成开发：显式按需连接先在准确进程下等待无授权 UI 的 API 传输就绪，最多 5 秒并计入原连接期限；首次命令可继续创建，超时／换代／取消停止。711 项离线回归通过，未部署或关闭现有终端；生产仍为此前独立 0.1.4，尚不包含本修复。[修复记录](docs/validation/iterm-cold-start-investigation.md)。
+
+AUD01 本机切换已完成：本人明确授权后，日常托管进程已从独立 0.1.3 切换到已发布的独立非 editable 0.1.4／schema 6，正常停服至验收 26.119 秒。准确进程／cwd／manifest、父子加载、唯一消费者和 host／native ready 通过；568 条旧回执、两条 unknown、原路由与配置保持，无迁移或额外测试消息。本次仅部署与同步文档，未再次执行 Git 写操作。[切换记录](docs/validation/aud01-local-deployment.md)、[机器摘要](docs/validation/aud01-local-deployment.json)。
+
+AUD01 后续 Git 交付已完成：22 文件功能提交 88ba09f、main 正常快进合并、annotated v0.1.4 和 main／dev／标签原子推送通过，独立远端引用一致。当前代码及本机独立运行版本均为 0.1.4／schema 6；只归档实际发布结果，不移动版本标签。[发布记录](docs/validation/aud01-publication.md)。
 
 AUD01 已按本人明确接受的原生限制方案完成候选与契约验收：有界脱敏故障日志、702 项全量、真实断连／恢复、同一原会话九轮规则实验及十轮历史审计通过。项目规范与设计／使用文档已同步，最终审计通过，原生 Goal 已实际 complete；工程验收时未部署或执行 Git 写操作，后续 Git 交付已按新授权完成，未外发微信。[清单](goals/20261104-2338-native-diagnostics-rules.md)、[交付记录](docs/validation/native-diagnostics-rules.md)、[原生限制契约](docs/project-rules.md#已确认的原生限制契约)。
 
-ENG01 已验收交付，原生 Goal 已实际 complete：本机已运行独立非 editable 0.1.3／schema 6，父子制品、唯一消费者及 host／native ready 核验通过；根工作区 680 项／43.102 秒、两轮 120 秒负载及真实原生组件关卡通过。旧冻结／unknown／配置保持，自有终端清理；测试微信零，正常恢复通知一条 API accepted。本人后续授权的 50 文件完整提交 425fda5、main 正常合并、annotated v0.1.3 及 GitHub 原子推送已完成，独立远端核验一致；仅追加实际结果文档，不移动标签。[清单](goals/20261103-2356-engineering-hardening.md)、[交付记录](docs/validation/engineering-hardening.md)、[Git 发布记录](docs/validation/eng01-publication.md)。
+ENG01 已验收交付，原生 Goal 已实际 complete：当时本机已运行独立非 editable 0.1.3／schema 6，父子制品、唯一消费者及 host／native ready 核验通过；根工作区 680 项／43.102 秒、两轮 120 秒负载及真实原生组件关卡通过。旧冻结／unknown／配置保持，自有终端清理；测试微信零，正常恢复通知一条 API accepted。本人后续授权的 50 文件完整提交 425fda5、main 正常合并、annotated v0.1.3 及 GitHub 原子推送已完成，独立远端核验一致；仅追加实际结果文档，不移动标签。[清单](goals/20261103-2356-engineering-hardening.md)、[交付记录](docs/validation/engineering-hardening.md)、[Git 发布记录](docs/validation/eng01-publication.md)。
 
 上一公开版本 `0.1.2`／schema 6 的 ASK01 修复已完成 625 项回归、120 秒负载、真实原生、构建／安装和一次 Android 手机双向验收；当时原路由恢复、测试终端归零、旧冻结／unknown／配置保持。该原生 Goal 已实际 complete，main／dev 与 annotated v0.1.2 已公开同步；其后 ENG01 已另行完成 v0.1.3 公开发布。[分版本本机记录](docs/validation/local-release.md)。
 
@@ -38,7 +44,7 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 | REC01 | 已验收交付，原生 Goal complete：[任务准入恢复与项目完整收尾](goals/20261103-0020-admission-recovery-closeout.md)。G00 至 G09／T01 至 T27／A01 至 A12、580 项回归、本机 0.1.1／schema 5、原任务唯一 completed 通过；本轮完整 Git 提交／main 合并／v0.1.1 标签公开推送完成 |
 | ASK01 | 0.1.2／schema 6 已本机加载，625 项／真实原生及负载通过；手机双向与 Git 公开归档完成，原生 Goal complete：[清单](goals/20261103-1038-async-question-bridge.md)、[证据](docs/validation/async-questions.md) |
 | ENG01 | G00 至 G10／T01 至 T36／A01 至 A14 必要范围通过，原生 Goal 实际 complete；独立 0.1.3 已加载，680 项／原生／性能／保护检查通过，v0.1.3 和双分支已公开同步：[清单](goals/20261103-2356-engineering-hardening.md)、[记录](docs/validation/engineering-hardening.md) |
-| AUD01 | 日志候选和原生限制契约已验收，原生 Goal 实际 complete；702 项及真实原生通过；v0.1.4 双分支／标签已公开同步，未部署：[清单](goals/20261104-2338-native-diagnostics-rules.md)、[交付记录](docs/validation/native-diagnostics-rules.md) |
+| AUD01 | 日志候选和原生限制契约已验收，原生 Goal 实际 complete；702 项及真实原生通过；v0.1.4 双分支／标签已公开同步，独立 0.1.4 本机切换及保护核验通过：[清单](goals/20261104-2338-native-diagnostics-rules.md)、[交付记录](docs/validation/native-diagnostics-rules.md) |
 
 ## 交付状态与运行说明
 
@@ -48,6 +54,8 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - 历史 unknown 2 结果保留不重放，现已按准确原生终态解除占用，不再阻塞项目；原等待任务唯一 completed。原生 hook 告警仍按历史证据保留，本轮不修改全局 hook。[REC01 实际记录](docs/validation/admission-recovery.md)。
 
 ## 待办事项
+
+- iTerm2 冷启动修复后续：开发已完成有界传输就绪等待，711 项／42.891 秒离线检查通过；尚未冻结新制品、切换生产或真实冷启动复测，当前独立 0.1.4 仍不含此修复。后续上线与退出 iTerm2 的验收窗口需明确授权，不重复授权已有代码修复；超时／授权／换代／并发及未知创建边界已回归。[调查与修复](docs/validation/iterm-cold-start-investigation.md)。
 
 
 - 原生中断后的队列继续：0.166.0 专用验收中，一个准确已入队输入在原生 idle 状态保持 queued、零 turn；已准确取消该测试项，没有强制启动或重放。现桥接保留原生队列权威，后续应独立核对客户端暂停／显式继续语义，再决定是否增加受控恢复能力；不混入 ENG01 的性能和制品隔离范围。[阶段记录](docs/validation/engineering-hardening.md)。
@@ -63,6 +71,10 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - IMG01 后续：同消息图文。本人于 2026-10-29 明确后置，不阻塞本次单图交付；当前客户端把一起发送的图片和文字拆为两条，只有解析覆盖，尚无单条图文真机证据。后续先确认可实际发送的客户端／协议形态，再验证一条原始消息对应一次带图文提交；不得用合成 inbox 或跨消息自动拼接冒充通过。[原 A03 要求](goals/20261028-1135-image-input.md)。
 
 ## 最近完成
+
+- 2026-11-05 22:06 iTerm2 冷启动开发修复：首次按需连接增加同进程有界传输等待及退避，授权／创建不重试，后台及未知任务语义保持。核心回归先失败后通过；新增命令链路验证首次 `/cd` 只创建一次且 `/help` 可响应。尚未部署或做真实冷启动复测。[记录](docs/validation/iterm-cold-start-investigation.md)。
+
+- 2026-11-05 21:47 AUD01 本机独立 0.1.4 切换：复用冻结制品，旧实例退出 0、13 表备份与原 Label 重载完成；新实际加载／单消费者／host、native ready 通过，正常停服至验收 26.119 秒。旧回执／unknown／路由／配置保持，无迁移或 Git 写操作。[记录](docs/validation/aud01-local-deployment.md)。
 
 - 2026-11-05 21:21 AUD01 0.1.4 Git 交付：22 文件功能提交 88ba09f、独立工作树 main 快进合并、annotated v0.1.4 及双分支／标签原子推送完成，独立远端引用核对一致；只归档结果文档，标签固定，本机仍运行独立 0.1.3。[发布记录](docs/validation/aud01-publication.md)。
 
@@ -100,11 +112,13 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 
 - 2026-11-01 23:53 W08 上下文必要范围收尾：按本人决定后置不可控的自然失效触发，先修订契约／清单，再交付即时一次验收器及 8 项有效回归。183.069 小时旧值单次 API accepted，无需真人追加操作；完整工作区 520 项通过，结果保留／新上下文明确重试／任务不重跑／unknown 不重试已验证。原 case／旧预约／生产账本与配置保持，未继续长等、部署或执行 Git 发布。[记录](docs/validation/w08.md#2026-11-01-上下文收尾)。
 
-- 2026-10-31 23:32 PERF01 隔离开发交付：有界事件／结果和临时 CPU 子进程、单调用 SDK 目录复用、schema 4 三索引／显式迁移、提交后发送唤醒及等价渲染完成。537 项、100 次重叠追问、120 秒负载／60 秒闲时、真实 SDK／原生及交付检查通过；完整源码补丁／文件摘要／原始数据齐全。日常源码／schema 3／81 条任务及 448 条回执保持，临时配置逐字恢复、自有终端清理；未部署、迁移、提交或外发微信。[交付](docs/validation/performance-optimization.md)。
-
-- 2026-10-31 17:52 本地版本管理整理：以 `dev` 当前可验证状态归档单图输入、宿主恢复、托管、双版本协议兼容及 Android 排版，源码／测试／依赖与 512 项通过摘要一致。保留 `0.1.0.dev0` 开发版本和 W08 未完成状态，私有运行数据、截图、原复制文件与任务临时目录排除；不合并、推送或创建发布标记。
-
 ## 最近验证
+
+- 2026-11-05 22:06 冷启动修复：宿主／传输 28 项、命令 71 项、运行生命周期 20 项及完整 711 项／42.891 秒通过；编译／依赖／差异／文档通过，离线零微信／原生提交／生产写入。真实冷启动验收未执行，原独立 0.1.4 不变。[记录](docs/validation/iterm-cold-start-investigation.md)。
+
+- 2026-11-05 21:57 iTerm2 冷启动调查：只读回执／启动登记与代码路径对照，首条命令在创建前约 0.245 秒失败，第二条才启动成功；真实 HostLifecycle 离线模拟复现一次连接失败即结束、下一请求成功。零真实启动／外发／任务，未改实现或重启；v0.1.3→v0.1.4 相关代码无变化。[记录](docs/validation/iterm-cold-start-investigation.md)。
+
+- 2026-11-05 21:47 AUD01 部署核验：0.1.4 manifest／实际进程 argv／cwd／源码与父子隔离加载通过；12 张非路由表逐行一致、原路由角色与目标保持，568 旧回执和两条 unknown 保留。配置／凭据／全局设置／原生进程保持，schema 6、唯一消费者及 host／native ready，额外微信测试和原生提交均为零。[摘要](docs/validation/aud01-local-deployment.json)。
 
 - 2026-11-05 21:21 AUD01 发布核验：独立非 editable 0.1.4 完整 702 项／39.968 秒及编译／依赖／文档通过；57 个包文件与新 manifest 一致，较真实验收候选仅版本声明变化。259 公开文件、2736 私密候选、两份制品及 1164 个可达对象零匹配；双分支／标签独立远端核验及生产保护通过。[摘要](docs/validation/aud01-publication.json)。
 
@@ -139,9 +153,3 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - 2026-11-03 15:01 ASK01 候选及本机核验：625 项回归（37.652 秒）零失败／错误／跳过；120 秒负载、100 次通知 p95 2.187 毫秒、3952 次控制 p95 4.142 毫秒及真实原生唯一答案通过。原 Label 已加载 0.1.2／schema 6，迁移旧 12 表精确，530 旧冻结／2 unknown／配置保持；零真实测试外发，手机关卡待授权。[证据](docs/validation/async-questions.md)。
 
 - 2026-11-03 12:47 ASK01 辅助输入归属审查：核对在线映射、桌面任务收养、普通／外部／换代恢复及独立占用释放路径；隔离候选四项既有合并／重复 client 保护测试通过，属于 580 项基线的定向复核，不增加总数。明确后续准确辅助分类约束，未修改业务代码或越过 G01；产品边界仍待确认。[记录](docs/validation/async-questions.md)。
-
-- 2026-11-03 12:39 ASK01 原生准入调查：六个真实合成问题任务证明单题／自由文字／多题答案进入原 turn，错误及已结束 turn 拒绝；但两端相反答案均被接受且有 ACK 后不可见窗口，G01 保持未通过。580 项旧基线（36.448 秒）通过、异步最小反例单列预期失败；两自有终端已清理，原源码／配置和 12 张生产业务表摘要保持，schema 5／原服务健康。[证据](docs/validation/async-questions.md)。
-
-- 2026-11-03 10:49 ASK01 计划核对：10 个 G、32 个 T、12 个 A 编号完整，38 个施工执行项均未勾选；清单与相关文档本地链接、差异格式及隐私内容检查通过。8 份其他既有改动文件摘要保持，未修改业务代码、执行运行测试、迁移、重启、外发微信或 Git 写操作；先前原生字段证据不冒充新能力验收。[清单](goals/20261103-1038-async-question-bridge.md)。
-
-- 2026-11-03 09:49 MIT 交付核对：580 项离线回归（35.976 秒）、编译／依赖／差异检查通过；隔离源码包和 wheel 均含两份原文声明，MIT 元数据及六项直接依赖准确，独立目标安装可读取许可证。10 个锁定运行发行包与 12 份许可文件逐项核对，制品无内置依赖或私有运行数据；SDK 专用授权例外未取得，不将自有 MIT 扩大为组合产品闭源许可。[机器摘要](docs/validation/mit-license.json)。

@@ -2,7 +2,7 @@
 
 ## AUD01：候选诊断与规则验收
 
-AUD01 已完成候选验收，规则责任采用本人明确接受的原生限制方案；日志修复未切换到生产。[交付记录](validation/native-diagnostics-rules.md) 和[机器摘要](validation/native-diagnostics-rules.json)记录准确验证范围。工程验收候选沿用 0.1.3／schema 6，后续 Git 交付版本为 0.1.4／schema 6，见[发布记录](validation/aud01-publication.md)；不同制品须核对各自 wheel／源码摘要，不能只凭版本字符串认定加载一致。
+AUD01 已完成工程验收，规则责任采用本人明确接受的原生限制方案；日志修复已按后续授权切换到本机独立 0.1.4，见[本机切换](validation/aud01-local-deployment.md)。[交付记录](validation/native-diagnostics-rules.md) 和[机器摘要](validation/native-diagnostics-rules.json)记录准确验证范围。工程验收候选沿用 0.1.3／schema 6，后续 Git 交付版本为 0.1.4／schema 6，见[发布记录](validation/aud01-publication.md)；不同制品须核对各自 wheel／源码摘要，不能只凭版本字符串认定加载一致。
 
 候选托管日志接纳 native_unavailable，保留安全 error_type 及有界 error_types／classification_truncated。单调时钟每 60 秒窗口最多 10 条不同签名的故障明细，同签名只记首次；native ready 或后续窗口出现事件时，以 native_failures_suppressed／suppressed_count 汇总。进程异常退出前尚未汇总的内存计数不保证保留。过滤、容量、权限和轮转保持，不应为诊断放开原始异常输出。
 
@@ -33,7 +33,11 @@ AUD01 已完成候选验收，规则责任采用本人明确接受的原生限�
 
 早期两个失败启动均经准确端点缺席、无 boot 和完整原生列表核对后归档，未重放；最终冻结候选已完成九轮规则实验并安全清理。以后重测使用新意图；已有意图先 report 并核对准确终端／队列，保留 unknown。规则边界见[规则说明](project-rules.md)，没有通用 reload 命令。
 
-本次完成口径为候选修复及规则契约交付，生产切换另需明确授权。冻结 wheel、锁及 manifest 后，按下文 ENG01 操作卡安装到新 release 目录；沿用 schema 6，无迁移。正常停止、核对消费者与发送、变更本项目准确运行路径、启动一次并复核父子 manifest／单消费者／健康／旧数据。失败时恢复兼容 schema 6 的原独立制品和托管参数，保留当前账本，不覆盖备份、不重放任务、不重启 Codex／iTerm2。
+工程完成口径为候选修复及规则契约交付；本人后续明确授权的 0.1.4 本机切换现已完成，实际结果见上述本机记录。以后再次切换仍须准确授权。冻结 wheel、锁及 manifest 后，按下文 ENG01 操作卡安装到新 release 目录；沿用 schema 6，无迁移。正常停止、核对消费者与发送、变更本项目准确运行路径、启动一次并复核父子 manifest／单消费者／健康／旧数据。失败时恢复兼容 schema 6 的原独立制品和托管参数，保留当前账本，不覆盖备份、不重放任务、不重启 Codex／iTerm2。
+
+## iTerm2 冷启动修复候选
+
+开发修复在按需命令尚未建立宿主连接时，先用禁用授权 UI 的传输探测有界等待当前准确进程的 API；最多 5 秒，包含在原 15 秒连接期限内。进程更换、取消及非传输错误立即结束；后台不自动拉起应用，授权和可见会话创建不自动重试，未知操作不重放。准确交付状态、离线结果及待安排的真实冷启动验收见[调查与修复记录](validation/iterm-cold-start-investigation.md)。本机既有 0.1.4 制品不包含此后续开发修复，不能仅凭版本字符串认定已加载。
 
 ## 安装与准备
 

@@ -16,7 +16,7 @@ class HostLifecycleTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.backend = SimpleNamespace(identity=AsyncMock(return_value="application-one"),
                                        connect=AsyncMock(side_effect=connection),
-                                       launch=AsyncMock(), probe=AsyncMock())
+                                       launch=AsyncMock(), probe=AsyncMock(), wait_ready=AsyncMock())
         self.host = HostLifecycle(self.backend, rpc_timeout=.02)
         self.addAsyncCleanup(self.host.close)
 
@@ -28,6 +28,43 @@ class HostLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.host.state, "not_running")
         self.backend.launch.assert_not_awaited()
         self.backend.connect.assert_not_awaited()
+        self.backend.wait_ready.assert_not_awaited()
+
+    async def test_explicit_connection_waits_for_transport_before_authentication(self):
+        entered, ready = asyncio.Event(), asyncio.Event()
+        async def wait_ready(identity):
+            self.assertEqual(identity, "application-one")
+            entered.set()
+            await ready.wait()
+        self.backend.wait_ready.side_effect = wait_ready
+        work = asyncio.create_task(self.host.ensure(launch=True, explicit=True))
+        self.addAsyncCleanup(lambda: asyncio.gather(work, return_exceptions=True))
+        try:
+            await asyncio.wait_for(entered.wait(), .2)
+            self.backend.connect.assert_not_awaited()
+            ready.set()
+            await work
+            self.backend.connect.assert_awaited_once()
+            await self.host.ensure(launch=True, explicit=True)
+            self.backend.wait_ready.assert_awaited_once_with("application-one")
+        finally:
+            ready.set()
+            work.cancel()
+
+    async def test_explicit_readiness_failure_never_requests_authorization(self):
+        for phase in ("connect", "changed", "authentication"):
+            with self.subTest(phase=phase):
+                self.backend.wait_ready.side_effect = HostUnavailable(phase)
+                with self.assertRaises(HostUnavailable) as caught:
+                    await self.host.ensure(launch=True, explicit=True)
+                self.assertEqual(caught.exception.phase, phase)
+                self.assertIsNone(self.host._connection)
+        self.backend.connect.assert_not_awaited()
+
+    async def test_passive_reconnect_does_not_enter_explicit_startup_wait(self):
+        await self.host.ensure()
+        self.backend.wait_ready.assert_not_awaited()
+        self.backend.launch.assert_not_awaited()
 
     async def test_concurrent_explicit_requests_launch_and_connect_only_once(self):
         self.backend.identity.return_value = None
@@ -37,6 +74,7 @@ class HostLifecycleTests(unittest.IsolatedAsyncioTestCase):
         generations = await asyncio.gather(*(self.host.ensure(launch=True, explicit=True) for _ in range(10)))
         self.backend.launch.assert_awaited_once()
         self.backend.connect.assert_awaited_once()
+        self.backend.wait_ready.assert_awaited_once_with("application-one")
         self.assertEqual(len(set(generations)), 1)
 
     async def test_restarted_app_replaces_connection_and_rejects_old_generation(self):
@@ -142,6 +180,89 @@ class HostLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
 
 class AuthenticationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_cold_start_delayed_transport_completes_same_concurrent_requests(self):
+        backend = ItermBackend()
+        backend.identity = AsyncMock(return_value=None)
+        async def launch():
+            backend.identity.return_value = "same-app"
+        backend.launch = AsyncMock(side_effect=launch)
+        backend.probe = AsyncMock()
+        host = HostLifecycle(backend)
+        self.addAsyncCleanup(host.close)
+        async def receive():
+            await asyncio.Event().wait()
+        transport = SimpleNamespace(recv=receive, close=AsyncMock())
+        with patch.object(backend, "_probe_auth_transport", new=AsyncMock(
+                side_effect=[HostUnavailable("connect"), None, None])) as health, \
+                patch.object(backend, "_open_websocket", new=AsyncMock(return_value=transport)), \
+                patch("wx_clawbot.hosts.lifecycle.run_process", new=AsyncMock(
+                    return_value=(0, b"fixture-cookie fixture-key\n"))) as authorization:
+            generations = await asyncio.gather(*(host.ensure(launch=True, explicit=True) for _ in range(3)))
+        self.assertEqual(len(set(generations)), 1)
+        self.assertEqual(health.await_count, 3)
+        authorization.assert_awaited_once()
+        backend.launch.assert_awaited_once()
+
+    async def test_readiness_timeout_never_requests_authorization(self):
+        backend = ItermBackend()
+        with patch.object(backend, "identity", new=AsyncMock(return_value="same-app")), \
+                patch.object(backend, "_probe_auth_transport", new=AsyncMock(
+                    side_effect=HostUnavailable("connect"))), \
+                patch("wx_clawbot.hosts.lifecycle.run_process", new=AsyncMock()) as authorization:
+            with self.assertRaises(HostUnavailable) as caught:
+                await backend.wait_ready("same-app", timeout=.02)
+        self.assertEqual(caught.exception.phase, "connect")
+        authorization.assert_not_awaited()
+
+    async def test_readiness_rejects_replaced_process_before_or_after_probe(self):
+        for identities, failures in ((["other-app"], []),
+                                     (["same-app", "other-app"], [None]),
+                                     (["same-app", "other-app"], [HostUnavailable("connect")])):
+            with self.subTest(identities=identities, failures=len(failures)):
+                backend = ItermBackend()
+                with patch.object(backend, "identity", new=AsyncMock(side_effect=identities)), \
+                        patch.object(backend, "_probe_auth_transport", new=AsyncMock(side_effect=failures)) as health, \
+                        patch("wx_clawbot.hosts.lifecycle.run_process", new=AsyncMock()) as authorization:
+                    with self.assertRaises(HostUnavailable) as caught:
+                        await backend.wait_ready("same-app")
+                self.assertEqual(caught.exception.phase, "changed")
+                self.assertEqual(health.await_count, len(failures))
+                authorization.assert_not_awaited()
+
+    async def test_readiness_does_not_retry_nontransport_failure(self):
+        backend = ItermBackend()
+        with patch.object(backend, "identity", new=AsyncMock(return_value="same-app")), \
+                patch.object(backend, "_probe_auth_transport", new=AsyncMock(
+                    side_effect=HostUnavailable("authentication"))) as health:
+            with self.assertRaises(HostUnavailable) as caught:
+                await backend.wait_ready("same-app")
+        self.assertEqual(caught.exception.phase, "authentication")
+        health.assert_awaited_once()
+
+    async def test_cancelled_readiness_stops_without_authorization(self):
+        backend = ItermBackend()
+        entered, finished = asyncio.Event(), asyncio.Event()
+        async def probe():
+            entered.set()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                finished.set()
+        with patch.object(backend, "identity", new=AsyncMock(return_value="same-app")), \
+                patch.object(backend, "_probe_auth_transport", new=probe), \
+                patch("wx_clawbot.hosts.lifecycle.run_process", new=AsyncMock()) as authorization:
+            work = asyncio.create_task(backend.wait_ready("same-app"))
+            try:
+                await asyncio.wait_for(entered.wait(), .2)
+                work.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await work
+                self.assertTrue(finished.is_set())
+                authorization.assert_not_awaited()
+            finally:
+                work.cancel()
+                await asyncio.gather(work, return_exceptions=True)
+
     async def test_unresponsive_api_never_starts_authorization_request(self):
         backend = ItermBackend()
         with patch("wx_clawbot.hosts.lifecycle.run_process", new=AsyncMock()) as authorization, \

@@ -14,6 +14,7 @@ from wx_clawbot.commands import parse_command
 from wx_clawbot.config import Project
 from wx_clawbot.controller import Controller, RouteCommitFailed
 from wx_clawbot.execution import Execution
+from wx_clawbot.hosts.lifecycle import HostLifecycle, HostUnavailable, ItermBackend
 from wx_clawbot.hosts.visible import LaunchPending, LaunchRegistry
 from wx_clawbot.interactions import APPROVAL, QUESTION
 from wx_clawbot.routing import RouteError, Target
@@ -291,6 +292,51 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(set(ids)), 1)
         self.assertEqual(await self.state.tasks(), [])
         self.assertEqual(self.controller.selection_pending, 0)
+
+    async def test_first_cd_waits_for_api_then_creates_once_while_help_remains_available(self):
+        backend = ItermBackend()
+        backend.identity = AsyncMock(return_value=None)
+        async def launch():
+            backend.identity.return_value = "same-app"
+        backend.launch = AsyncMock(side_effect=launch)
+        backend.connect = AsyncMock(return_value=SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock())))
+        backend.probe = AsyncMock()
+        entered, ready = asyncio.Event(), asyncio.Event()
+        probes = 0
+        async def transport():
+            nonlocal probes
+            probes += 1
+            if probes == 1:
+                raise HostUnavailable("connect")
+            entered.set()
+            await ready.wait()
+        backend._probe_auth_transport = transport
+        host = HostLifecycle(backend)
+        self.addAsyncCleanup(host.close)
+        self.controller.host = host
+        self.catalog.discover.side_effect = [(), (self.sessions[0],)]
+        with patch("wx_clawbot.controller.reconcile_launch", new=AsyncMock(
+                return_value=SimpleNamespace(thread_id="thread-one"))):
+            work = asyncio.create_task(self.command("/cd one"))
+            try:
+                await asyncio.wait_for(entered.wait(), .5)
+                backend.connect.assert_not_awaited()
+                self.controller.starter.start.assert_not_awaited()
+                await asyncio.wait_for(self.command("/help"), .5)
+                ready.set()
+                await asyncio.wait_for(work, .5)
+            finally:
+                work.cancel()
+                await asyncio.gather(work, return_exceptions=True)
+        backend.launch.assert_awaited_once()
+        backend.connect.assert_awaited_once()
+        self.controller.starter.start.assert_awaited_once()
+        self.assertEqual(self.controller.routes.target, self.sessions[0].target)
+        self.assertEqual(host.state, "ready")
+        self.queue.add.assert_not_awaited()
+        texts = await self.state._call(lambda: [row[0] for row in self.state.db.execute("SELECT text FROM outbox")])
+        self.assertEqual(sum("可见会话已就绪" in text for text in texts), 1)
+        self.assertFalse(any("API 连接不可用" in text for text in texts))
 
     async def approval(self):
         await self.select()
