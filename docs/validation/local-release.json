@@ -2239,5 +2239,15 @@
     "production_deployed": true,
     "record": "aud01-local-deployment.json",
     "verified_at_beijing": "2026-11-05 21:47"
+  },
+  "iterm_cold_start_update": {
+    "version": "0.1.5",
+    "schema": 6,
+    "record": "iterm-cold-start-release.json",
+    "functional_commit": "165d3750f69c3536d3607697de34258c9b7c4bfe",
+    "git_published": true,
+    "production_deployed": true,
+    "verified_at_beijing": "2026-11-05 22:20",
+    "real_cold_start_retested": false
   }
 }

@@ -1,14 +1,14 @@
 {
   "version": "0.1.5",
   "schema": 6,
-  "status": "prepublication_checks_passed",
+  "status": "published_and_deployed_verified",
   "repository": "https://github.com/benarchen/wx-clawbot",
   "tag": "v0.1.5",
-  "production_deployed": false,
+  "production_deployed": true,
   "real_cold_start_retested": false,
   "test_wechat_sends": 0,
   "native_submissions": 0,
-  "recorded_at_beijing": "2026-11-05 22:13",
+  "recorded_at_beijing": "2026-11-05 22:20",
   "base_commit": "71c747f551e6288a0b7c40fcf40a9a89c062fbac",
   "regression": {
     "tests": 711,
@@ -80,5 +80,80 @@
     "main_dev_match_base": true,
     "tag_absent": true,
     "default_branch": "main"
-  }
+  },
+  "functional_commit": "165d3750f69c3536d3607697de34258c9b7c4bfe",
+  "tag_object": "6d7fee4f26caf7472976dac03e57cc6339c3d657",
+  "tag_target": "165d3750f69c3536d3607697de34258c9b7c4bfe",
+  "remote_verified": true,
+  "tag_fixed_to_functional_commit": true,
+  "deployment": {
+    "status": "passed",
+    "version": "0.1.5",
+    "schema": 6,
+    "source_sha256": "4c6e33289c707dd1b2801275d21ad6dfba046815178bb9db146fdf7232c0d4d6",
+    "wheel_sha256": "40a174fdc33674334c83d16590200a0e28b1b55aab2b31a3fb1832c845e32f09",
+    "normal_stop": true,
+    "normal_old_exit_code": 0,
+    "downtime_seconds": 117.064,
+    "single_verified_consumer": true,
+    "actual_argv_and_cwd_verified": true,
+    "host_ready": true,
+    "native_ready": true,
+    "manifest_and_managed_source_match": true,
+    "changed_plist_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "configuration_credentials_global_config_preserved": true,
+    "original_native_processes_preserved": true,
+    "identical_business_tables_except_route_revision": 12,
+    "route_roles_and_target_preserved": true,
+    "frozen_outbox_rows": 576,
+    "unknown_results_preserved": 2,
+    "backup_integrity_and_foreign_keys": "passed",
+    "new_process_start_events": 1,
+    "schema_migration": false,
+    "database_restore": false,
+    "test_wechat_sends": 0,
+    "native_submissions": 0,
+    "downtime_basis": "old_bridge_stopped_log_to_new_verified_ready",
+    "initial_state_check_raced_normal_process_exit": true,
+    "recorded_at_beijing": "2026-11-05 22:20",
+    "real_cold_start_retested": false,
+    "child_render_parts": 5
+  },
+  "privacy_postcommit": {
+    "status": "passed",
+    "public_files": 264,
+    "private_values_compared": 2770,
+    "private_matches": 0,
+    "reachable_objects": {
+      "tree": 355,
+      "blob": 800,
+      "commit": 50,
+      "tag": 5
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.5-py3-none-any.whl",
+        "sha256": "40a174fdc33674334c83d16590200a0e28b1b55aab2b31a3fb1832c845e32f09"
+      },
+      {
+        "name": "wx_clawbot-0.1.5.tar.gz",
+        "sha256": "8240b1576a11f04247c1ebc37c4cdd606d3b6783b372e76385cd912de0736e03"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "previous_release_changed_package_files": [
+      "__init__.py",
+      "hosts/lifecycle.py"
+    ],
+    "validated_fix_files_unchanged": true,
+    "production_configuration_preserved": true,
+    "deployment_phase": true,
+    "production_version": "0.1.5",
+    "production_schema": 6,
+    "host_native_ready": true
+  },
+  "result_documents_followup": true
 }
