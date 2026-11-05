@@ -1,7 +1,7 @@
 {
   "version": "0.1.4",
   "schema": 6,
-  "status": "prepublication_checks_passed",
+  "status": "published_verified",
   "repository": "https://github.com/benarchen/wx-clawbot",
   "tag": "v0.1.4",
   "branches": [
@@ -66,5 +66,41 @@
     "default_branch": "main"
   },
   "native_validation": "previous_0.1.3_candidate_only_version_declaration_changed",
-  "runtime_unchanged": true
+  "runtime_unchanged": true,
+  "published_at_beijing": "2026-11-05 21:21",
+  "functional_commit": "88ba09f29d9a86b6469301dcdd6aaec44b513c7e",
+  "tag_object": "2de1b4fdc9fb77c3683a1680b8efe8ec13887eba",
+  "tag_target": "88ba09f29d9a86b6469301dcdd6aaec44b513c7e",
+  "remote_verified": true,
+  "changed_files": 22,
+  "privacy_postcommit": {
+    "status": "passed",
+    "public_files": 259,
+    "private_values_compared": 2736,
+    "private_matches": 0,
+    "reachable_objects": {
+      "tree": 343,
+      "blob": 769,
+      "commit": 48,
+      "tag": 4
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.4-py3-none-any.whl",
+        "sha256": "100bd988938533f0a44c959a9edd515f9ef691b02fbe6c13cf266bf73d780e7d"
+      },
+      {
+        "name": "wx_clawbot-0.1.4.tar.gz",
+        "sha256": "b3d206b777af670c4b9a47878703795b69b09c920d98d5d563ccb410676b94ff"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "native_validated_candidate_difference": "version_declaration_only",
+    "production_same_process_and_configuration": true,
+    "production_version": "0.1.3",
+    "production_schema": 6,
+    "host_native_ready": true
+  },
+  "tag_fixed_to_functional_commit": true,
+  "result_documents_followup": true
 }

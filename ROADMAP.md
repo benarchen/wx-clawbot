@@ -4,9 +4,9 @@
 
 ## 当前阶段
 
-AUD01 后续 Git 交付：本人已明确授权提交、打 tag 并推送既有远端；代码递增为 0.1.4／schema 6，正在执行发布前构建与检查。计划 dev 正常提交、main 快进合并及 annotated v0.1.4 原子推送，本机独立 0.1.3 不变。[发布记录](docs/validation/aud01-publication.md)。
+AUD01 后续 Git 交付已完成：22 文件功能提交 88ba09f、main 正常快进合并、annotated v0.1.4 和 main／dev／标签原子推送通过，独立远端引用一致。当前代码 0.1.4／schema 6，本机仍运行独立 0.1.3；只归档实际发布结果，不移动版本标签。[发布记录](docs/validation/aud01-publication.md)。
 
-AUD01 已按本人明确接受的原生限制方案完成候选与契约验收：有界脱敏故障日志、702 项全量、真实断连／恢复、同一原会话九轮规则实验及十轮历史审计通过。项目规范与设计／使用文档已同步，最终审计通过，原生 Goal 已实际 complete；未部署、外发微信或执行 Git 写操作。[清单](goals/20261104-2338-native-diagnostics-rules.md)、[交付记录](docs/validation/native-diagnostics-rules.md)、[原生限制契约](docs/project-rules.md#已确认的原生限制契约)。
+AUD01 已按本人明确接受的原生限制方案完成候选与契约验收：有界脱敏故障日志、702 项全量、真实断连／恢复、同一原会话九轮规则实验及十轮历史审计通过。项目规范与设计／使用文档已同步，最终审计通过，原生 Goal 已实际 complete；工程验收时未部署或执行 Git 写操作，后续 Git 交付已按新授权完成，未外发微信。[清单](goals/20261104-2338-native-diagnostics-rules.md)、[交付记录](docs/validation/native-diagnostics-rules.md)、[原生限制契约](docs/project-rules.md#已确认的原生限制契约)。
 
 ENG01 已验收交付，原生 Goal 已实际 complete：本机已运行独立非 editable 0.1.3／schema 6，父子制品、唯一消费者及 host／native ready 核验通过；根工作区 680 项／43.102 秒、两轮 120 秒负载及真实原生组件关卡通过。旧冻结／unknown／配置保持，自有终端清理；测试微信零，正常恢复通知一条 API accepted。本人后续授权的 50 文件完整提交 425fda5、main 正常合并、annotated v0.1.3 及 GitHub 原子推送已完成，独立远端核验一致；仅追加实际结果文档，不移动标签。[清单](goals/20261103-2356-engineering-hardening.md)、[交付记录](docs/validation/engineering-hardening.md)、[Git 发布记录](docs/validation/eng01-publication.md)。
 
@@ -38,7 +38,7 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 | REC01 | 已验收交付，原生 Goal complete：[任务准入恢复与项目完整收尾](goals/20261103-0020-admission-recovery-closeout.md)。G00 至 G09／T01 至 T27／A01 至 A12、580 项回归、本机 0.1.1／schema 5、原任务唯一 completed 通过；本轮完整 Git 提交／main 合并／v0.1.1 标签公开推送完成 |
 | ASK01 | 0.1.2／schema 6 已本机加载，625 项／真实原生及负载通过；手机双向与 Git 公开归档完成，原生 Goal complete：[清单](goals/20261103-1038-async-question-bridge.md)、[证据](docs/validation/async-questions.md) |
 | ENG01 | G00 至 G10／T01 至 T36／A01 至 A14 必要范围通过，原生 Goal 实际 complete；独立 0.1.3 已加载，680 项／原生／性能／保护检查通过，v0.1.3 和双分支已公开同步：[清单](goals/20261103-2356-engineering-hardening.md)、[记录](docs/validation/engineering-hardening.md) |
-| AUD01 | 日志候选和原生限制契约已验收，原生 Goal 实际 complete；702 项及真实原生通过，未部署／发布：[清单](goals/20261104-2338-native-diagnostics-rules.md)、[交付记录](docs/validation/native-diagnostics-rules.md) |
+| AUD01 | 日志候选和原生限制契约已验收，原生 Goal 实际 complete；702 项及真实原生通过；v0.1.4 双分支／标签已公开同步，未部署：[清单](goals/20261104-2338-native-diagnostics-rules.md)、[交付记录](docs/validation/native-diagnostics-rules.md) |
 
 ## 交付状态与运行说明
 
@@ -63,6 +63,8 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - IMG01 后续：同消息图文。本人于 2026-10-29 明确后置，不阻塞本次单图交付；当前客户端把一起发送的图片和文字拆为两条，只有解析覆盖，尚无单条图文真机证据。后续先确认可实际发送的客户端／协议形态，再验证一条原始消息对应一次带图文提交；不得用合成 inbox 或跨消息自动拼接冒充通过。[原 A03 要求](goals/20261028-1135-image-input.md)。
 
 ## 最近完成
+
+- 2026-11-05 21:21 AUD01 0.1.4 Git 交付：22 文件功能提交 88ba09f、独立工作树 main 快进合并、annotated v0.1.4 及双分支／标签原子推送完成，独立远端引用核对一致；只归档结果文档，标签固定，本机仍运行独立 0.1.3。[发布记录](docs/validation/aud01-publication.md)。
 
 - 2026-11-05 21:09 AUD01 整体候选交付：本人明确接受原生限制方案，项目规范／设计契约／使用运维与交付材料同步，G00 至 G07、T01 至 T26 适用范围及 A01 至 A12 通过，原生 Goal 实际 complete。日志修复未部署，未外发微信／执行 Git 写操作，无需追加配合。[清单](goals/20261104-2338-native-diagnostics-rules.md)、[交付](docs/validation/native-diagnostics-rules.md)。
 
@@ -102,9 +104,9 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 
 - 2026-10-31 17:52 本地版本管理整理：以 `dev` 当前可验证状态归档单图输入、宿主恢复、托管、双版本协议兼容及 Android 排版，源码／测试／依赖与 512 项通过摘要一致。保留 `0.1.0.dev0` 开发版本和 W08 未完成状态，私有运行数据、截图、原复制文件与任务临时目录排除；不合并、推送或创建发布标记。
 
-- 2026-10-31 17:10 MD01 Android 范围完工：G00 至 G06、T01 至 T23、A01 至 A12 通过，512 项完整回归；最终真人文字五段、单图／准确追问、37／56 字节复制及旧同文长结果证据齐全。修正已加载，日常目标／观察与临时设置恢复、自有测试终端清理，旧 412 条冻结及 76 条任务保持，原生 Goal 实际 complete。Mac 完整要求后置、W08 未完成项保留，不提交／推送。[交付](goals/20261029-1217-wechat-markdown-rendering.md)、[证据](docs/validation/wechat-markdown.md)。
-
 ## 最近验证
+
+- 2026-11-05 21:21 AUD01 发布核验：独立非 editable 0.1.4 完整 702 项／39.968 秒及编译／依赖／文档通过；57 个包文件与新 manifest 一致，较真实验收候选仅版本声明变化。259 公开文件、2736 私密候选、两份制品及 1164 个可达对象零匹配；双分支／标签独立远端核验及生产保护通过。[摘要](docs/validation/aud01-publication.json)。
 
 - 2026-11-05 21:09 AUD01 完工审计：702 项全量原始日志及最终 12 项定向、真实十轮历史／九轮规则实验／断连恢复与现场保护证据通过；57 个包文件与冻结制品一致，18 份公开变更／6 个私密候选零匹配，文档／JSON／链接／差异格式通过；已确认原生限制契约，Goal 实际 complete。[摘要](docs/validation/native-diagnostics-rules.json)。
 
@@ -143,5 +145,3 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - 2026-11-03 10:49 ASK01 计划核对：10 个 G、32 个 T、12 个 A 编号完整，38 个施工执行项均未勾选；清单与相关文档本地链接、差异格式及隐私内容检查通过。8 份其他既有改动文件摘要保持，未修改业务代码、执行运行测试、迁移、重启、外发微信或 Git 写操作；先前原生字段证据不冒充新能力验收。[清单](goals/20261103-1038-async-question-bridge.md)。
 
 - 2026-11-03 09:49 MIT 交付核对：580 项离线回归（35.976 秒）、编译／依赖／差异检查通过；隔离源码包和 wheel 均含两份原文声明，MIT 元数据及六项直接依赖准确，独立目标安装可读取许可证。10 个锁定运行发行包与 12 份许可文件逐项核对，制品无内置依赖或私有运行数据；SDK 专用授权例外未取得，不将自有 MIT 扩大为组合产品闭源许可。[机器摘要](docs/validation/mit-license.json)。
-
-- 2026-11-03 08:07 公开提交与标签核验：218 文件、974 可达对象（42 commit／629 blob／1 tag）与 2422 个私密值／密钥格式核对无匹配；140 份源码／测试／锁与 580 项已测候选相同，编译／依赖／差异／JSON／本地链接通过。GitHub public／默认 main／推送权限及远端三引用独立核对通过，运行摘要与托管进程一致，未执行额外重启。[机器记录](docs/validation/rec01-publication.json)。

@@ -380,8 +380,13 @@
   "git_publication": {
     "version": "0.1.4",
     "record": "aud01-publication.json",
-    "status": "preparing",
+    "status": "published_verified",
     "engineering_candidate_version": "0.1.3",
-    "production_deployed": false
+    "production_deployed": false,
+    "functional_commit": "88ba09f29d9a86b6469301dcdd6aaec44b513c7e",
+    "tag": "v0.1.4",
+    "tag_object": "2de1b4fdc9fb77c3683a1680b8efe8ec13887eba",
+    "remote_verified": true,
+    "published_at_beijing": "2026-11-05 21:21"
   }
 }
