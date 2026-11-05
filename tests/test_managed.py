@@ -43,6 +43,84 @@ class ManagedTests(unittest.TestCase):
         self.assertEqual(event['failures'], [{'component': 'channel_receive', 'error_type': 'ProtocolError'}])
         self.assertNotIn('SECRET', json.dumps(event))
 
+    def test_native_failure_is_recorded_without_exception_body(self):
+        stream = EventStream(self.logger())
+        stream.write(json.dumps({'status': 'native_unavailable', 'error_type': 'ConnectionLost',
+                                 'message': 'SECRET_BODY', 'socket': '/private/SECRET'}) + '\n')
+        self.assertEqual(len(self.events()), 1)
+        self.assertEqual(self.events()[0]['event'], 'native_unavailable')
+        self.assertEqual(self.events()[0]['error_type'], 'ConnectionLost')
+        self.assertNotIn('SECRET', json.dumps(self.events()))
+
+    def failure(self, stream, name='ConnectionLost', **fields):
+        stream.write(json.dumps({'status': 'native_unavailable', 'error_type': name, **fields}) + '\n')
+
+    def test_repeated_failures_are_summarized_at_monotonic_window_boundary(self):
+        now = [100.0]
+        stream = EventStream(self.logger(), clock=lambda: now[0])
+        for _ in range(10000):
+            self.failure(stream)
+        self.assertEqual(len(self.events()), 1)
+        self.assertEqual(stream.suppressed_count, 9999)
+        now[0] = 159.999
+        self.failure(stream)
+        self.assertEqual(len(self.events()), 1)
+        now[0] = 160
+        self.failure(stream)
+        self.assertEqual([e['event'] for e in self.events()],
+                         ['native_unavailable', 'native_failures_suppressed', 'native_unavailable'])
+        self.assertEqual(self.events()[1]['suppressed_count'], 10000)
+        self.assertEqual(stream.suppressed_count, 0)
+
+    def test_distinct_failure_budget_and_recovery_reset_are_bounded(self):
+        stream = EventStream(self.logger(), clock=lambda: 10)
+        for index in range(100):
+            self.failure(stream, 'Failure' + str(index))
+        self.assertEqual(len(self.events()), 10)
+        self.assertEqual(len(stream.failure_signatures), 10)
+        stream.write('{"status":"capabilities","native":{"state":"ready"}}\n')
+        events = self.events()
+        self.assertEqual(events[-2]['suppressed_count'], 90)
+        self.assertEqual(events[-1]['native'], {'state': 'ready'})
+        self.failure(stream, 'Failure0')
+        self.assertEqual(self.events()[-1]['event'], 'native_unavailable')
+        self.assertEqual(len(stream.failure_signatures), 1)
+        stream.write('{"status":"capabilities","native":{"state":"ready"}}\n')
+        self.assertEqual(sum(e['event'] == 'native_failures_suppressed' for e in self.events()), 1)
+
+    def test_wall_clock_changes_cannot_release_failure_budget(self):
+        stream = EventStream(self.logger(), clock=lambda: 100)
+        for wall in (1, 10**15, -10**15):
+            with patch('wx_clawbot.managed.time.time', return_value=wall):
+                self.failure(stream)
+        self.assertEqual(len(self.events()), 1)
+        self.assertEqual(stream.suppressed_count, 2)
+
+    def test_group_classifications_are_sanitized_and_bounded(self):
+        stream = EventStream(self.logger())
+        self.failure(stream, '/private/SECRET', error_types=['ConnectionLost', '/SECRET', [], 'ValueError'] * 100,
+                     classification_truncated=True, traceback='SECRET_BODY')
+        event = self.events()[0]
+        self.assertEqual(event['error_type'], 'UnknownError')
+        self.assertEqual(event['error_types'], ['ConnectionLost', 'UnknownError', 'ValueError'])
+        self.assertTrue(event['classification_truncated'])
+        self.assertNotIn('SECRET', json.dumps(event))
+
+    def test_missing_or_malformed_classification_cannot_break_logging(self):
+        stream = EventStream(self.logger())
+        stream.write('{"status":"native_unavailable","error_types":{},"classification_truncated":[]}\n')
+        self.assertEqual(self.events()[0]['error_type'], 'UnknownError')
+        self.assertNotIn('error_types', self.events()[0])
+
+    def test_fragmented_failure_and_oversized_input_keep_the_filter(self):
+        stream = EventStream(self.logger())
+        line = '{"status":"native_unavailable","error_type":"ValueError"}\n'
+        stream.write('x' * 9000 + '\n')
+        for part in (line[:4], line[4:30], line[30:]):
+            stream.write(part)
+        self.assertEqual(len(self.events()), 1)
+        self.assertEqual(self.events()[0]['error_type'], 'ValueError')
+
     def test_malformed_oversized_and_arbitrary_output_cannot_break_or_leak(self):
         stream = EventStream(self.logger())
         for text in ['SECRET_BODY\n', '{"status": []}\n', '[]\n', '{"status":"unknown","message":"SECRET_BODY"}\n',

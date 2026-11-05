@@ -1,5 +1,6 @@
 import asyncio
 import gc
+import json
 import unittest
 import weakref
 from pathlib import Path
@@ -12,8 +13,28 @@ from wx_clawbot.agents.rpc import ConnectionLost
 from wx_clawbot.config import Project
 from wx_clawbot.hosts.lifecycle import HostLifecycle
 from wx_clawbot.hosts.visible import LaunchRegistry
+from wx_clawbot.managed import EventStream, open_log
 from wx_clawbot.routing import RouteError
-from wx_clawbot.runtime_lifecycle import BridgeRuntime
+from wx_clawbot.runtime_lifecycle import BridgeRuntime, native_failure_report
+
+
+class NativeFailureReportTests(unittest.TestCase):
+    def test_nested_group_retains_only_safe_classifications(self):
+        error = ExceptionGroup('SECRET_GROUP', [ValueError('/SECRET'),
+            ExceptionGroup('SECRET', [ConnectionLost('SECRET'), ValueError('SECRET')])])
+        report = native_failure_report(error)
+        self.assertEqual(report, {'status': 'native_unavailable', 'error_type': 'ExceptionGroup',
+            'error_types': ['ConnectionLost', 'ValueError'], 'classification_truncated': False})
+
+    def test_wide_or_deep_group_is_truncated_without_unbounded_traversal(self):
+        error = ValueError('SECRET')
+        for _ in range(1000):
+            error = ExceptionGroup('SECRET', [error])
+        self.assertTrue(native_failure_report(error)['classification_truncated'])
+        wide = ExceptionGroup('SECRET', [type('Error' + str(i), (Exception,), {})() for i in range(100)])
+        report = native_failure_report(wide)
+        self.assertEqual(len(report['error_types']), 8)
+        self.assertTrue(report['classification_truncated'])
 
 
 class RuntimeLifecycleTests(RuntimeFixture):
@@ -28,6 +49,30 @@ class RuntimeLifecycleTests(RuntimeFixture):
                                       self.host, None, None, self.root)
         await self.runtime.initialize()
         self.index = 100
+
+    async def test_runtime_failure_reaches_private_managed_log_without_replaying(self):
+        logger, handler = open_log(self.root)
+        self.addCleanup(handler.close)
+        stream = EventStream(logger)
+        received = asyncio.Event()
+        def emit(report):
+            stream.write(json.dumps(report) + '\n')
+            received.set()
+        self.runtime.emit = emit
+        self.runtime.connect_native = AsyncMock(side_effect=ExceptionGroup('SECRET',
+            [ConnectionLost('SECRET_SOCKET'), TimeoutError('SECRET_BODY')]))
+        job = asyncio.create_task(self.runtime.run())
+        try:
+            await asyncio.wait_for(received.wait(), 1)
+        finally:
+            job.cancel()
+            await asyncio.gather(job, return_exceptions=True)
+        rows = [json.loads(line) for line in (self.root / 'logs/bridge.jsonl').read_text().splitlines()]
+        self.assertEqual(rows[0]['event'], 'native_unavailable')
+        self.assertEqual(rows[0]['error_types'], ['ConnectionLost', 'TimeoutError'])
+        self.assertNotIn('SECRET', json.dumps(rows))
+        self.runtime.connect_native.assert_awaited_once()
+        self.assertEqual(await self.state.tasks(), [])
 
     async def command(self, text):
         self.index += 1

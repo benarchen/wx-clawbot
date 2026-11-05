@@ -4,7 +4,7 @@
 
 本项目自有代码和文档采用 [MIT License](LICENSE)。第三方依赖保持原授权，其中 iterm2 Python SDK 声明 GPLv2+；本项目 MIT 授权不代表完整组合产品可按 MIT 闭源再发行。依赖清单和发行边界见 [第三方声明](THIRD_PARTY_NOTICES.md)。
 
-当前代码版本为 `0.1.3`，运行使用独立的非 editable 制品；具体本机加载状态见[本机交付记录](docs/validation/local-release.md)。已有账本须通过显式备份升级到 schema 6，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)。
+当前代码版本为 `0.1.4`，运行使用独立的非 editable 制品；具体本机加载状态见[本机交付记录](docs/validation/local-release.md)。已有账本须通过显式备份升级到 schema 6，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)。
 
 当前提供前台微信桥接：本人绑定、项目选择、原终端会话发现与切换、单次派发与持续聚焦、独立观察订阅，以及在 iTerm2 可见创建新 Codex 会话。任务通过原生 daemon 队列提交，回复区分入队、执行和最终结果。[实际行为与验证范围](docs/validation/w05.md) 说明各入口的范围。
 
@@ -62,6 +62,8 @@ python3 -m venv .venv
 现场原型的操作与显式验收入口见 [原终端验证说明](docs/validation/w02.md)。未完成身份核验的终端保持未绑定；目录或窗口标题不能作为会话身份。
 
 当前绑定复验要求 Codex 状态栏显示准确原生线程 ID，用于识别同一进程内的会话切换。当前现场客户端使用 `thread-id` 显示项；未显示、被截断或与目标不匹配时拒绝派发，桥接不会自动编辑 Codex 全局配置。[W05 现场证据](docs/validation/w05.md) 保留当时版本和设置记录。
+
+项目规则采用本人已确认的原生限制方案：桥接不提供规则变化检测、自动阻断或热更新确认。修改项目 AGENTS.md 后，由本人明确新建可见会话并复验来源，旧队列不自动迁移／取消／重放；原会话仍可输入或桥接重连不代表新规则已加载。操作和版本证据见[项目规则说明](docs/project-rules.md#已确认的原生限制契约)。
 
 已有终端可在原会话中运行 `/statusline`，启用 Thread ID 并置于首位；已有有效线程 ID 时无需重复添加。不要同时显示 Thread ID 和 Session ID，底部多个 UUID 会被保守拒绝。此原生设置会保存到 Codex 的 `tui.status_line`；无需关闭原会话，新终端读取已保存设置，已有终端需要在各自 TUI 中应用。选项名称须以受支持客户端实际显示为准，不能仅因配置中没有 `session-id` 就判断身份缺失。
 

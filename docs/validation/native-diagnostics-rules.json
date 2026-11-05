@@ -1,0 +1,387 @@
+{
+  "goal": "AUD01",
+  "status": "complete_candidate_delivery_native_limits_accepted",
+  "recorded_at_beijing": "2026-11-05 21:09",
+  "version": "0.1.3",
+  "schema": 6,
+  "production_deployed": false,
+  "native_goal": "complete",
+  "wechat_sends": 0,
+  "native_submissions": 10,
+  "owned_windows_created": 3,
+  "candidate": {
+    "source_sha256": "c15c34f6b4c0f8b83a49dd657435db2b60ea6882d7d7ed419d48c0b8c833a7da",
+    "wheel_sha256": "23b2b229ff744d97fd0219922d1a4e5201ec535cbca7a4f1e2d5d7becf4f281f",
+    "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+    "editable": false
+  },
+  "offline": {
+    "discovered_tests": 693,
+    "passed": 693,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "test_seconds": 40.245,
+    "runner_seconds": 40.54747541598044
+  },
+  "installed_regression": {
+    "unittest": "passed",
+    "tests": 693,
+    "test_seconds": 40.829,
+    "runner_seconds": 42.10985599999549,
+    "compile": "passed",
+    "dependencies": "passed",
+    "diff": "passed",
+    "documents": "revalidated_after_document_creation",
+    "initial_runner_document_result": "failed_while_new_link_target_was_not_yet_written"
+  },
+  "r01": {
+    "baseline_failure": "expected_one_event_actual_zero",
+    "runtime_to_private_log": "passed",
+    "fault_events": 10000,
+    "detail_events": 1,
+    "suppressed_count": 9999,
+    "window_seconds": 60,
+    "max_signatures": 10,
+    "max_exception_nodes": 64,
+    "max_leaf_classes": 8
+  },
+  "r02": {
+    "native_version": "0.166.0",
+    "source_ref": "rust-v0.166.0",
+    "sources": [
+      {
+        "url": "https://github.com/openai/codex/blob/rust-v0.166.0/codex-rs/core/src/agents_md.rs",
+        "git_blob_sha1": "8e0c475d90339a236f51da33f85e70b967a61f26"
+      },
+      {
+        "url": "https://github.com/openai/codex/blob/rust-v0.166.0/codex-rs/core/src/agents_md_manager.rs",
+        "git_blob_sha1": "ee80cebce50a98248f4503c3861797e86c54d882"
+      },
+      {
+        "url": "https://github.com/openai/codex/blob/rust-v0.166.0/codex-rs/core/src/session/mod.rs",
+        "git_blob_sha1": "cc418ca5ed5bcc695784212f3682e94d74c0e5e3"
+      },
+      {
+        "url": "https://github.com/openai/codex/blob/rust-v0.166.0/codex-rs/core/src/context/world_state/agents_md.rs",
+        "git_blob_sha1": "cc32f8512c09fc221fc3ef23cd5f137f4ac4b54c"
+      },
+      {
+        "url": "https://github.com/openai/codex/blob/rust-v0.166.0/codex-rs/core/tests/suite/agents_md_refresh.rs",
+        "git_blob_sha1": "7aeb9226023edd70e1165aa17f2d787048c4902d"
+      },
+      {
+        "url": "https://github.com/openai/codex/blob/rust-v0.166.0/codex-rs/codex-home/src/instructions/mod.rs",
+        "git_blob_sha1": "a16ad668af3c19f3d8bc148109b055da3594e8a6"
+      },
+      {
+        "url": "https://github.com/openai/codex/blob/rust-v0.166.0/codex-rs/ext/extension-api/src/user_instructions.rs",
+        "git_blob_sha1": "544c15bc33ef3c9ca43949956db80782fc2d3c05"
+      }
+    ],
+    "source_conclusion": "project_snapshot_cached_for_unchanged_environment_and_trust",
+    "path": "L_accepted_native_limitations",
+    "dynamic": "passed_9_distinct_completed_turns",
+    "blocker": null,
+    "cases": [
+      {
+        "case": "baseline",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {}
+      },
+      {
+        "case": "changed",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {}
+      },
+      {
+        "case": "override_added",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {}
+      },
+      {
+        "case": "same_mtime",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {
+          "same_size": true,
+          "same_mtime_ns": true
+        }
+      },
+      {
+        "case": "override_removed",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {}
+      },
+      {
+        "case": "project_rule_removed",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {}
+      },
+      {
+        "case": "unreadable_rule",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {}
+      },
+      {
+        "case": "queue_blocker",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {}
+      },
+      {
+        "case": "queued_file_change",
+        "state": "completed",
+        "marker": "AUD01_RULE_A",
+        "tool_items": 0,
+        "evidence": {
+          "queued_before_change": true,
+          "queued_after_change": true
+        }
+      }
+    ],
+    "same_original_binding": true,
+    "reconnected_same_binding": true,
+    "user_decision": {
+      "accepted": true,
+      "recorded_at_beijing": "2026-11-05 21:07",
+      "contract": "docs/project-rules.md#已确认的原生限制契约"
+    },
+    "historical_host_observation": "Authentication timed out; a subsequent probe reported not_running; later direct process inspection found one readable iTerm2 process. No authentication retry or UI action performed."
+  },
+  "acceptance": {
+    "A01": "passed",
+    "A02": "passed",
+    "A03": "passed",
+    "A04": "passed",
+    "A05": "passed",
+    "A06": "passed_explicit_user_acceptance_of_native_limits",
+    "A07": "passed_applicable_native_boundaries",
+    "A08": "passed_relevant_regressions_and_actual_client_turn_audit",
+    "A09": "passed_frozen_artifact_offline_702_and_real_native",
+    "A10": "passed_synchronized_accepted_contract",
+    "A11": "passed_candidate_scope_not_deployed",
+    "A12": "passed_native_goal_tool_returned_complete"
+  },
+  "limits": [
+    "No same-thread project-rule refresh guarantee, change detection, or automatic blocking.",
+    "Rule changes require an explicitly created new visible session and source verification; old queues are not migrated, cancelled, or replayed automatically.",
+    "No production switch, WeChat send, or Git write was performed."
+  ],
+  "artifact_verification": {
+    "status": "passed",
+    "manifest_verified": true,
+    "workspace_source_matches_wheel": true,
+    "rendered_segments": 17,
+    "version": "0.1.3",
+    "schema": 6,
+    "source_sha256": "c15c34f6b4c0f8b83a49dd657435db2b60ea6882d7d7ed419d48c0b8c833a7da"
+  },
+  "self_tests": {
+    "T01": "passed",
+    "T02": "passed",
+    "T03": "passed",
+    "T04": "passed",
+    "T05": "passed",
+    "T06": "passed",
+    "T07": "passed",
+    "T08": "passed",
+    "T09": "passed",
+    "T10": "passed",
+    "T11": "passed",
+    "T12": "passed_native",
+    "T13": "passed_native",
+    "T14": "passed_native",
+    "T15": "matched_source_precedence_and_actual_leaf_override_cache_evidence",
+    "T16": "passed_native",
+    "T17": "chmod_000_native_cache_proven_scanner_branch_not_selected",
+    "T18": "no_formal_refresh_ACK_B_branch_not_applicable_L_accepted",
+    "T19": "passed_native",
+    "T20": "passed_unchanged_input_control_regressions_and_actual_client_turn_audit_no_new_refresh_gate",
+    "T21": "passed_unchanged_input_control_regressions_and_actual_client_turn_audit_no_new_refresh_gate",
+    "T22": "passed_unchanged_input_control_regressions_and_actual_client_turn_audit_no_new_refresh_gate",
+    "T23": "passed",
+    "T24": "passed",
+    "T25": "passed",
+    "T26": "passed_native"
+  },
+  "latest_installed_check": {
+    "tests": 702,
+    "test_seconds": 39.514,
+    "runner_seconds": 39.803956042043865,
+    "status": "passed",
+    "checks": [
+      "unittest",
+      "compile",
+      "dependencies",
+      "diff",
+      "documents"
+    ]
+  },
+  "native_harness_guards": {
+    "tests": 12,
+    "replay_and_premature_cleanup_rejected_before_authentication": true,
+    "regressions_failed_before_fix": 2,
+    "native_authentication_attempts_this_continuation": 0,
+    "sha256": "a8dadeb0c55d63fff01003d0b4d6149cd158f1bce0c5414fce0d49b5b7f73660"
+  },
+  "startup_diagnostic": {
+    "screenshot": "user_confirmed_session_exited_quickly_warning",
+    "profile_custom_command": "No",
+    "profile_command_empty": true,
+    "launcher_imports_from_root_and_home": true,
+    "native_argv_validated": true,
+    "root_cause": "gui_inherited_release_manifest_does_not_match_development_interpreter",
+    "computer_use": "iterm2_denied_by_tool",
+    "targeted_tests": 8,
+    "stderr_of_native_tui_redirected": false,
+    "existing_intent_replayed": false,
+    "new_full_regression": "passed_698_after_approval_service_recovered",
+    "parent_manifest_verified_before_host": true,
+    "child_manifest_explicit": true,
+    "native_version_guard_weakened": false,
+    "old_owned_intent_retired": true,
+    "current_owned_prepare_process": "terminal_timeout",
+    "host_after_failure": "connect_unavailable",
+    "fixed_candidate_startup": "passed",
+    "binding_serialization_failure_fixed": true,
+    "old_failed_intents_replayed": false,
+    "owned_successful_case": "cleaned"
+  },
+  "native_queue_submissions": 9,
+  "native_startup_handshakes": 1,
+  "remaining_owned_endpoints": 0,
+  "native_history_audit": {
+    "status": "passed",
+    "native_version": "0.166.0",
+    "total_completed_turns": 10,
+    "queue_experiment_turns": 9,
+    "distinct_client_turn_associations": true,
+    "item_types": {
+      "userMessage": 10,
+      "reasoning": 1,
+      "agentMessage": 10
+    },
+    "tool_items": 0,
+    "native_reads_only": true
+  },
+  "real_connection_diagnostic": {
+    "status": "passed",
+    "native_failure_logged": true,
+    "recovery_logged": true,
+    "failure_types": [
+      [
+        "ConnectionLost"
+      ]
+    ],
+    "native_generations": 2,
+    "empty_ledger": true,
+    "daemon_socket_unchanged": true,
+    "configuration_preserved": true,
+    "native_submissions": 0,
+    "wechat_sends": 0,
+    "terminal_creations": 0
+  },
+  "final_protection": {
+    "owned_endpoint_absent": true,
+    "remaining_terminals": 2,
+    "protected_configurations_preserved": true,
+    "production_same_process": true,
+    "production_same_argv": true,
+    "production_status": "running"
+  },
+  "current_wait": {
+    "reason": null,
+    "extra_client_testing_needed": false,
+    "production_deployment_requested": false
+  },
+  "delivery_static_check": {
+    "status": "passed",
+    "package_matches_frozen_manifest": true,
+    "package_files": 57,
+    "full_tests": 702,
+    "raw_full_test_log_verified": true,
+    "native_evidence_verified": true,
+    "documents": "passed",
+    "changed_public_files": 18,
+    "private_seed_count": 6,
+    "private_matches": 0,
+    "test_harness_sha256": "a8dadeb0c55d63fff01003d0b4d6149cd158f1bce0c5414fce0d49b5b7f73660"
+  },
+  "post_full_check_change": {
+    "change": "reuse_existing_FIXED_BASE_constant_in_test_diagnostic",
+    "targeted_tests": 12,
+    "status": "passed",
+    "compiled": true
+  },
+  "historical_blocked_audit": {
+    "consecutive_goal_turns": 1,
+    "reason": "resumed_new_blocker_owned_startup_missing_boot_receipt",
+    "authentication_retries_this_turn": 0,
+    "owned_case_created": false,
+    "required_acceptance": [
+      "A05",
+      "A06",
+      "A07"
+    ],
+    "goal_complete": false
+  },
+  "historical_resume_observation": {
+    "host_probe": "connected",
+    "existing_windows": 1,
+    "existing_terminals": 2,
+    "owned_endpoint_acknowledged": true,
+    "owned_boot_receipt": false,
+    "owned_native_binding": false,
+    "prepare_process": "terminal_timeout",
+    "subsequent_host_probe": "connect_unavailable",
+    "no_repeat_launch": true,
+    "needs_user": "read_prompt_or_error_in_new_owned_test_window"
+  },
+  "initial_protection": {
+    "production_same_process": true,
+    "production_same_argv": true,
+    "configuration_preserved": true,
+    "bridge_status": "running",
+    "components": {
+      "host": {
+        "state": "ready",
+        "phase": "ready"
+      },
+      "native": {
+        "state": "ready"
+      }
+    },
+    "production_writes_by_task": 0,
+    "wechat_sends": 0,
+    "native_submissions": 0
+  },
+  "native_goal_completion": {
+    "status": "complete",
+    "recorded_at_beijing": "2026-11-05 21:09",
+    "source": "native_update_goal_tool_return",
+    "production_deployed": false,
+    "git_writes": false
+  },
+  "git_publication": {
+    "version": "0.1.4",
+    "record": "aud01-publication.json",
+    "status": "preparing",
+    "engineering_candidate_version": "0.1.3",
+    "production_deployed": false
+  }
+}

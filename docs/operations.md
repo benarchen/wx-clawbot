@@ -1,5 +1,40 @@
 # 前台使用与运维
 
+## AUD01：候选诊断与规则验收
+
+AUD01 已完成候选验收，规则责任采用本人明确接受的原生限制方案；日志修复未切换到生产。[交付记录](validation/native-diagnostics-rules.md) 和[机器摘要](validation/native-diagnostics-rules.json)记录准确验证范围。工程验收候选沿用 0.1.3／schema 6，后续 Git 交付版本为 0.1.4／schema 6，见[发布记录](validation/aud01-publication.md)；不同制品须核对各自 wheel／源码摘要，不能只凭版本字符串认定加载一致。
+
+候选托管日志接纳 native_unavailable，保留安全 error_type 及有界 error_types／classification_truncated。单调时钟每 60 秒窗口最多 10 条不同签名的故障明细，同签名只记首次；native ready 或后续窗口出现事件时，以 native_failures_suppressed／suppressed_count 汇总。进程异常退出前尚未汇总的内存计数不保证保留。过滤、容量、权限和轮转保持，不应为诊断放开原始异常输出。
+
+原生失败先核对安全类型、组件、版本和端点；异常组可看有界叶子分类，classification_truncated 表示非完整异常树。限频不代表恢复，需看 native ready 或准确健康状态；未知任务先对账，不重发。
+
+规则实验先由本人正常打开 iTerm2 并处理必要脚本授权；不重启 daemon、退出用户窗口或自动拉起应用。以下在候选检出执行，路径占位值替换为本次准确且尚无 case.json 的项目临时目录：
+
+```sh
+.venv/bin/python tests/integration/rules_native.py plan --case-dir /absolute/path/to/project/.tmp/aud01-owned
+.venv/bin/python tests/integration/rules_native.py prepare --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
+.venv/bin/python tests/integration/rules_native.py run --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
+.venv/bin/python tests/integration/rules_native.py boundaries --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
+.venv/bin/python tests/integration/rules_native.py report --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
+.venv/bin/python tests/integration/rules_native.py cleanup --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
+```
+
+工具仅接受已核对的 0.166.0，一个自有窗口、一个标签及临时项目。原始输出／身份留私有证据；run／boundaries 均不重放既有执行意图，失败先查准确结果；已有 case 不机械再次 prepare，活动任务或身份不符不自动 cleanup。原生三轮标记及六轮边界已实际完成，结果和限制见交付记录；这不代表已提供规则热更新。
+
+正式验收使用已冻结候选的解释器，并向父进程显式提供该候选的 WX_CLAWBOT_RELEASE_MANIFEST；prepare／run／cleanup 均沿用同一对象。例如替换准确路径后执行：
+
+```sh
+/usr/bin/env WX_CLAWBOT_RELEASE_MANIFEST=/absolute/path/to/candidate/release.json /absolute/path/to/candidate/.venv/bin/python -I tests/integration/rules_native.py prepare --case-dir /absolute/path/to/project/.tmp/aud01-frozen-owned --confirm-dedicated
+```
+
+测试子进程显式继承已验证父进程的 manifest，避免 GUI 会话残留另一个制品标识。明确开发调用无 manifest 时只清除本次测试子进程的残留值，不修改全局环境；这不授予正式制品身份。启动失败先看私有 startup-error，不通过删除 manifest 或放宽校验继续。
+
+真实连接故障回归使用同一候选解释器／manifest，将 action 改为 diagnostics、case-dir 指向全新项目临时目录。它建立独立空测试账本，只关闭自身的原生 WebSocket，并核对故障日志及新代次恢复；不创建终端、不提交任务、不连接微信。已有 runtime.sqlite3／报告会拒绝，不复用生产状态。本轮已真实通过 ConnectionLost 入日志及第二代连接 ready。
+
+早期两个失败启动均经准确端点缺席、无 boot 和完整原生列表核对后归档，未重放；最终冻结候选已完成九轮规则实验并安全清理。以后重测使用新意图；已有意图先 report 并核对准确终端／队列，保留 unknown。规则边界见[规则说明](project-rules.md)，没有通用 reload 命令。
+
+本次完成口径为候选修复及规则契约交付，生产切换另需明确授权。冻结 wheel、锁及 manifest 后，按下文 ENG01 操作卡安装到新 release 目录；沿用 schema 6，无迁移。正常停止、核对消费者与发送、变更本项目准确运行路径、启动一次并复核父子 manifest／单消费者／健康／旧数据。失败时恢复兼容 schema 6 的原独立制品和托管参数，保留当前账本，不覆盖备份、不重放任务、不重启 Codex／iTerm2。
+
 ## 安装与准备
 
 在仓库根目录按 [README](../README.md) 安装项目虚拟环境。Python 限定 3.14，依赖使用哈希锁；不需要全局 Python 包。iTerm2 保持打开，设置中启用 Python API；首次连接可能需要允许本项目 Python 脚本。此 API 可操作终端，应只授权信任的脚本。

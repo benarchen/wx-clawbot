@@ -1,0 +1,70 @@
+{
+  "version": "0.1.4",
+  "schema": 6,
+  "status": "prepublication_checks_passed",
+  "repository": "https://github.com/benarchen/wx-clawbot",
+  "tag": "v0.1.4",
+  "branches": [
+    "main",
+    "dev"
+  ],
+  "production_deployed": false,
+  "wechat_sends": 0,
+  "native_submissions": 0,
+  "recorded_at_beijing": "2026-11-05 21:18",
+  "base_commit": "365199db12e4fdd000995d73143f12564a865697",
+  "regression": {
+    "tests": 702,
+    "seconds": 39.968,
+    "status": "passed",
+    "checks": [
+      "unittest",
+      "compile",
+      "dependencies",
+      "diff",
+      "documents"
+    ]
+  },
+  "artifact": {
+    "version": "0.1.4",
+    "schema": 6,
+    "source_sha256": "10e65109346ab1bc70d193219c5bcf624293c6e2f5e364f63363b9156ffd72de",
+    "wheel_sha256": "100bd988938533f0a44c959a9edd515f9ef691b02fbe6c13cf266bf73d780e7d",
+    "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96"
+  },
+  "privacy_precommit": {
+    "status": "passed",
+    "public_files": 259,
+    "private_values_compared": 2736,
+    "private_matches": 0,
+    "reachable_objects": {
+      "tree": 335,
+      "blob": 747,
+      "commit": 47,
+      "tag": 3
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.4-py3-none-any.whl",
+        "sha256": "100bd988938533f0a44c959a9edd515f9ef691b02fbe6c13cf266bf73d780e7d"
+      },
+      {
+        "name": "wx_clawbot-0.1.4.tar.gz",
+        "sha256": "b3d206b777af670c4b9a47878703795b69b09c920d98d5d563ccb410676b94ff"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "native_validated_candidate_difference": "version_declaration_only",
+    "production_same_process_and_configuration": true,
+    "production_version": "0.1.3",
+    "production_schema": 6,
+    "host_native_ready": true
+  },
+  "remote_preflight": {
+    "main_dev_match_base": true,
+    "v0_1_4_absent": true,
+    "default_branch": "main"
+  },
+  "native_validation": "previous_0.1.3_candidate_only_version_declaration_changed",
+  "runtime_unchanged": true
+}

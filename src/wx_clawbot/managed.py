@@ -22,7 +22,8 @@ from .hosts.process import read_process
 
 LOG_LIMIT = 1024 * 1024
 LOG_BACKUPS = 3
-STATUSES = {"foreground_ready", "capabilities", "receive_disconnected", "failed", "stopped", "upgrade_required"}
+STATUSES = {"foreground_ready", "capabilities", "receive_disconnected", "failed", "stopped", "upgrade_required",
+            "native_unavailable"}
 STATES = {"not_running", "connecting", "verifying", "ready", "unavailable", "stopped"}
 
 
@@ -68,8 +69,32 @@ def error_name(value):
 class EventStream:
     """Only known structured lifecycle fields reach disk; arbitrary output is dropped."""
 
-    def __init__(self, logger):
+    def __init__(self, logger, *, clock=time.monotonic):
         self.logger, self.buffer, self.dropping = logger, "", False
+        self.clock, self.failure_window = clock, None
+        self.failure_signatures = set()
+        self.suppressed_count = 0
+
+    def reset_failures(self):
+        if self.suppressed_count:
+            record(self.logger, "native_failures_suppressed", suppressed_count=self.suppressed_count)
+        self.failure_window = None
+        self.failure_signatures.clear()
+        self.suppressed_count = 0
+
+    def native_failure(self, fields):
+        now = self.clock()
+        if self.failure_window is not None and now - self.failure_window >= 60:
+            self.reset_failures()
+        if self.failure_window is None:
+            self.failure_window = now
+        signature = (fields["error_type"], tuple(fields.get("error_types", ())),
+                     fields.get("classification_truncated", False))
+        if signature in self.failure_signatures or len(self.failure_signatures) >= 10:
+            self.suppressed_count += 1
+            return
+        self.failure_signatures.add(signature)
+        record(self.logger, "native_unavailable", **fields)
 
     def write(self, text):
         for part in text.splitlines(keepends=True):
@@ -93,6 +118,14 @@ class EventStream:
         fields = {}
         if "error_type" in value:
             fields["error_type"] = error_name(value["error_type"])
+        if value["status"] == "native_unavailable":
+            fields.setdefault("error_type", "UnknownError")
+            if isinstance(value.get("error_types"), list):
+                fields["error_types"] = sorted({error_name(name) for name in value["error_types"][:8]})
+            if type(value.get("classification_truncated")) is bool:
+                fields["classification_truncated"] = value["classification_truncated"]
+            self.native_failure(fields)
+            return
         if isinstance(value.get("failures"), list):
             fields["failures"] = [{"component": error_name(item.get("component")),
                                     "error_type": error_name(item.get("error_type"))}
@@ -101,6 +134,8 @@ class EventStream:
             item = value.get(name)
             if isinstance(item, dict) and isinstance(item.get("state"), str) and item["state"] in STATES:
                 fields[name] = {"state": item["state"]}
+        if value["status"] == "capabilities" and fields.get("native", {}).get("state") == "ready":
+            self.reset_failures()
         record(self.logger, value["status"], **fields)
 
     def flush(self):

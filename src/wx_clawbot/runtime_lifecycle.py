@@ -17,6 +17,30 @@ from .routing import RouteError
 from .runtime_discovery import discover_runtime
 
 
+def native_failure_report(error):
+    """Bounded exception classes only; never forward exception messages or paths."""
+    report = {"status": "native_unavailable", "error_type": type(error).__name__}
+    if isinstance(error, BaseExceptionGroup):
+        stack, names = [iter((error,))], set()
+        for _ in range(64):
+            while stack:
+                child = next(stack[-1], None)
+                if child is not None:
+                    break
+                stack.pop()
+            else:
+                break
+            if isinstance(child, BaseExceptionGroup):
+                stack.append(iter(child.exceptions))
+            else:
+                names.add(type(child).__name__)
+                if len(names) > 8:
+                    break
+        report["error_types"] = sorted(names)[:8]
+        report["classification_truncated"] = bool(stack)
+    return report
+
+
 class UnavailableNative:
     capabilities = Capabilities()
     runtime_identity = None
@@ -209,7 +233,7 @@ class BridgeRuntime:
                 if state_failure(exc):
                     raise
                 if self.emit:
-                    self.emit({"status": "native_unavailable", "error_type": type(exc).__name__})
+                    self.emit(native_failure_report(exc))
             finally:
                 self.native_state = "unavailable"
                 if controller is not None:
