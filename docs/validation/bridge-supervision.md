@@ -1,6 +1,6 @@
 # 微信桥接进程恢复与托管
 
-AUD01 交付补充：native_unavailable 的脱敏分类、异常组有界展开及故障日志限频已实现，并已按后续授权加载到日常托管进程，最初为[独立 0.1.4](aud01-local-deployment.md)，当前已按授权升级为[独立 0.1.5](iterm-cold-start-release.md)。原有权限／轮转保持，实际回归和适用边界见[AUD01 记录](native-diagnostics-rules.md)，操作语义见[运维说明](../operations.md#aud01候选诊断与规则验收)。本说明不改写下述历史验收结果。
+AUD01 交付补充：native_unavailable 的脱敏分类、异常组有界展开及故障日志限频已实现，并已按后续授权加载到日常托管进程，最初为[独立 0.1.4](aud01-local-deployment.md)，随后升级至[独立 0.1.5](iterm-cold-start-release.md)，当前已部署[独立 0.1.6](codex-0167-release.md)。原有权限／轮转保持，实际回归和适用边界见[AUD01 记录](native-diagnostics-rules.md)，操作语义见[运维说明](../operations.md#aud01候选诊断与规则验收)。本说明不改写下述历史验收结果。
 
 2026-10-29 20:51，北京时间。本人已明确同意恢复原配置桥接，并补齐持续运行、异常退出记录及恢复机制。本项为 HOST01 联试前的运维补救，不创建新 Goal，MD01 继续待正式开工。
 

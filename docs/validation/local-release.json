@@ -2249,5 +2249,15 @@
     "production_deployed": true,
     "verified_at_beijing": "2026-11-05 22:20",
     "real_cold_start_retested": false
+  },
+  "codex_0167_update": {
+    "version": "0.1.6",
+    "schema": 6,
+    "record": "codex-0167-release.json",
+    "functional_commit": "bcc3c40795a3ea6821980bfcdca31ccbe81c51e9",
+    "git_published": true,
+    "production_deployed": true,
+    "verified_at_beijing": "2026-11-07 07:56",
+    "native_version": "0.167.0"
   }
 }

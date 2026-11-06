@@ -1,13 +1,13 @@
 {
   "version": "0.1.6",
   "schema": 6,
-  "status": "prepublication_checks_passed",
+  "status": "published_and_deployed_verified",
   "repository": "https://github.com/benarchen/wx-clawbot",
-  "production_deployed": false,
+  "production_deployed": true,
   "new_tag_created": false,
   "test_wechat_sends": 0,
   "native_submissions": 0,
-  "recorded_at_beijing": "2026-11-07 07:52",
+  "recorded_at_beijing": "2026-11-07 07:56",
   "base_commit": "bde3b8eeb2eb492b7f594b81117e9ab7ded22f61",
   "regression": {
     "tests": 712,
@@ -64,5 +64,76 @@
       "active_async_questions": 0
     },
     "child_render_parts": 5
-  }
+  },
+  "functional_commit": "bcc3c40795a3ea6821980bfcdca31ccbe81c51e9",
+  "remote_verified": true,
+  "deployment": {
+    "status": "passed",
+    "version": "0.1.6",
+    "schema": 6,
+    "source_sha256": "521e8dbc62cd346f5d8d350cffdeda23b5409075b377ea658f65edde47e1120d",
+    "wheel_sha256": "7bb55d6bd720bc02e4e43abb3d3a48d31287eb7db8ae241e191738e7b0732696",
+    "normal_stop": true,
+    "normal_old_exit_code": 0,
+    "single_verified_consumer": true,
+    "actual_argv_and_cwd_verified": true,
+    "host_ready": true,
+    "native_ready": true,
+    "manifest_and_managed_source_match": true,
+    "changed_plist_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "configuration_credentials_global_config_preserved": true,
+    "original_native_processes_preserved": true,
+    "identical_business_tables_except_route_revision": 10,
+    "route_roles_and_target_preserved": false,
+    "route_recovery_notifications": 1,
+    "old_outbox_rows_preserved": 584,
+    "no_route_redirection": true,
+    "frozen_outbox_rows": 585,
+    "unknown_results_preserved": 2,
+    "backup_integrity_and_foreign_keys": "passed",
+    "new_process_start_events": 1,
+    "schema_migration": false,
+    "database_restore": false,
+    "test_wechat_sends": 0,
+    "native_submissions": 0,
+    "stopped_to_first_ready_log_seconds": 1.748,
+    "stop_to_final_verification_seconds": 69.574,
+    "natural_recovery_notification": "API accepted; no phone receipt verification"
+  },
+  "privacy_postcommit": {
+    "status": "passed",
+    "public_files": 269,
+    "private_values_compared": 2805,
+    "private_matches": 0,
+    "reachable_objects": {
+      "tree": 366,
+      "blob": 823,
+      "commit": 52,
+      "tag": 5
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.6-py3-none-any.whl",
+        "sha256": "7bb55d6bd720bc02e4e43abb3d3a48d31287eb7db8ae241e191738e7b0732696"
+      },
+      {
+        "name": "wx_clawbot-0.1.6.tar.gz",
+        "sha256": "9cc05be0776c040b2f19e1000f8743a6b29f7392671422229898d6ccf92d3e75"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "previous_release_changed_package_files": [
+      "__init__.py"
+    ],
+    "validated_fix_files_unchanged": true,
+    "production_configuration_preserved": true,
+    "deployment_phase": true,
+    "production_version": "0.1.6",
+    "production_schema": 6,
+    "host_native_ready": true
+  },
+  "result_documents_followup": true
 }

@@ -46,9 +46,16 @@
   "fixture_files": [
     "AGENTS.md"
   ],
-  "production_deployed": false,
-  "production_native_state": "unavailable_due_to_unreviewed_0167_in_original_release",
+  "production_deployed": true,
+  "production_native_state": "ready_after_0167_compatibility_deployment",
   "async_0167_verified": false,
   "image_phone_0167_verified": false,
-  "git_writes": false
+  "git_writes": false,
+  "production_deployed_at_test": false,
+  "subsequent_release": {
+    "version": "0.1.6",
+    "record": "codex-0167-release.json",
+    "functional_commit": "bcc3c40795a3ea6821980bfcdca31ccbe81c51e9",
+    "remote_verified": true
+  }
 }
