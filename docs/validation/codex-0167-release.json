@@ -1,0 +1,68 @@
+{
+  "version": "0.1.6",
+  "schema": 6,
+  "status": "prepublication_checks_passed",
+  "repository": "https://github.com/benarchen/wx-clawbot",
+  "production_deployed": false,
+  "new_tag_created": false,
+  "test_wechat_sends": 0,
+  "native_submissions": 0,
+  "recorded_at_beijing": "2026-11-07 07:52",
+  "base_commit": "bde3b8eeb2eb492b7f594b81117e9ab7ded22f61",
+  "regression": {
+    "tests": 712,
+    "seconds": 40.498,
+    "status": "passed"
+  },
+  "artifact": {
+    "source_sha256": "521e8dbc62cd346f5d8d350cffdeda23b5409075b377ea658f65edde47e1120d",
+    "wheel_sha256": "7bb55d6bd720bc02e4e43abb3d3a48d31287eb7db8ae241e191738e7b0732696",
+    "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96"
+  },
+  "privacy_precommit": {
+    "status": "passed",
+    "public_files": 269,
+    "private_values_compared": 2804,
+    "private_matches": 0,
+    "reachable_objects": {
+      "tree": 358,
+      "blob": 808,
+      "commit": 51,
+      "tag": 5
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.6-py3-none-any.whl",
+        "sha256": "7bb55d6bd720bc02e4e43abb3d3a48d31287eb7db8ae241e191738e7b0732696"
+      },
+      {
+        "name": "wx_clawbot-0.1.6.tar.gz",
+        "sha256": "9cc05be0776c040b2f19e1000f8743a6b29f7392671422229898d6ccf92d3e75"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "previous_release_changed_package_files": [
+      "__init__.py"
+    ],
+    "validated_fix_files_unchanged": true,
+    "production_configuration_preserved": true,
+    "deployment_phase": false,
+    "production_version": "0.1.5",
+    "production_schema": 6,
+    "host_native_ready": false
+  },
+  "cold_start_evidence": "iterm-cold-start-live.json",
+  "cold_candidate_package_difference": "version_declaration_only",
+  "preflight": {
+    "status": "passed",
+    "idle_counts": {
+      "active_tasks": 0,
+      "active_occupancy": 0,
+      "pending_replies": 0,
+      "sending_attempts": 0,
+      "active_interactions": 0,
+      "active_async_questions": 0
+    },
+    "child_render_parts": 5
+  }
+}

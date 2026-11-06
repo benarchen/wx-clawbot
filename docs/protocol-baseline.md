@@ -38,3 +38,11 @@ daemon version 真实查询成功。CLI 与 daemon 不同版本不能混为同�
 现场 0.166.0 的 agentMessage 在 item/completed 携带 delivery=async、questions 和准确 item／thread／turn；phase=final_answer 不能代替 turn 终态。TurnSteerParams 使用 expectedTurnId、稳定 clientUserMessageId 和 text input，答案为第二条 userMessage。该能力仅对实证 0.166.0 开启，其他已支持版本的核心队列／同步交互不受影响。
 
 467 份本机官方 schema、原始 ClientRequest 摘要、单题／自由／多题／连续问题、连接失效、中断和两个相反答案均接收的反例见[验证记录](validation/async-questions.md)。当前原语没有问题级首答独占或异步 resolved；桥接不伪造该语义。最终候选真实原生闭环与 fake 微信／本地 Unix 测试分别记录，不混同手机实收。
+
+## 0.167.0 兼容核验
+
+2026-11-07 本机 daemon／managed executable 均为 0.167.0。依据[官方版本匹配 schema 说明](https://learn.chatgpt.com/docs/app-server)，用该可执行文件生成 470 份实验 schema，对照原有摘要匹配的 0.166.0 样本，核对 38 份桥接相关契约；[逐字段记录](validation/codex-0167.json)保存两侧摘要和变化路径。新增可选 requiredHumanApproval／humanCommand 未声明支持、不启用；音频文件引用扩展不影响既有文字／图片输入。原有必需字段、队列／历史及同步交互接口保持，未知版本仍拒绝。
+
+开发候选新增 0.167.0 握手和图片 schema 准入；这不等同于新版图片手机验收。异步问题继续只对实证 0.166.0 开放，0.167.0 尚未完成异步动态验收，保留门禁。真实冷启动结果与候选交付状态后续单列，不升级／重启 daemon 或改全局配置。
+
+2026-11-07 07:40：0.167.0 连接回归先失败后通过，712 项全量与隔离候选真实冷启动已通过，一条命令创建一次、准确原生身份及启动终态核验成功；[复测记录](validation/iterm-cold-start-live.md)。本轮未部署生产兼容版，异步和新版图片手机验证边界保持。

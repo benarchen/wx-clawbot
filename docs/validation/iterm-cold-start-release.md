@@ -1,6 +1,6 @@
 # iTerm2 冷启动修复：0.1.5 发布与本机切换
 
-当前状态：2026-11-05 22:20 已完成 0.1.5 正常提交、main 快进合并、annotated v0.1.5 和双分支／标签原子推送，独立远端核验一致；本机已切换到同一冻结独立制品，实际加载与旧数据保护通过。真实冷启动复测未执行。根因及边界见[调查与修复](iterm-cold-start-investigation.md)，准确证据见[机器摘要](iterm-cold-start-release.json)。
+当前状态：2026-11-05 22:20 已完成 0.1.5 正常提交、main 快进合并、annotated v0.1.5 和双分支／标签原子推送，独立远端核验一致；本机已切换到同一冻结独立制品，实际加载与旧数据保护通过。后续真实冷启动已于 2026-11-07 07:40 使用 0.167.0 兼容候选通过，见[复测记录](iterm-cold-start-live.md)；该候选尚未部署。根因及边界见[调查与修复](iterm-cold-start-investigation.md)，准确证据见[机器摘要](iterm-cold-start-release.json)。
 
 ## 范围与步骤
 

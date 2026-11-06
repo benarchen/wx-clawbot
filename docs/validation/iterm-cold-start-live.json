@@ -1,0 +1,54 @@
+{
+  "status": "passed",
+  "iterm2_absent_before": true,
+  "native_version": "0.167.0",
+  "source_sha256": "599fee0c4cdfa1f1aff77135b3ae5d9e961de7ad5cc67929e42235f6114f03a0",
+  "single_cd_completed": true,
+  "calls": {
+    "launch": 1,
+    "wait_ready": 1,
+    "connect": 1,
+    "create_terminal": 1
+  },
+  "native_binding_verified": true,
+  "startup_turns": 1,
+  "startup_status": "completed",
+  "native_queue_empty": true,
+  "owned_terminal_cleaned": true,
+  "configuration_preserved": true,
+  "seconds": 11.772,
+  "wechat_sends": 0,
+  "production_ledger_direct_writes": 0,
+  "input_source": "isolated ledger with one synthetic owner command; real host and native runtime",
+  "recorded_at_beijing": "2026-11-07 07:40",
+  "version_label": "0.1.5_development_candidate",
+  "wheel_sha256": "b3a7ec79ce44bc322b394a892999dc9222c409dc9f29a28549d1fa0a43ed3b3a",
+  "offline": {
+    "tests": 712,
+    "seconds": 40.529,
+    "status": "passed",
+    "checks": [
+      "unittest",
+      "compile",
+      "dependencies",
+      "diff",
+      "documents"
+    ]
+  },
+  "owned_endpoint_independently_absent": true,
+  "remaining_windows": 1,
+  "remaining_terminals": 1,
+  "history_item_types": {
+    "userMessage": 1,
+    "agentMessage": 2,
+    "commandExecution": 1
+  },
+  "fixture_files": [
+    "AGENTS.md"
+  ],
+  "production_deployed": false,
+  "production_native_state": "unavailable_due_to_unreviewed_0167_in_original_release",
+  "async_0167_verified": false,
+  "image_phone_0167_verified": false,
+  "git_writes": false
+}

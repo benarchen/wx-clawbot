@@ -106,6 +106,18 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
             await connection.close()
         self.assertEqual(self.methods, ["initialize", "initialized", "thread/read"])
 
+    async def test_verified_0167_handshake_keeps_optional_human_approval_disabled(self):
+        self.server_version = "0.167.0"
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            self.assertEqual(connection.server_version, "0.167.0")
+            self.assertTrue(connection.capabilities.image_input)
+            self.assertEqual((await connection.inspect("fixture-thread"))["id"], "fixture-thread")
+        finally:
+            await connection.close()
+        self.assertEqual(self.methods, ["initialize", "initialized", "thread/read"])
+        self.assertEqual(self.requests[0]["params"]["capabilities"], {"experimentalApi": True})
+
     async def test_non_private_socket_is_rejected_before_connect(self):
         os.chmod(self.socket, 0o666)
         with self.assertRaisesRegex(ValueError, "private"):

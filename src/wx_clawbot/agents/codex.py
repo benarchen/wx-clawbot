@@ -11,7 +11,7 @@ from .rpc import JsonRpc
 from .base import Capabilities, SubmissionReceipt, thread_is_loaded
 from .. import __version__
 
-SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0", "0.165.0", "0.166.0"})
+SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0", "0.165.0", "0.166.0", "0.167.0"})
 
 
 class CodexConnection:
@@ -50,7 +50,7 @@ class CodexConnection:
             if server_version not in SUPPORTED_SERVER_VERSIONS:
                 raise ValueError("Native version has no verified schema baseline")
             connection.server_version = server_version
-            connection.capabilities = replace(cls.capabilities, image_input=server_version in {"0.165.0", "0.166.0"})
+            connection.capabilities = replace(cls.capabilities, image_input=server_version in {"0.165.0", "0.166.0", "0.167.0"})
             connection.server_info = result
             await connection.rpc.notify("initialized", {})
             return connection

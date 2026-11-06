@@ -1,0 +1,242 @@
+{
+  "baseline_version": "0.166.0",
+  "version": "0.167.0",
+  "source": "Local version-matched managed executable app-server generate-json-schema --experimental",
+  "official_reference": "https://learn.chatgpt.com/docs/app-server",
+  "generated_schemas": 470,
+  "schema_count": 38,
+  "scope": "Core text/image input, queue, history and synchronous interactions; asynchronous questions remain separately version-gated at 0.166.0; dynamic cold-start result recorded separately",
+  "reviewed_changes": [
+    "InitializeCapabilities adds optional requiredHumanApproval; bridge does not opt in.",
+    "CommandExecutionApprovalKind adds humanCommand behind that opt-in; bridge does not claim support.",
+    "UserInput audio and ContentItem input_audio add fileId alternatives; existing text/image branches unchanged."
+  ],
+  "schemas": {
+    "v1/InitializeParams.json": {
+      "baseline_sha256": "b55124e7c0f36a1789396daa5578217a92be67f053903696236686e59f6f212e",
+      "sha256": "c608ff6bdd94e661423dca9b44cd1dcea7eac610f74e1310284c61eab64280bc",
+      "structural_changes": [
+        "/definitions/InitializeCapabilities/properties/requiredHumanApproval"
+      ]
+    },
+    "v1/InitializeResponse.json": {
+      "baseline_sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+      "sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+      "structural_changes": []
+    },
+    "CommandExecutionRequestApprovalParams.json": {
+      "baseline_sha256": "c9728280b8f3204fd729d0fb3d1ca7bb05b1150de26b3653f7163e6a9bd941e7",
+      "sha256": "799abbf1875b3e774d6da16f277032025a03d6717cba0e67fdd89446666d0610",
+      "structural_changes": [
+        "/definitions/CommandExecutionApprovalKind/enum",
+        "/definitions/CommandExecutionApprovalKind/oneOf",
+        "/definitions/CommandExecutionApprovalKind/type"
+      ]
+    },
+    "CommandExecutionRequestApprovalResponse.json": {
+      "baseline_sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7",
+      "sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7",
+      "structural_changes": []
+    },
+    "ToolRequestUserInputParams.json": {
+      "baseline_sha256": "fda15b62e7446105b59c8ed85c908abed2a47db70653e57c92c47a2f204fa77a",
+      "sha256": "fda15b62e7446105b59c8ed85c908abed2a47db70653e57c92c47a2f204fa77a",
+      "structural_changes": []
+    },
+    "ToolRequestUserInputResponse.json": {
+      "baseline_sha256": "5073b245f741fa8ce62ec52e4dd1809b7831f9c4284c279a78abc9b171f8e3f2",
+      "sha256": "5073b245f741fa8ce62ec52e4dd1809b7831f9c4284c279a78abc9b171f8e3f2",
+      "structural_changes": []
+    },
+    "v2/ThreadReadParams.json": {
+      "baseline_sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+      "sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+      "structural_changes": []
+    },
+    "v2/ThreadReadResponse.json": {
+      "baseline_sha256": "25f3eb2888f592c7810420b054aba8ffb5fa134dd2a2d1cce5a90c2f038be7f6",
+      "sha256": "4ee5071cf8c7245189e5bd0819e459b9d974d5949708372fee68b6fc5329f90d",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ThreadListParams.json": {
+      "baseline_sha256": "1781b1778cb08619f0bf12528b128e55648b86569114196b1b5ec565b9b7935d",
+      "sha256": "1781b1778cb08619f0bf12528b128e55648b86569114196b1b5ec565b9b7935d",
+      "structural_changes": []
+    },
+    "v2/ThreadListResponse.json": {
+      "baseline_sha256": "0a4820f94729dd2799d141e1ac8d375ac54bb6ab2d75a4684f5c73623df536ba",
+      "sha256": "b57fafd7a25fca12c4b3c3e3a6e9775c1473583ea95df66b4a7727b921cfd898",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ThreadLoadedListParams.json": {
+      "baseline_sha256": "42c2d124ab2b2998d84f0126daae2d32b0bf9c5a7ea7266e3a0814e5e37cf00d",
+      "sha256": "42c2d124ab2b2998d84f0126daae2d32b0bf9c5a7ea7266e3a0814e5e37cf00d",
+      "structural_changes": []
+    },
+    "v2/ThreadLoadedListResponse.json": {
+      "baseline_sha256": "1ea02c4710083e552b2a3a89b931b9049d5bf05b7db46278b8352cf9fd80cd52",
+      "sha256": "1ea02c4710083e552b2a3a89b931b9049d5bf05b7db46278b8352cf9fd80cd52",
+      "structural_changes": []
+    },
+    "v2/ThreadResumeParams.json": {
+      "baseline_sha256": "8152ea774ace4eb5623081abd64a1135f28cbff1e73ca641cfb80ac16f6eed32",
+      "sha256": "9642460eb42e9a6e8fa8e12b4381e8ed939d10b1ad8690e694d84467ea76d41a",
+      "structural_changes": [
+        "/definitions/ContentItem/oneOf"
+      ]
+    },
+    "v2/ThreadResumeResponse.json": {
+      "baseline_sha256": "98166feff59447179d8598f2dc96f6bf204758f8483aef7cc1137f4407c9195e",
+      "sha256": "9ab25f81ec27b83042c469fd031127c8eaf1a3ac8e2cdc53e76cb24f8e03ce28",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ThreadTurnsListParams.json": {
+      "baseline_sha256": "2a8b93d7d4437cc25e16a1dde16d8db3c338d39e16c5eece2a56e943a21577d7",
+      "sha256": "2a8b93d7d4437cc25e16a1dde16d8db3c338d39e16c5eece2a56e943a21577d7",
+      "structural_changes": []
+    },
+    "v2/ThreadTurnsListResponse.json": {
+      "baseline_sha256": "7953d842384fbc572c0b33f03c0fb1c6b746d3a3cc9c25302e6a03f9dce6d46a",
+      "sha256": "bccb5eb4fcde318825e4e92cadb85cda57315fceb9e46a3b6dc0582f91c2c72b",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ThreadUnsubscribeParams.json": {
+      "baseline_sha256": "77c67e0dc0a729af2d4612f30ed63f1297160232e96cd32b7cb9cc3e7fff0233",
+      "sha256": "77c67e0dc0a729af2d4612f30ed63f1297160232e96cd32b7cb9cc3e7fff0233",
+      "structural_changes": []
+    },
+    "v2/ThreadUnsubscribeResponse.json": {
+      "baseline_sha256": "9cad5e71a589c3c20e0980ce34a894a29e2898a075b10b1493bc87f32500081a",
+      "sha256": "9cad5e71a589c3c20e0980ce34a894a29e2898a075b10b1493bc87f32500081a",
+      "structural_changes": []
+    },
+    "v2/TurnStartParams.json": {
+      "baseline_sha256": "c7483aee79757d260c4fc1bb5c68b1a8d6f72846388e9f1e88d6f76f423287c8",
+      "sha256": "d13cb408b906669e8d3e8694b42148a75180d4dcd0eeac6867271add8dfa1864",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/TurnStartResponse.json": {
+      "baseline_sha256": "85da8d16c86432da14440504ae1e76d13527058920d4ed81632dd50c3fbd054d",
+      "sha256": "b75b88c2f507685b948d06166b5436678fd320c9878883d97f5a17f620a25116",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ThreadQueueAddParams.json": {
+      "baseline_sha256": "60f25b7d3e3357c215bef9d2fe7047200f545e030dca9e00527ac0620cd0c88f",
+      "sha256": "f6466a8f06cd4e68ec1999d06a0d70a1ddc339c0cb1baf12ee966a999fead17c",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ThreadQueueAddResponse.json": {
+      "baseline_sha256": "c11b9772788427b19c9f9decf0765e2b41cbdead1aa9c3d39f42fdd70b339314",
+      "sha256": "896a82716b432a8aa4d190591bcfa86adacdacb91ec5ec2c9c75ff6562561256",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ThreadQueueListParams.json": {
+      "baseline_sha256": "b4c889089eee8a0f785ff85e0128a4d3f347353870fa848221096a472223773b",
+      "sha256": "b4c889089eee8a0f785ff85e0128a4d3f347353870fa848221096a472223773b",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueListResponse.json": {
+      "baseline_sha256": "be4e0bfa6fc776101f96582543605d2eff6186309a08903203512b99c5005926",
+      "sha256": "7a320613604095eef93247b395dafeeb6d05b26256c4055b6a5bad05eff74ab5",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ThreadQueueDeleteParams.json": {
+      "baseline_sha256": "35d17cc17897a7f560250d0148ec9df0482ba3d33bdcca039dde8391d3b4edbe",
+      "sha256": "35d17cc17897a7f560250d0148ec9df0482ba3d33bdcca039dde8391d3b4edbe",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueDeleteResponse.json": {
+      "baseline_sha256": "5983c0a94e89f93340caecfe96e16d8f535edca39142920bc0ba60ec90a52919",
+      "sha256": "5983c0a94e89f93340caecfe96e16d8f535edca39142920bc0ba60ec90a52919",
+      "structural_changes": []
+    },
+    "v2/TurnInterruptParams.json": {
+      "baseline_sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b",
+      "sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b",
+      "structural_changes": []
+    },
+    "v2/TurnInterruptResponse.json": {
+      "baseline_sha256": "531de6be06fe979b5963f249bab82498a175e614bf65ac12fb2e849dfe60bcf1",
+      "sha256": "531de6be06fe979b5963f249bab82498a175e614bf65ac12fb2e849dfe60bcf1",
+      "structural_changes": []
+    },
+    "v2/TurnStartedNotification.json": {
+      "baseline_sha256": "f5b0ea97eea0d28c8b009a82b9ede7bba5c194dc5bbf91b8e268b2874e0d9eee",
+      "sha256": "628bc9c1b9dc14f2e33ab374cc6203ca1e405ec1e7b5426d110cfa7f26904592",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/TurnCompletedNotification.json": {
+      "baseline_sha256": "e9a5e3bcddaeee04afc60abafbbdcb5b0a531b5578db573fcacdd1477565bd0a",
+      "sha256": "00b691508bb0187ecc5f080bb1608add7137672698daed6922967ad90bcb16e1",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ItemStartedNotification.json": {
+      "baseline_sha256": "6a16ca46dafb5495a100870bdcdc50bb4d4555eab54f4f0c3bbb75f9f3337da9",
+      "sha256": "34e217d7596d9dad92a58ed7791bc082655d17d249a30a4133c4ad39f2603ecd",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ItemCompletedNotification.json": {
+      "baseline_sha256": "f12a69b4f26a7fd2accadd87db4edd5e96e67ff78a1cac203dd12b91462031d7",
+      "sha256": "0bbb11679b32e39a58546d3b532ccae2c1f8f9051a20ce2b4947edb84fc35f08",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/ServerRequestResolvedNotification.json": {
+      "baseline_sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+      "sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+      "structural_changes": []
+    },
+    "v2/ThreadSettingsUpdateParams.json": {
+      "baseline_sha256": "749419634bb7ed66216d72bf9d8734ecf0e6efaa8cd46fe51a117d1b42ed9657",
+      "sha256": "749419634bb7ed66216d72bf9d8734ecf0e6efaa8cd46fe51a117d1b42ed9657",
+      "structural_changes": []
+    },
+    "v2/ThreadSettingsUpdateResponse.json": {
+      "baseline_sha256": "adb6c5232ff2474b61ac1811c9fe0faf8beae7f629c9bb2182190679d82bf0b1",
+      "sha256": "adb6c5232ff2474b61ac1811c9fe0faf8beae7f629c9bb2182190679d82bf0b1",
+      "structural_changes": []
+    },
+    "v2/ThreadBackgroundTerminalsListResponse.json": {
+      "baseline_sha256": "b56b1cbcb1d60079ee9f9caaeef29cad869a25b4a6d356566f7c9f672faa7bf4",
+      "sha256": "b56b1cbcb1d60079ee9f9caaeef29cad869a25b4a6d356566f7c9f672faa7bf4",
+      "structural_changes": []
+    },
+    "v2/TurnSteerParams.json": {
+      "baseline_sha256": "202bc34e1f268b69e28c75f2ddd8b4990562eef114aca4663d9596f59d425bf8",
+      "sha256": "ba7034e96620c999cf0164f08bc753f58ff2b214f2025ab409f8ce42dc4cc708",
+      "structural_changes": [
+        "/definitions/UserInput/oneOf"
+      ]
+    },
+    "v2/TurnSteerResponse.json": {
+      "baseline_sha256": "866ba9a77c12b5d570c837d58f73bf40b24e50fa93404bdf792dd984d313b1aa",
+      "sha256": "866ba9a77c12b5d570c837d58f73bf40b24e50fa93404bdf792dd984d313b1aa",
+      "structural_changes": []
+    }
+  }
+}

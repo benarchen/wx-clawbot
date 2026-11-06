@@ -4,7 +4,7 @@
 
 本项目自有代码和文档采用 [MIT License](LICENSE)。第三方依赖保持原授权，其中 iterm2 Python SDK 声明 GPLv2+；本项目 MIT 授权不代表完整组合产品可按 MIT 闭源再发行。依赖清单和发行边界见 [第三方声明](THIRD_PARTY_NOTICES.md)。
 
-当前代码版本为 `0.1.5`，运行使用独立的非 editable 制品；具体本机加载状态见[本机交付记录](docs/validation/local-release.md)。已有账本须通过显式备份升级到 schema 6，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)。
+当前代码版本为 `0.1.6`，运行使用独立的非 editable 制品；具体本机加载状态见[本机交付记录](docs/validation/local-release.md)。已有账本须通过显式备份升级到 schema 6，启动不会自动迁移；操作见[账本升级](docs/state-schema.md)。
 
 当前提供前台微信桥接：本人绑定、项目选择、原终端会话发现与切换、单次派发与持续聚焦、独立观察订阅，以及在 iTerm2 可见创建新 Codex 会话。任务通过原生 daemon 队列提交，回复区分入队、执行和最终结果。[实际行为与验证范围](docs/validation/w05.md) 说明各入口的范围。
 
@@ -47,7 +47,7 @@ python3 -m venv .venv
 
 诊断输出只包含版本、配置状态和项目数量；无效配置返回非零状态，不打印配置内容。
 
-当前已核验的原生 app-server 版本为 `0.163.0`、`0.164.0`、`0.165.0`、`0.166.0`；以 `doctor` 的 `runtime.appServerVersion` 和 `verified_schema` 为准，CLI 版本可以不同。`verified_schema: false` 时不要继续启动，须先核对对应版本协议，不能只修改版本列表绕过检查。
+当前已核验的原生 app-server 版本为 `0.163.0`、`0.164.0`、`0.165.0`、`0.166.0`、`0.167.0`；以 `doctor` 的 `runtime.appServerVersion` 和 `verified_schema` 为准，CLI 版本可以不同。`verified_schema: false` 时不要继续启动，须先核对对应版本协议，不能只修改版本列表绕过检查。
 
 显式检查 iTerm2 API：`.venv/bin/wx-clawbot doctor --iterm2`。这可能触发宿主脚本授权；诊断不会启用 API、发送终端输入或启动 Codex。[协议与依赖基线](docs/protocol-baseline.md) 记录版本和重建方式。
 
