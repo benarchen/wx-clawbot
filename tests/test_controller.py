@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from wx_clawbot.agents.base import Capabilities
 from wx_clawbot.agents.rpc import OutcomeUnknown
@@ -44,7 +44,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
                                      inspect=AsyncMock(return_value={"status": {"type": "idle"}}),
                                      rpc=SimpleNamespace(request=AsyncMock(), respond=AsyncMock()))
         self.catalog = SimpleNamespace(agent=self.agent, sessions={s.target.session_id: s for s in self.sessions},
-                                       managed_threads=set(), unverified=[], directory=None,
+                                       managed_threads=set(), unverified=[], directory=None, remember_verified=Mock(),
                                        discover=AsyncMock(return_value=tuple(self.sessions)))
         async def require(target):
             return self.catalog.sessions[target.session_id]
@@ -359,11 +359,11 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.state.delivery_counts())["superseded"], 1)
         self.assertEqual(self.controller.routes.target, self.sessions[1].target)
 
-    async def test_modal_hidden_footer_preserves_subscribed_events_but_refuses_new_dispatch(self):
+    async def test_invalid_binding_preserves_subscribed_events_but_refuses_new_dispatch(self):
         await self.select()
         await self.command("/attach 1")
         self.catalog.require.reset_mock()
-        self.catalog.require.side_effect = SessionUnbound("footer hidden by native modal")
+        self.catalog.require.side_effect = SessionUnbound("Original process cannot be verified")
         await self.engine.event({"method": "turn/started", "params": {
             "threadId": "thread-one", "turn": {"id": "modal-turn"}}})
         await self.engine.event({"method": "item/started", "params": {
@@ -382,7 +382,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         await self.engine.event({"method": "serverRequest/resolved", "params": {
             "threadId": "thread-one", "requestId": APPROVAL}})
         self.assertEqual(records[0].state, "resolved")
-        await self.command("new task must not pass a hidden footer")
+        await self.command("new task must not pass an invalid original binding")
         self.queue.add.assert_not_awaited()
         self.assertEqual(len(await self.state.tasks()), 1)  # Only the observed native task.
 
@@ -599,7 +599,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.controller.routes.list)
         self.queue.add.assert_not_awaited()
 
-    async def test_host_recovery_hidden_footer_keeps_passive_observer_without_route(self):
+    async def test_host_recovery_missing_binding_keeps_passive_observer_without_route(self):
         await self.select()
         await self.command("/attach 2")
         async def refreshed(*_):
@@ -734,7 +734,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.engine.observed_turns.clear()  # No recovered observation history is replayed.
         self.engine.turn_tasks.clear()
         require = self.catalog.require.side_effect
-        self.catalog.require.side_effect = SessionUnbound("modal hid the original footer at startup")
+        self.catalog.require.side_effect = SessionUnbound("Original binding cannot be established at startup")
         await self.engine.reconcile()
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
         self.catalog.require.side_effect = require
@@ -751,7 +751,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
     async def test_explicit_refresh_preserves_unknown_when_binding_is_still_unverified(self):
         task = await self.desktop_start()
         await self.state.task_update(task["id"], "unknown")
-        self.catalog.require.side_effect = SessionUnbound("still no current identity")
+        self.catalog.require.side_effect = SessionUnbound("still no original binding identity")
         self.agent.rpc.request.reset_mock()
         await self.command("/sessions")
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
@@ -805,7 +805,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
                 self.agent.rpc.request.side_effect = page
                 await self.engine.reconcile()
                 self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
-        self.catalog.require.side_effect = SessionUnbound("Current footer cannot be verified")
+        self.catalog.require.side_effect = SessionUnbound("Original binding cannot be verified")
         self.agent.rpc.request.reset_mock()
         await self.engine.reconcile()
         self.agent.rpc.request.assert_not_awaited()
@@ -1027,8 +1027,8 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_modal_catalog_refresh_cannot_erase_live_observation_or_interaction(self):
         task = await self.desktop_start(observe=True)
-        self.catalog.sessions = {}  # A new input refresh cannot discover a hidden footer.
-        self.catalog.require.side_effect = SessionUnbound("current footer hidden")
+        self.catalog.sessions = {}  # Fresh input has no independently verified original binding.
+        self.catalog.require.side_effect = SessionUnbound("original process identity is unavailable")
         await self.command("PHONE_ALPHA")
         self.queue.add.assert_not_awaited()
         await self.engine.event({"id":"desktop-question", "method":QUESTION, "params": {

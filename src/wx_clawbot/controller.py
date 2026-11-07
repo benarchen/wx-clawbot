@@ -227,7 +227,11 @@ class Controller:
             await self.reply(message, str(exc), priority=0)
         except TimeoutError:
             await self.reply(message, "会话操作超时，尚未确认就绪；请核对宿主后刷新，不要重发未知任务。", priority=0)
-        except (SessionUnbound, LaunchPending):
+        except SessionUnbound:
+            await self.reply(message,
+                "所选会话无法可靠接入，原终端、进程或原生身份可能已变化；本条操作未确认完成，"
+                "不会自动切换到桌面其他会话或重发任务。请用 /status 核对任务，再用 /sessions 明确选择。", priority=0)
+        except LaunchPending:
             await self.reply(message, "会话身份或启动就绪尚未确认，请检查终端后用 /sessions 刷新；不会重复创建或执行。", priority=0)
         except Exception as exc:
             # Never put native error bodies, credentials or full task content in transport errors.
@@ -310,6 +314,7 @@ class Controller:
                 except (SessionUnbound, LaunchPending):
                     continue
                 self.catalog.managed_threads.add(binding.thread_id)
+                self.catalog.remember_verified(binding, managed=True, title=record.get("title") or "Codex 会话")
         return await self.catalog.discover(keyword)
 
     def _snapshot(self, routes):
@@ -442,7 +447,7 @@ class Controller:
                     for i, s in enumerate(sessions, 1)]
             missing = len(self.catalog.unverified)
             return ("会话列表（10 分钟有效；已退出输入聚焦）：\n" + ("\n".join(rows) or "暂无已核验会话。")
-                    + (f"\n另有 {missing} 个端点未通过当前会话 ID 核验。" if missing else "")
+                    + (f"\n另有 {missing} 个终端无法建立新的会话身份关联；已核验目标仍独立复验。" if missing else "")
                     + f"\n列表：{snapshot.list_id}")
         if name == "focus":
             await self._set_focus(target, revision, routes)

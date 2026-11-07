@@ -1,0 +1,19 @@
+{
+  "status": "ready_to_publish",
+  "version": "0.1.7",
+  "schema": 6,
+  "tag": "v0.1.7",
+  "source_sha256": "b4f2e9403d4f405808117300a2bb8c19e043280e87141b2b8546dc7b0a7c2a32",
+  "wheel_sha256": "328e8a77338fb884b2e804530e7413b3154e73a0490c82d0c7cb9efc48d2f2b9",
+  "artifact_tests": 723,
+  "artifact_test_seconds": 40.526,
+  "package_files": 57,
+  "nonversion_python_files_unchanged": 53,
+  "compile_dependencies_documents_diff": "passed",
+  "private_matches": 0,
+  "active_work_at_preflight": 0,
+  "child_render_parts": 5,
+  "production_before_version": "0.1.6",
+  "github_pushed": false,
+  "deployed": false
+}

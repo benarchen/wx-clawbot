@@ -180,6 +180,13 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
             await reconcile_launch(self.registry, self.identity, directory, native)
         self.assertEqual(self.registry.load(self.identity), before)
 
+    async def test_ready_launch_keeps_exact_thread_after_desktop_switch(self):
+        directory, native, _ = await self.handshake_fixture()
+        original = await reconcile_launch(self.registry, self.identity, directory, native)
+        directory.current_thread_id.return_value = "another-desktop-thread"
+        rebound = await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(rebound, original)
+
     async def test_visible_switch_cannot_rebind_launch_to_another_thread(self):
         directory, native, _ = await self.handshake_fixture()
         directory.current_thread_id.return_value = "another-desktop-thread"

@@ -1,4 +1,4 @@
-"""Project-scoped native sessions, joined to a terminal by its current visible UUID."""
+"""Discover visible native identities and retain independently verified targets."""
 
 import asyncio
 import json
@@ -39,6 +39,24 @@ class SessionCatalog:
     def project_for(self, cwd: Path):
         candidates = [p for p in self.projects.values() if cwd.is_relative_to(p.root)]
         return max(candidates, key=lambda p: len(p.root.parts)) if candidates else None
+
+    def _describe(self, binding, *, managed=False, title="Codex 会话"):
+        project = self.project_for(binding.project)
+        if project is None or not isinstance(title, str):
+            raise ValueError("Registered project and native title required")
+        endpoint = binding.endpoint
+        material = repr((endpoint.terminal_id, endpoint.process, binding.runtime_identity,
+                         binding.thread_id, binding.native_session_id))
+        identity = "s-" + uuid.uuid5(uuid.NAMESPACE_URL, material).hex
+        origin = "managed" if managed or binding.thread_id in self.managed_threads else "original"
+        target = Target(identity, project.alias, binding.project, origin)
+        return CatalogSession(target, binding, title[:128])
+
+    def remember_verified(self, binding, *, managed=False, title="Codex 会话"):
+        """Retain an association already proven by launch reconciliation."""
+        session = self._describe(binding, managed=managed, title=title)
+        self.sessions[session.target.session_id] = session
+        return session
 
     async def discover(self, keyword="") -> tuple[CatalogSession, ...]:
         if not isinstance(keyword, str) or len(keyword) > 4096:
@@ -119,21 +137,32 @@ class SessionCatalog:
                 continue
             binding = SessionBinding(endpoint, cwd, self.agent.runtime_identity, thread["id"], thread["sessionId"])
             try:
-                await verify_binding(binding, directory, self.agent)
+                await verify_binding(binding, directory, self.agent, require_visible=True)
             except SessionUnbound:
                 unverified.append({"terminal_id": endpoint.terminal_id, "project_alias": project.alias,
                                    "reason": "identity_changed"})
                 continue
-            material = repr((endpoint.terminal_id, endpoint.process, binding.runtime_identity,
-                             binding.thread_id, binding.native_session_id))
-            identity = "s-" + uuid.uuid5(uuid.NAMESPACE_URL, material).hex
-            origin = "managed" if thread["id"] in self.managed_threads else "original"
-            target = Target(identity, project.alias, cwd, origin)
             title = thread.get("name") or "Codex 会话"
             if not isinstance(title, str):
                 raise ValueError("Invalid native session title")
-            session = CatalogSession(target, binding, title[:128])
+            session = self._describe(binding, title=title)
+            found[session.target.session_id] = session
+        # A desktop /new or /resume does not revoke a previously proven A→thread
+        # association. Retain A only while its original endpoint/native identity
+        # still verifies; loaded rows alone never create new associations.
+        for identity, session in tuple(self.sessions.items()):
+            if identity in found or session.binding.endpoint not in endpoints:
+                continue
+            project = self.project_for(session.binding.project)
+            if project is None or project.alias != session.target.project_alias:
+                continue
+            try:
+                await verify_binding(session.binding, directory, self.agent)
+            except SessionUnbound:
+                continue
             found[identity] = session
+        if len(found) > self.TOTAL_THREADS:
+            raise DiscoveryUnavailable("已核验会话超过目录容量，不能使用不完整列表派发。")
         # Replace only after the complete discovery succeeded.
         self.sessions = found
         self.unverified = unverified
@@ -145,6 +174,6 @@ class SessionCatalog:
     async def require(self, target: Target) -> CatalogSession:
         session = self.sessions.get(target.session_id)
         if session is None or session.target != target:
-            raise SessionUnbound("Session list entry is no longer registered")
+            raise SessionUnbound("所选会话已无法核验或不在有效会话目录中")
         await verify_binding(session.binding, self.directory, self.agent)
         return session

@@ -164,7 +164,11 @@ async def reconcile_launch(registry, launch_id, directory, native):
         endpoint_changed = record.get("terminal_id") not in {None, endpoint.terminal_id}
         if Path(endpoint.process.executable).resolve() != Path(record["executable"]):
             raise SessionUnbound("Visible executable identity changed")
-        visible_id = await directory.current_thread_id(endpoint)
+        # A ready launch has durable boot/handshake proof for its exact thread.
+        # Reuse it after a desktop switch; a changed endpoint still needs visible
+        # proof before we can associate that endpoint with the original thread.
+        established = record["phase"] == "ready" and not endpoint_changed
+        visible_id = record.get("thread_id") if established else await directory.current_thread_id(endpoint)
         if visible_id is None:
             raise LaunchPending("Current native thread ID is not displayed by the terminal")
         page = await native.list_project_threads(Path(record["cwd"]))
@@ -189,7 +193,7 @@ async def reconcile_launch(registry, launch_id, directory, native):
             raise SessionUnbound("Changed terminal requires the exact previously verified native identity")
         binding = SessionBinding(endpoint, Path(record["cwd"]), native.runtime_identity,
                                  thread["id"], thread["sessionId"])
-        await verify_binding(binding, directory, native)
+        await verify_binding(binding, directory, native, require_visible=not established)
         turns = (await native.read_turns(thread["id"], limit=1))["data"]
         if not turns or turns[0].get("status") != "completed":
             raise LaunchPending("Original visible handshake has not completed")

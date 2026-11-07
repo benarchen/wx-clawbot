@@ -1,0 +1,42 @@
+{
+  "status": "candidate_verified",
+  "verified_at_beijing": "2026-11-07 10:50",
+  "offline": {
+    "tests": 723,
+    "seconds": 40.393,
+    "skipped": 0,
+    "compile": "passed",
+    "dependencies": "passed",
+    "diff": "passed",
+    "documents": "passed",
+    "initial_sandbox_unix_socket_errors": 17,
+    "full_normal_permission_run": "passed",
+    "concurrent_registration_regression": "failed_then_passed"
+  },
+  "public_content_check": {
+    "changed_files": 22,
+    "private_identity_matches": 0,
+    "native_evidence_crosschecked": true
+  },
+  "native_server_version": "0.167.0",
+  "native": {
+    "same_terminal_process": true,
+    "different_a_b_threads": true,
+    "selected_a_restored_while_desktop_shows_b": true,
+    "hidden_a_completed": true,
+    "a_context_recalled_without_full_marker_in_prompt": true,
+    "desktop_b_history_and_display_unchanged_during_a": true,
+    "explicit_b_completed": true,
+    "unique_client_and_turn_per_business_input": true,
+    "business_task_tool_calls": 0,
+    "closed_target_refused_without_new_task_or_retarget": true,
+    "disconnected_unloaded_a_refused": true,
+    "owned_terminals_cleaned": true,
+    "protected_configuration_hashes_unchanged": true
+  },
+  "wechat_test_sends": 0,
+  "direct_production_ledger_writes": 0,
+  "deployed": false,
+  "committed": false,
+  "initial_discovery_requires_footer_identity": true
+}

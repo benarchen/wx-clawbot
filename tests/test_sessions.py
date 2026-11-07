@@ -43,17 +43,31 @@ class BindingTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(state=state, session=session, runtime=runtime), self.assertRaises(SessionUnbound):
                 await verify_binding(self.binding, self.directory, self.agent)
 
-    async def test_same_process_with_another_visible_thread_is_not_the_original_binding(self):
+    async def test_established_binding_survives_desktop_switch_without_reading_footer(self):
         self.directory.current_thread_id.return_value = "new-desktop-thread"
-        with self.assertRaises(SessionUnbound):
-            await verify_binding(self.binding, self.directory, self.agent)
+        self.assertEqual(await verify_binding(self.binding, self.directory, self.agent), self.thread)
+        self.directory.current_thread_id.assert_not_called()
+
+    async def test_established_binding_survives_missing_footer(self):
+        self.directory.current_thread_id.return_value = None
+        self.assertEqual(await verify_binding(self.binding, self.directory, self.agent), self.thread)
+
+    async def test_initial_binding_still_requires_matching_displayed_identity(self):
+        for displayed in (None, "new-desktop-thread"):
+            self.directory.current_thread_id.return_value = displayed
+            with self.subTest(displayed=displayed), self.assertRaises(SessionUnbound):
+                await verify_binding(self.binding, self.directory, self.agent, require_visible=True)
         self.agent.inspect.assert_not_called()
 
-    async def test_missing_displayed_identity_is_not_inferred_from_loaded_thread(self):
-        self.directory.current_thread_id.return_value = None
+    async def test_native_response_for_another_thread_is_rejected(self):
+        self.thread["id"] = "another-thread"
         with self.assertRaises(SessionUnbound):
             await verify_binding(self.binding, self.directory, self.agent)
-        self.agent.inspect.assert_not_called()
+
+    async def test_process_exit_during_native_check_is_rejected(self):
+        self.directory.validate.side_effect = [True, False]
+        with self.assertRaises(SessionUnbound):
+            await verify_binding(self.binding, self.directory, self.agent)
 
     async def test_system_error_requires_positive_native_membership_and_direct_input(self):
         self.thread.update(status={"type": "systemError"}, canAcceptDirectInput=True)

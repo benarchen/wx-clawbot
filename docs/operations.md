@@ -45,7 +45,7 @@ AUD01 已完成工程验收，规则责任采用本人明确接受的原生限�
 
 在私有目录保存 `config.json`，按[配置模板](../config/config.example.json) 填写项目别名和真实绝对目录。默认运行目录为 `~/Library/Application Support/wx-clawbot/`，目录必须为本人所有的 `0700`，凭据、账本和实例记录为 `0600`。不要把真实配置放入仓库。扫码与本人绑定见[微信说明](wechat-protocol.md)；已有本项目本人绑定时直接复用，不读取其他项目凭据。
 
-普通 Shell 中先检查 `codex app-server daemon version`；必须是已经运行的原生 daemon。该官方命令会显示本机路径，不要把完整输出公开。桥接只读发现并核验既有 daemon，不自行安装、重启或更新它。原生 CLI／daemon 版本范围及 Session ID 显示要求见[原生证据](native-session-evidence.md)和 [README](../README.md)。
+普通 Shell 中先检查 `codex app-server daemon version`；必须是已经运行的原生 daemon。该官方命令会显示本机路径，不要把完整输出公开。桥接只读发现并核验既有 daemon，不自行安装、重启或更新它。原生 CLI／daemon 版本范围及首次发现的 Thread ID 显示要求见[原生证据](native-session-evidence.md)和 [README](../README.md)。
 
 ## 启动、查询与退出
 

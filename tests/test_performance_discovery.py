@@ -51,7 +51,7 @@ class PerformanceDiscoveryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(result['found'],count)
                 self.assertLessEqual(result['discovery_endpoint_checks'],8*count+8)
                 self.assertLessEqual(result['discovery_full_enumerations'],2)
-                self.assertEqual(result['require_fresh_enumerations'],1)
+                self.assertEqual(result['require_fresh_enumerations'],2)
                 self.assertLessEqual(result['require_endpoint_checks'],6)
                 self.assertTrue(result['require_only_target'])
 
