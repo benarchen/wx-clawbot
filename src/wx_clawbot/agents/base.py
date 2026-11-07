@@ -33,10 +33,13 @@ async def thread_is_loaded(agent, thread: dict) -> bool:
 
 class AgentAdapter(Protocol):
     capabilities: Capabilities
+    runtime_identity: tuple[int, int]
 
     async def inspect(self, thread_id: str) -> dict: ...
 
     async def is_loaded(self, thread_id: str) -> bool: ...
+
+    async def loaded_threads(self) -> frozenset[str]: ...
 
     async def observe_loaded(self, thread_id: str, project: Path) -> dict: ...
 

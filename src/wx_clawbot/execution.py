@@ -117,14 +117,11 @@ class Execution:
             self.queues[key] = NativeQueue(self.native, thread_id, cwd)
         return self.queues[key]
 
-    def verified_host(self, expected=None):
-        host = self.controller.host
-        if host is None:
-            return None
-        if host.state != "ready" or expected is not None and host.generation != expected:
-            raise HostUnavailable("changed")
-        host.connection  # A stopped SDK reader cannot grant new dispatch.
-        return host.generation
+    def verified_native(self, expected=None):
+        generation = (self.controller.native_generation, self.native.runtime_identity)
+        if not self.controller.native_ready or generation[1] is None or expected is not None and generation != expected:
+            raise CommandError("原生连接已变化，本条操作未确认完成；请核对状态，不要重发未知任务。")
+        return generation
 
     async def submit(self, message_id, dispatch):
         # This lock is obtained before the first external await, preserving receive
@@ -135,7 +132,7 @@ class Execution:
                 await self._submit_locked(message_id, dispatch)
 
     async def _submit_locked(self, message_id, dispatch):
-        self.verified_host()
+        self.verified_native()
         if not self.native.capabilities.queue:
             raise CommandError("当前 Agent 未提供已验证的原生队列能力，任务未接收。")
         if dispatch.has_images and not self.native.capabilities.image_input:
@@ -184,14 +181,14 @@ class Execution:
         task_id, thread_id = task["id"], record["thread_id"]
         attempted = False
         try:
-            host_generation = self.verified_host()
+            native_generation = self.verified_native()
             await self.controller.subscriptions.acquire(target, "task-" + task_id)
             await self.catalog.require(target)
             content = await self.images.inputs(task) if task.get("input_items") else None
             if not await self.state.task_update(task_id, "dispatching"):
                 await self.controller.subscriptions.release(target, "task-" + task_id)
                 return
-            self.verified_host(host_generation)
+            self.verified_native(native_generation)
             attempted = True
             queue = self.queue(thread_id, target.cwd)
             self.inflight.add(thread_id)
@@ -229,7 +226,7 @@ class Execution:
     async def drain_admission(self):
         if not self.controller.native_ready:
             return
-        if self.controller.host is not None and (self.controller.host.state != "ready" or self.controller.recovering):
+        if self.controller.recovering:
             return
         async with self.admission_gate:
             active = await self.state.tasks(active_only=True)
@@ -306,18 +303,30 @@ class Execution:
         return (await self.state.async_business_users(thread_id, turn['id'], users, task)
                 if len(users) > 1 else users)
 
-    async def reconcile_changed_session_terminal(self, task, target):
-        # A fresh full binding may prove historical completion after the runtime
-        # changes the stable session ID. It grants no route or dispatch authority.
-        candidates = [s for s in self.catalog.sessions.values()
-                      if s.target.session_id != target.session_id
-                      and s.target.project_alias == target.project_alias and s.target.cwd == target.cwd
-                      and s.binding.thread_id == task["thread_id"]]
-        if len(candidates) != 1:
+    async def reconcile_historical_result(self, task, target):
+        # Frozen task identity and unique native client/turn evidence may prove
+        # completion even when its old route or unloaded thread cannot dispatch.
+        # This never hydrates the thread or creates a new routing qualification.
+        if task["target"].get("thread_id") != task["thread_id"]:
             return
-        try:
-            await self.catalog.require(candidates[0].target)
-        except SessionUnbound:
+        generation = self.native.runtime_identity
+        native_session = None
+
+        async def exact_history():
+            nonlocal native_session
+            thread = await self.native.inspect(task["thread_id"])
+            valid = (isinstance(thread, dict) and thread.get("id") == task["thread_id"]
+                    and thread.get("cwd") == str(target.cwd)
+                    and isinstance(thread.get("sessionId"), str) and bool(thread["sessionId"])
+                    and (native_session is None or thread["sessionId"] == native_session)
+                    and isinstance(thread.get("status"), dict)
+                    and thread["status"].get("type") in {"idle", "active", "notLoaded", "systemError"}
+                    and self.native.runtime_identity == generation)
+            if valid:
+                native_session = thread["sessionId"]
+            return valid
+
+        if not await exact_history():
             return
         external = task["target"].get("source") == "external"
         client = task["target"].get("native_client_id") if external else task["client_id"]
@@ -335,10 +344,8 @@ class Execution:
                 return
             found = turn
         if (found is not None and found.get("status") in {"completed", "failed", "interrupted"}
-                and (not external or found["id"] == task["turn_id"])):
-            try:
-                await self.catalog.require(candidates[0].target)
-            except SessionUnbound:
+                and (task["turn_id"] is None or found["id"] == task["turn_id"])):
+            if not await exact_history():
                 return
             await self.complete(task["thread_id"], found)
 
@@ -363,7 +370,7 @@ class Execution:
             try:
                 session = await self.catalog.require(target)
             except SessionUnbound:
-                await self.reconcile_changed_session_terminal(task, target)
+                await self.reconcile_historical_result(task, target)
                 continue
             if session.binding.thread_id != task["thread_id"]:
                 raise ValueError("Stored task thread differs from current native identity")

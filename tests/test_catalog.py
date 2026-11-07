@@ -29,6 +29,8 @@ class CatalogTests(unittest.IsolatedAsyncioTestCase):
         self.agent = SimpleNamespace(runtime_identity=(1, 2),
                         list_project_threads=AsyncMock(return_value={"data": [self.thread]}),
                         inspect=AsyncMock(return_value=self.thread))
+        self.loaded = {"thread-one"}
+        self.agent.loaded_threads = AsyncMock(side_effect=lambda: frozenset(self.loaded))
         self.catalog = SessionCatalog((self.project,), self.directory, self.agent)
 
     async def test_verified_native_identity_is_stable_across_refresh_and_filtering(self):
@@ -37,23 +39,24 @@ class CatalogTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first.target.session_id, second.target.session_id)
         self.assertEqual((await self.catalog.require(first.target)).binding.thread_id, "thread-one")
 
-    async def test_unregistered_process_directory_never_triggers_screen_or_native_reads(self):
+    async def test_unregistered_process_cannot_expand_registered_native_scope(self):
         self.directory.cwd.return_value = self.root.parent
-        self.assertEqual(await self.catalog.discover(), ())
+        self.assertEqual(len(await self.catalog.discover()), 1)
         self.directory.current_thread_id.assert_not_called()
-        self.agent.list_project_threads.assert_not_called()
-        self.agent.inspect.assert_not_called()
+        self.agent.list_project_threads.assert_awaited_once_with(self.root)
 
-    async def test_missing_footer_is_reported_unverified_and_not_guessed_from_one_thread(self):
+    async def test_first_native_selection_succeeds_without_screen_or_host_binding(self):
         self.directory.current_thread_id.return_value = None
-        self.assertEqual(await self.catalog.discover(), ())
-        self.assertEqual(self.catalog.unverified[0]["reason"], "current_thread_id_missing")
-        self.agent.inspect.assert_not_called()
+        found = await self.catalog.discover()
+        self.assertEqual(len(found), 1)
+        self.assertIsNone(found[0].binding.endpoint)
+        self.directory.current_thread_id.assert_not_called()
 
     async def test_same_process_new_conversation_preserves_verified_old_binding(self):
         original = (await self.catalog.discover())[0]
         new = {**self.thread, "id": "thread-two", "sessionId": "session-two"}
         self.agent.list_project_threads.return_value = {"data": [self.thread, new]}
+        self.loaded.add("thread-two")
         self.directory.current_thread_id.return_value = "thread-two"
         self.agent.inspect.side_effect = lambda identity: self.thread if identity == "thread-one" else new
         sessions = await self.catalog.discover()
@@ -86,8 +89,8 @@ class CatalogTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.catalog.discover(), (original,))
         self.assertEqual(await self.catalog.require(original.target), original)
 
-    async def test_known_binding_is_removed_on_process_exit_runtime_change_or_unload(self):
-        for failure in ("process", "runtime", "unload", "session"):
+    async def test_old_binding_is_removed_on_runtime_change_unload_or_native_session_change(self):
+        for failure in ("runtime", "unload", "session"):
             self.directory.discover.return_value = [self.endpoint]
             self.directory.validate.return_value = True
             self.directory.current_thread_id.return_value = "thread-one"
@@ -96,37 +99,37 @@ class CatalogTests(unittest.IsolatedAsyncioTestCase):
             self.catalog = SessionCatalog((self.project,), self.directory, self.agent)
             original = (await self.catalog.discover())[0]
             self.directory.current_thread_id.return_value = None
-            if failure == "process":
-                self.directory.discover.return_value = []
-                self.directory.validate.return_value = False
-            elif failure == "runtime":
+            if failure == "runtime":
                 self.agent.runtime_identity = (2, 3)
             elif failure == "unload":
                 self.thread["status"] = {"type": "notLoaded"}
             else:
                 self.thread["sessionId"] = "changed-session"
             with self.subTest(failure=failure):
-                self.assertEqual(await self.catalog.discover(), ())
+                current = await self.catalog.discover()
+                self.assertNotIn(original.target, [s.target for s in current])
                 with self.assertRaises(SessionUnbound):
                     await self.catalog.require(original.target)
 
-    async def test_failed_refresh_keeps_previous_catalog_but_stale_endpoint_cannot_route(self):
+    async def test_failed_refresh_keeps_previous_catalog_but_unloaded_native_cannot_route(self):
         original = (await self.catalog.discover())[0]
         self.agent.list_project_threads.return_value = {"data": [self.thread], "nextCursor": "more"}
         with self.assertRaises(ValueError):
             await self.catalog.discover()
         self.assertIn(original.target.session_id, self.catalog.sessions)
-        self.directory.validate.return_value = False
+        self.thread["status"] = {"type": "notLoaded"}
         with self.assertRaises(SessionUnbound):
             await self.catalog.require(original.target)
 
-    async def test_same_directory_two_terminals_are_joined_by_current_uuid_not_list_order(self):
+    async def test_same_directory_dialogues_need_no_window_join_or_list_order_inference(self):
         second = TerminalEndpoint("terminal-two", ProcessIdentity(124, (1, 3), "/example/codex", 102), "codex_candidate")
         other = {**self.thread, "id": "thread-two", "sessionId": "session-two"}
         self.directory.discover.return_value = [self.endpoint, second]
         self.directory.current_thread_id.side_effect = lambda endpoint: "thread-one" if endpoint == self.endpoint else "thread-two"
         self.agent.list_project_threads.return_value = {"data": [other, self.thread]}
+        self.loaded.add("thread-two")
         self.agent.inspect.side_effect = lambda identity: self.thread if identity == "thread-one" else other
         sessions = await self.catalog.discover()
-        self.assertEqual({s.binding.endpoint.terminal_id: s.binding.thread_id for s in sessions},
-                         {"terminal-one": "thread-one", "terminal-two": "thread-two"})
+        self.assertEqual({s.binding.thread_id for s in sessions}, {"thread-one", "thread-two"})
+        self.assertTrue(all(s.binding.endpoint is None for s in sessions))
+        self.directory.current_thread_id.assert_not_called()

@@ -48,6 +48,9 @@ class UnavailableNative:
     async def list_project_threads(self, *_):
         return {"data": []}
 
+    async def loaded_threads(self):
+        return frozenset()
+
 
 class OfflineExecution:
     def __init__(self, controller):
@@ -128,8 +131,8 @@ class BridgeRuntime:
         controller = self.controller
         if not controller.native_ready:
             return False
-        if self.host._connection is None:
-            raise HostUnavailable(self.host.phase)
+        if self.host._connection is None and not self.pending_restore:
+            return False
         if not self.pending_restore and self.host_generation == self.host.generation:
             return False
         async with asyncio.timeout(25):
@@ -146,8 +149,9 @@ class BridgeRuntime:
                         await controller.engine.reconcile()
                     else:
                         await controller.recover_host()
-                    self.host.verified(generation)
-                    self.host_generation = generation
+                    if self.host._connection is not None:
+                        self.host.verified(generation)
+                        self.host_generation = generation
                     self.pending_restore = False
                 finally:
                     controller.recovering = False
@@ -205,6 +209,7 @@ class BridgeRuntime:
                 self.host_generation = None
                 controller.before_change = self.restore_host
                 await self.initialize()
+                await self.restore_host()  # Native targets do not wait for a host connection.
                 try:
                     await self.host.ensure()
                     await self.restore_host()

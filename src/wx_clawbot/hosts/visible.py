@@ -1,6 +1,7 @@
 """Persist a visible launch intent before an iTerm2 mutation; never replay uncertainty."""
 
 import asyncio
+import json
 import os
 import re
 import shlex
@@ -145,6 +146,7 @@ async def reconcile_launch(registry, launch_id, directory, native):
     check_launch_id(launch_id)
     with private_lease(registry.root / (launch_id + ".lock")):
         record = registry.load(launch_id)
+        generation = native.runtime_identity
         if record["phase"] not in {"starting", "unknown", "handshaking", "ready"}:
             raise LaunchPending("Launch has no visible host operation to reconcile")
         boot_file = registry.root / (launch_id + ".boot.json")
@@ -153,6 +155,14 @@ async def reconcile_launch(registry, launch_id, directory, native):
         boot = read_json(boot_file)
         if boot.get("launch_id") != launch_id:
             raise LaunchError("Launcher receipt identity mismatch")
+        if record["phase"] == "ready":
+            process = record.get("process") or {}
+            if any(process.get(field) != boot.get(field) for field in ("pid", "started", "tty_device")):
+                raise LaunchPending("Original startup provenance is incomplete")
+            binding = SessionBinding(None, Path(record["cwd"]), tuple(record.get("runtime_identity") or ()),
+                                     record.get("thread_id"), record.get("native_session_id"))
+            await verify_binding(binding, None, native)
+            return binding
         candidates = [endpoint for endpoint in await directory.discover()
                       if endpoint.classification == "codex_candidate" and endpoint.process is not None
                       and endpoint.process.pid == boot.get("pid")
@@ -161,49 +171,67 @@ async def reconcile_launch(registry, launch_id, directory, native):
         if len(candidates) != 1:
             raise LaunchPending("No unique live Codex process matches the launcher receipt")
         endpoint = candidates[0]
-        endpoint_changed = record.get("terminal_id") not in {None, endpoint.terminal_id}
         if Path(endpoint.process.executable).resolve() != Path(record["executable"]):
             raise SessionUnbound("Visible executable identity changed")
-        # A ready launch has durable boot/handshake proof for its exact thread.
-        # Reuse it after a desktop switch; a changed endpoint still needs visible
-        # proof before we can associate that endpoint with the original thread.
-        established = record["phase"] == "ready" and not endpoint_changed
-        visible_id = record.get("thread_id") if established else await directory.current_thread_id(endpoint)
-        if visible_id is None:
-            raise LaunchPending("Current native thread ID is not displayed by the terminal")
-        page = await native.list_project_threads(Path(record["cwd"]))
-        if page.get("nextCursor"):
-            raise LaunchError("Launch reconciliation exceeds native page bound")
         marker = "WX-LAUNCH-" + launch_id
-        threads = [thread for thread in page["data"] if thread["id"] == visible_id
-                   and thread.get("preview", "").startswith(marker)
-                   and thread.get("status", {}).get("type") in {"idle", "active", "systemError"}
-                   and thread.get("forkedFromId") is None]
+        rows, cursor, seen, identities, size = [], None, set(), set(), 0
+        for _ in range(10):
+            page = (await native.list_project_threads(Path(record["cwd"]), cursor=cursor) if cursor is not None
+                    else await native.list_project_threads(Path(record["cwd"])))
+            data = page.get("data") if isinstance(page, dict) else None
+            if not isinstance(data, list) or len(data) > 100:
+                raise LaunchError("Malformed bounded native launch page")
+            size += len(json.dumps(page, allow_nan=False).encode())
+            if size > 32 * 1024 * 1024:
+                raise LaunchError("Native launch discovery exceeds byte budget")
+            for item in data:
+                if (not isinstance(item, dict) or not isinstance(item.get("id"), str) or not item["id"]
+                        or item["id"] in identities or item.get("cwd") != record["cwd"]):
+                    raise LaunchError("Ambiguous native launch identity or project")
+                identities.add(item["id"])
+                rows.append(item)
+            cursor = page.get("nextCursor")
+            if cursor is None:
+                break
+            if not isinstance(cursor, str) or not cursor or cursor in seen:
+                raise LaunchError("Malformed native launch cursor")
+            seen.add(cursor)
+        else:
+            raise LaunchError("Launch reconciliation exceeds native page bound")
+        threads = [thread for thread in rows if thread.get("preview", "").startswith(marker)]
         if len(threads) != 1:
-            raise LaunchPending("Visible thread has no matching original launch handshake")
-        thread = await native.inspect(visible_id)
+            raise LaunchPending("Native startup marker has no unique candidate")
+        thread = await native.inspect(threads[0]["id"])
+        if thread.get("id") != threads[0]["id"]:
+            raise LaunchError("Native startup response does not match the selected identity")
+        if thread.get("forkedFromId") is not None or thread.get("parentThreadId") is not None:
+            raise LaunchError("A derived thread cannot prove the original visible launch")
+        if not await native.is_loaded(thread["id"]):
+            raise LaunchPending("Original visible launch is not loaded in the native runtime")
         if (record.get("thread_id") not in {None, thread["id"]}
                 or record.get("native_session_id") not in {None, thread["sessionId"]}
                 or record.get("runtime_identity") is not None
                 and tuple(record["runtime_identity"]) != native.runtime_identity):
             raise SessionUnbound("Previously bound runtime or thread changed")
-        if endpoint_changed and (record["phase"] != "ready" or record.get("thread_id") != thread["id"]
-                                or record.get("native_session_id") != thread["sessionId"]
-                                or tuple(record.get("runtime_identity") or ()) != native.runtime_identity):
-            raise SessionUnbound("Changed terminal requires the exact previously verified native identity")
-        binding = SessionBinding(endpoint, Path(record["cwd"]), native.runtime_identity,
+        binding = SessionBinding(endpoint, Path(record["cwd"]), generation,
                                  thread["id"], thread["sessionId"])
-        await verify_binding(binding, directory, native, require_visible=not established)
+        await verify_binding(binding, None, native)
         turns = (await native.read_turns(thread["id"], limit=1))["data"]
         if not turns or turns[0].get("status") != "completed":
             raise LaunchPending("Original visible handshake has not completed")
-        user = [part.get("text", "") for item in turns[0].get("items", []) if item.get("type") == "userMessage"
+        users = [item for item in turns[0].get("items", []) if item.get("type") == "userMessage"]
+        if len(users) != 1:
+            raise LaunchError("Native startup turn has merged or missing user input")
+        user = [part.get("text", "") for item in users
                 for part in item.get("content", [])]
         output = [item.get("text", "") for item in turns[0].get("items", []) if item.get("type") == "agentMessage"]
         if not any(text.startswith(marker) for text in user) or not any(marker in text for text in output):
             raise LaunchError("Native turn does not prove the launch handshake")
+        if not await directory.validate(endpoint):
+            raise SessionUnbound("Original launcher process changed during handshake")
         if record["phase"] != "ready" and record["title"]:
             await native.rpc.request("thread/name/set", {"threadId": thread["id"], "name": record["title"]})
+        await verify_binding(binding, None, native)
         record.update(phase="ready", terminal_id=endpoint.terminal_id, thread_id=thread["id"],
                       native_session_id=thread["sessionId"], runtime_identity=native.runtime_identity,
                       process=asdict(endpoint.process), model=thread.get("model"),

@@ -67,8 +67,10 @@ def answer_text(row, text):
 
 
 def binding_record(session):
-    # Includes terminal/PID/start/TTY, runtime and native session identity.
-    return json.loads(json.dumps(asdict(session.binding), default=str, sort_keys=True))
+    # Optional host provenance cannot change an answer's exact native target.
+    value = asdict(session.binding)
+    value.pop('endpoint')
+    return json.loads(json.dumps(value, default=str, sort_keys=True))
 
 
 class AsyncQuestions:
@@ -151,7 +153,7 @@ class AsyncQuestions:
         target = restore_target(row['target'])
         try:
             generation = engine.generation
-            host = engine.verified_host()
+            native_generation = engine.verified_native()
             if not engine.controller.native_ready:
                 raise ValueError('Native connection unavailable')
             if (engine.controller.engine is not engine
@@ -166,7 +168,7 @@ class AsyncQuestions:
                 raise ValueError('Original turn ended')
             for user in (i for i in turn['items'] if i.get('type') == 'userMessage'):
                 await self.state.async_user(row['thread_id'], row['turn_id'], user)
-            engine.verified_host(host)
+            engine.verified_native(native_generation)
             if generation != engine.generation or not engine.controller.native_ready:
                 raise ValueError('Native generation changed')
             if self.clock() >= self.deadlines.get(public_id, float('-inf')):
@@ -182,7 +184,7 @@ class AsyncQuestions:
             raise CommandError('原问题／会话／连接或有效期已改变，答案未提交；请在原终端核对。') from exc
         # Once the intent commits, cancellation or uncertain transport must never reopen it.
         try:
-            engine.verified_host(host)
+            engine.verified_native(native_generation)
             if (not engine.controller.native_ready or engine.controller.engine is not engine
                     or engine.controller.native_generation != row['target']['native_generation']):
                 raise ValueError('Native generation changed after intent commit')

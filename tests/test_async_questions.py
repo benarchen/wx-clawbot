@@ -110,6 +110,16 @@ class AsyncQuestionTests(AsyncFixture):
         self.assertEqual(sum(isinstance(r,CommandError) for r in results),1)
         self.agent.rpc.request.assert_awaited_once()
 
+    async def test_optional_host_provenance_and_host_loss_do_not_change_native_answer_target(self):
+        from types import SimpleNamespace
+        row = await self.question()
+        self.sessions[1].binding = replace(self.sessions[1].binding, endpoint=None)
+        self.controller.host = SimpleNamespace(state='unavailable', phase='not_running')
+        await self.answer(row)
+        saved = await self.row(row['public_id'])
+        self.assertEqual(saved['state'], 'accepted')
+        self.agent.rpc.request.assert_awaited_once()
+
     async def test_losing_concurrent_preflight_cannot_close_winning_answer_intent(self):
         row=await self.question()
         original=self.catalog.require

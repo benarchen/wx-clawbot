@@ -24,6 +24,7 @@ async def discovery_counts(root, count):
     threads = {'thread-'+key: {'id':'thread-'+key, 'sessionId':'session-'+key,
         'cwd':str(root), 'status':{'type':'idle'}} for key in endpoints}
     agent = SimpleNamespace(runtime_identity=(1,1),
+        loaded_threads=AsyncMock(return_value=frozenset(threads)),
         list_project_threads=AsyncMock(return_value={'data':list(threads.values())}),
         inspect=AsyncMock(side_effect=lambda key: threads[key]))
     catalog = SessionCatalog((Project('synthetic',root),),directory,agent)
@@ -39,7 +40,7 @@ async def discovery_counts(root, count):
         await catalog.require(found[0].target)
     return {'endpoints':count,'found':len(found),'discovery_endpoint_checks':discovery_checks,
             'discovery_full_enumerations':enumerations,'require_fresh_enumerations':get_app.await_count,
-            'require_endpoint_checks':len(checks),'require_only_target':set(checks)=={found[0].binding.endpoint.terminal_id}}
+            'require_endpoint_checks':len(checks),'require_no_host_identity':not checks}
 
 
 class PerformanceDiscoveryTests(unittest.IsolatedAsyncioTestCase):
@@ -51,9 +52,9 @@ class PerformanceDiscoveryTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(result['found'],count)
                 self.assertLessEqual(result['discovery_endpoint_checks'],8*count+8)
                 self.assertLessEqual(result['discovery_full_enumerations'],2)
-                self.assertEqual(result['require_fresh_enumerations'],2)
+                self.assertEqual(result['require_fresh_enumerations'],0)
                 self.assertLessEqual(result['require_endpoint_checks'],6)
-                self.assertTrue(result['require_only_target'])
+                self.assertTrue(result['require_no_host_identity'])
 
     async def test_discovery_view_cannot_cross_host_connection_generation(self):
         original,replacement=object(),object()

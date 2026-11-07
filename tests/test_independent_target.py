@@ -37,7 +37,8 @@ class IndependentTargetTests(unittest.IsolatedAsyncioTestCase):
             capabilities=Capabilities(observe=True, queue=True),
             list_project_threads=AsyncMock(return_value={'data': [self.threads['thread-a']]}),
             inspect=AsyncMock(side_effect=lambda key: self.threads[key]), observe_loaded=AsyncMock(),
-            unsubscribe=AsyncMock(return_value='unsubscribed'))
+            unsubscribe=AsyncMock(return_value='unsubscribed'),
+            loaded_threads=AsyncMock(return_value=frozenset(self.threads)))
         self.catalog = SessionCatalog((self.project,), self.directory, self.agent)
         self.catalog.managed_threads.add('thread-a')
         self.state = await RuntimeState.open(self.root / 'private/runtime.sqlite3',
@@ -81,10 +82,11 @@ class IndependentTargetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.catalog.sessions[self.controller.routes.target.session_id].binding.thread_id, 'thread-b')
         self.assertEqual((await self.state.tasks())[0]['thread_id'], 'thread-a')
 
-    async def test_closed_terminal_refuses_message_notifies_and_preserves_selected_target(self):
+    async def test_closed_and_unloaded_target_refuses_message_notifies_without_retarget(self):
         self.desktop_switch()
         self.directory.discover.return_value = []
         self.directory.validate.return_value = False
+        self.threads['thread-a']['status'] = {'type': 'notLoaded'}
         await self.command('Must not reach B')
         self.assertEqual(self.controller.routes.target, self.a)
         self.assertEqual(await self.state.tasks(), [])
@@ -92,6 +94,15 @@ class IndependentTargetTests(unittest.IsolatedAsyncioTestCase):
             queue.add.assert_not_called()
         texts = await self.state._call(lambda: [row[0] for row in self.state.db.execute('SELECT text FROM outbox')])
         self.assertTrue(any('所选会话无法可靠接入' in text and '不会自动切换' in text for text in texts))
+
+    async def test_host_unavailable_still_submits_to_exact_loaded_native_selection(self):
+        from wx_clawbot.hosts.lifecycle import HostUnavailable
+        self.directory.discover.side_effect = HostUnavailable('not_running')
+        self.controller.host = SimpleNamespace(state='unavailable', phase='not_running')
+        await self.command('Continue A without any host connection')
+        self.assertEqual(self.controller.routes.target, self.a)
+        self.assertEqual((await self.state.tasks())[0]['thread_id'], 'thread-a')
+        self.queues['thread-a'].add.assert_awaited_once()
 
     async def test_cd_reuses_managed_a_after_desktop_switch_without_creating_replacement(self):
         self.desktop_switch()

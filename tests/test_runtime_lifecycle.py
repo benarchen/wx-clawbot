@@ -194,7 +194,9 @@ class RuntimeLifecycleTests(RuntimeFixture):
         async def event(**_):
             await failed.wait()
             raise ConnectionLost("disconnected")
-        native = SimpleNamespace(rpc=SimpleNamespace(next_event=event), close=AsyncMock())
+        native = SimpleNamespace(rpc=SimpleNamespace(next_event=event), close=AsyncMock(), runtime_identity=(1, 2),
+                                 loaded_threads=AsyncMock(return_value=frozenset()),
+                                 list_project_threads=AsyncMock(return_value={'data': []}))
         with patch.object(self.runtime, "connect_native", new=AsyncMock(return_value=(native, Path("/fixture/codex")))):
             job = asyncio.create_task(self.runtime.run())
             await asyncio.sleep(.01)
@@ -214,7 +216,9 @@ class RuntimeLifecycleTests(RuntimeFixture):
         async def event(**_):
             await failed.wait()
             raise ConnectionLost("disconnected during host restore")
-        peer = SimpleNamespace(rpc=SimpleNamespace(next_event=event), close=AsyncMock())
+        peer = SimpleNamespace(rpc=SimpleNamespace(next_event=event), close=AsyncMock(), runtime_identity=(1, 2),
+                               loaded_threads=AsyncMock(return_value=frozenset()),
+                               list_project_threads=AsyncMock(return_value={'data': []}))
         with patch.object(self.runtime, "connect_native", new=AsyncMock(return_value=(peer, Path("/fixture/codex")))):
             job = asyncio.create_task(self.runtime.run())
             try:
@@ -261,7 +265,9 @@ class RuntimeLifecycleTests(RuntimeFixture):
                     raise ConnectionLost("controlled peer disconnect")
                 finally:
                     live_consumers -= 1
-            peer = SimpleNamespace(rpc=SimpleNamespace(next_event=event), close=AsyncMock())
+            peer = SimpleNamespace(rpc=SimpleNamespace(next_event=event), close=AsyncMock(),
+                                   runtime_identity=(1, 2), loaded_threads=AsyncMock(return_value=frozenset()),
+                                   list_project_threads=AsyncMock(return_value={'data': []}))
             peers.append(peer)
             return peer, Path("/fixture/codex")
 

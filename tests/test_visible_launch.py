@@ -151,24 +151,26 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
             {"type": "userMessage", "content": [{"type": "text", "text": "WX-LAUNCH-" + self.identity + "\nbootstrap"}]},
             {"type": "agentMessage", "text": "WX-LAUNCH-" + self.identity}]}
         native = SimpleNamespace(runtime_identity=(1, 2), list_project_threads=AsyncMock(return_value={"data": [thread]}),
-                                 inspect=AsyncMock(return_value=thread), read_turns=AsyncMock(return_value={"data": [turn]}))
+                                 inspect=AsyncMock(return_value=thread), read_turns=AsyncMock(return_value={"data": [turn]}),
+                                 is_loaded=AsyncMock(return_value=True))
         return directory, native, turn
 
-    async def test_ready_requires_process_footer_and_completed_native_handshake(self):
+    async def test_ready_requires_actual_boot_provenance_and_unique_completed_native_handshake(self):
         directory, native, _ = await self.handshake_fixture()
         binding = await reconcile_launch(self.registry, self.identity, directory, native)
         self.assertEqual(binding.thread_id, "fixture-thread")
         self.assertEqual(self.registry.load(self.identity)["phase"], "ready")
 
-    async def test_ready_launch_surviving_process_can_rebind_changed_terminal_after_full_proof(self):
+    async def test_ready_launch_restores_native_identity_without_reassigning_host_provenance(self):
         directory, native, _ = await self.handshake_fixture()
         await reconcile_launch(self.registry, self.identity, directory, native)
         old = directory.discover.return_value[0]
         new = TerminalEndpoint("restored-terminal", old.process, old.classification)
         directory.discover.return_value = [new]
         rebound = await reconcile_launch(self.registry, self.identity, directory, native)
-        self.assertEqual(rebound.endpoint.terminal_id, "restored-terminal")
-        self.assertEqual(self.registry.load(self.identity)["terminal_id"], "restored-terminal")
+        self.assertIsNone(rebound.endpoint)
+        self.assertEqual(rebound.thread_id, "fixture-thread")
+        self.assertEqual(self.registry.load(self.identity)["terminal_id"], "fixture-terminal")
 
     async def test_ready_launch_changed_native_identity_is_unbound_without_rewriting_record(self):
         from wx_clawbot.sessions import SessionUnbound
@@ -185,15 +187,78 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
         original = await reconcile_launch(self.registry, self.identity, directory, native)
         directory.current_thread_id.return_value = "another-desktop-thread"
         rebound = await reconcile_launch(self.registry, self.identity, directory, native)
-        self.assertEqual(rebound, original)
+        self.assertEqual(rebound.thread_id, original.thread_id)
+        self.assertEqual(rebound.runtime_identity, original.runtime_identity)
 
-    async def test_visible_switch_cannot_rebind_launch_to_another_thread(self):
+    async def test_first_handshake_ignores_desktop_display_and_binds_its_unique_nonce(self):
         directory, native, _ = await self.handshake_fixture()
         directory.current_thread_id.return_value = "another-desktop-thread"
+        binding = await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(binding.thread_id, "fixture-thread")
+        directory.current_thread_id.assert_not_called()
+
+    async def test_hidden_first_handshake_traps_all_screen_identity_reads(self):
+        directory, native, _ = await self.handshake_fixture()
+        directory.current_thread_id.side_effect = AssertionError("No displayed identity allowed")
+        await reconcile_launch(self.registry, self.identity, directory, native)
+        directory.current_thread_id.assert_not_called()
+
+    async def test_duplicate_nonce_candidates_are_not_selected_by_list_order(self):
+        directory, native, _ = await self.handshake_fixture()
+        row = native.list_project_threads.return_value["data"][0]
+        native.list_project_threads.return_value = {"data": [row, {**row, "id": "another-thread"}]}
         with self.assertRaises(LaunchPending):
             await reconcile_launch(self.registry, self.identity, directory, native)
-        self.assertEqual(self.registry.load(self.identity)["phase"], "handshaking")
         native.inspect.assert_not_called()
+
+    async def test_forked_candidate_cannot_prove_the_original_launch(self):
+        directory, native, _ = await self.handshake_fixture()
+        native.inspect.return_value["forkedFromId"] = "parent-thread"
+        with self.assertRaises(LaunchError):
+            await reconcile_launch(self.registry, self.identity, directory, native)
+
+    async def test_original_bootstrap_can_be_found_after_the_first_native_page(self):
+        directory, native, _ = await self.handshake_fixture()
+        row = native.list_project_threads.return_value["data"][0]
+        native.list_project_threads.side_effect = [
+            {"data": [{**row, "id": "other-thread", "preview": "unrelated"}], "nextCursor": "next"},
+            {"data": [row], "nextCursor": None}]
+        binding = await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(binding.thread_id, row["id"])
+        self.assertEqual(native.list_project_threads.await_count, 2)
+
+    async def test_merged_bootstrap_input_is_not_a_unique_startup_proof(self):
+        directory, native, turn = await self.handshake_fixture()
+        turn["items"].append({"type": "userMessage", "content": [{"type": "text", "text": "other input"}]})
+        with self.assertRaises(LaunchError):
+            await reconcile_launch(self.registry, self.identity, directory, native)
+
+    async def test_runtime_switch_during_initial_handshake_cannot_create_ready_record(self):
+        from wx_clawbot.sessions import SessionUnbound
+        directory, native, _ = await self.handshake_fixture()
+        row = native.inspect.return_value
+        async def changed(_):
+            native.runtime_identity = (3, 4)
+            return row
+        native.inspect.side_effect = changed
+        with self.assertRaises(SessionUnbound):
+            await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertEqual(self.registry.load(self.identity)["phase"], "handshaking")
+
+    async def test_ready_native_identity_does_not_require_a_surviving_sdk_endpoint(self):
+        directory, native, _ = await self.handshake_fixture()
+        await reconcile_launch(self.registry, self.identity, directory, native)
+        directory.discover.side_effect = AssertionError("Ready restore must not require a host")
+        directory.current_thread_id.side_effect = AssertionError("No screen identity allowed")
+        binding = await reconcile_launch(self.registry, self.identity, directory, native)
+        self.assertIsNone(binding.endpoint)
+
+    async def test_changed_process_during_initial_handshake_does_not_create_ready(self):
+        from wx_clawbot.sessions import SessionUnbound
+        directory, native, _ = await self.handshake_fixture()
+        directory.validate.return_value = False
+        with self.assertRaises(SessionUnbound):
+            await reconcile_launch(self.registry, self.identity, directory, native)
 
     async def test_in_progress_or_missing_bootstrap_reply_is_not_ready(self):
         directory, native, turn = await self.handshake_fixture()

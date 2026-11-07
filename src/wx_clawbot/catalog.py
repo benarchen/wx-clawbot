@@ -1,14 +1,14 @@
-"""Discover visible native identities and retain independently verified targets."""
+"""Project-scoped loaded native targets; host cwd only extends the declared scope."""
 
 import asyncio
 import json
-import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from .config import Project
 from .routing import Target
-from .sessions import SessionBinding, SessionUnbound, verify_binding
+from .sessions import SessionBinding, SessionUnbound, binding_key, legacy_binding_key, verify_binding
+from .hosts.lifecycle import HostUnavailable
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,9 @@ class SessionCatalog:
         self.sessions = {}
         self.unverified = []
         self.managed_threads = set()
+        self.legacy_targets = {}
+        self.directories = {p.root for p in projects}
+        self.scope_note = "发现范围为注册根与已知的准确目录，不递归扫描子目录。"
 
     def project_for(self, cwd: Path):
         candidates = [p for p in self.projects.values() if cwd.is_relative_to(p.root)]
@@ -44,10 +47,7 @@ class SessionCatalog:
         project = self.project_for(binding.project)
         if project is None or not isinstance(title, str):
             raise ValueError("Registered project and native title required")
-        endpoint = binding.endpoint
-        material = repr((endpoint.terminal_id, endpoint.process, binding.runtime_identity,
-                         binding.thread_id, binding.native_session_id))
-        identity = "s-" + uuid.uuid5(uuid.NAMESPACE_URL, material).hex
+        identity = binding_key(binding)
         origin = "managed" if managed or binding.thread_id in self.managed_threads else "original"
         target = Target(identity, project.alias, binding.project, origin)
         return CatalogSession(target, binding, title[:128])
@@ -56,16 +56,23 @@ class SessionCatalog:
         """Retain an association already proven by launch reconciliation."""
         session = self._describe(binding, managed=managed, title=title)
         self.sessions[session.target.session_id] = session
+        self.include_directory(binding.project)
         return session
+
+    def include_directory(self, cwd):
+        cwd = Path(cwd)
+        if cwd.resolve(strict=True) != cwd or not cwd.is_dir() or self.project_for(cwd) is None:
+            raise ValueError("Registered canonical directory required")
+        if len(self.directories | {cwd}) > 256:
+            raise DiscoveryUnavailable("会话发现超过 256 个准确目录的上限。")
+        self.directories.add(cwd)
 
     async def discover(self, keyword="") -> tuple[CatalogSession, ...]:
         if not isinstance(keyword, str) or len(keyword) > 4096:
             raise ValueError("Bounded session search required")
         try:
             async with asyncio.timeout(self.DISCOVERY_SECONDS):
-                view = getattr(self.directory, "discovery_view", None)
-                directory = await view() if view is not None else self.directory
-                return await self._discover(keyword, directory)
+                return await self._discover(keyword)
         except DiscoveryUnavailable:
             raise
         except TimeoutError:
@@ -107,64 +114,67 @@ class SessionCatalog:
                     raise DiscoveryUnavailable("会话发现超过总条数上限，不能使用不完整列表派发。")
             cursor = page.get('nextCursor')
             if cursor is None:
-                return {identity: thread for identity, thread in threads.items()
-                        if thread['status']['type'] in {'idle', 'active', 'systemError'}}
+                return threads
             if not isinstance(cursor, str) or not 0 < len(cursor) <= 4096 or cursor in cursors:
                 raise DiscoveryUnavailable("原生会话分页游标无效，不能使用不完整列表派发。")
             cursors.add(cursor)
         raise DiscoveryUnavailable("单目录会话列表超过十页上限，不能使用不完整列表派发。")
 
-    async def _discover(self, keyword, directory):
-        found, pages, unverified = {}, {}, []
+    async def _discover(self, keyword):
+        found, aliases, unverified = {}, {}, []
         budget = {'pages': 0, 'threads': 0, 'bytes': 0, 'identities': set()}
-        endpoints = await directory.discover()
-        if len(endpoints) > 256:
-            raise ValueError("Too many terminal endpoints for a bounded discovery")
-        for endpoint in endpoints:
-            if endpoint.classification != "codex_candidate":
+        generation = self.agent.runtime_identity
+        endpoints = []
+        # SDK metadata can add exact cwds and prove an old fingerprint; it never
+        # determines native thread identity and cannot block root-only discovery.
+        self.scope_note = "发现范围为注册根与已知准确目录；子目录不作递归扫描。"
+        try:
+            async with asyncio.timeout(1):
+                view = getattr(self.directory, "discovery_view", None)
+                directory = await view() if view is not None else self.directory
+                candidates = await directory.discover()
+                if len(candidates) > 256:
+                    raise DiscoveryUnavailable("宿主端点超过有界目录发现上限。")
+                for endpoint in candidates:
+                    if endpoint.classification != "codex_candidate" or endpoint.process is None:
+                        continue
+                    cwd = await directory.cwd(endpoint)
+                    if isinstance(cwd, Path) and self.project_for(cwd) is not None:
+                        self.include_directory(cwd)
+                        endpoints.append(endpoint)
+        except (HostUnavailable, OSError, TimeoutError):
+            self.scope_note += "宿主目录扩展暂不可用，仍核验注册根与已登记目录。"
+        loaded = await self.agent.loaded_threads()
+        if not isinstance(loaded, frozenset) or any(not isinstance(v, str) or not v for v in loaded):
+            raise ValueError("Complete native loaded-thread identities required")
+        for cwd in sorted(self.directories):
+            project = self.project_for(cwd)
+            if project is None or not cwd.is_dir() or cwd.resolve() != cwd:
                 continue
-            cwd = await directory.cwd(endpoint)
-            project = self.project_for(cwd) if isinstance(cwd, Path) else None
-            if project is None:
-                continue  # No footer/history reads in unregistered projects.
-            if cwd not in pages:
-                pages[cwd] = await self.project_threads(cwd, budget)
-            visible_id = await directory.current_thread_id(endpoint)
-            thread = pages[cwd].get(visible_id)
-            if thread is None:
-                unverified.append({"terminal_id": endpoint.terminal_id, "project_alias": project.alias,
-                                   "reason": "current_thread_id_missing" if visible_id is None else "thread_not_loaded_in_runtime"})
-                continue
-            binding = SessionBinding(endpoint, cwd, self.agent.runtime_identity, thread["id"], thread["sessionId"])
-            try:
-                await verify_binding(binding, directory, self.agent, require_visible=True)
-            except SessionUnbound:
-                unverified.append({"terminal_id": endpoint.terminal_id, "project_alias": project.alias,
-                                   "reason": "identity_changed"})
-                continue
-            title = thread.get("name") or "Codex 会话"
-            if not isinstance(title, str):
-                raise ValueError("Invalid native session title")
-            session = self._describe(binding, title=title)
-            found[session.target.session_id] = session
-        # A desktop /new or /resume does not revoke a previously proven A→thread
-        # association. Retain A only while its original endpoint/native identity
-        # still verifies; loaded rows alone never create new associations.
-        for identity, session in tuple(self.sessions.items()):
-            if identity in found or session.binding.endpoint not in endpoints:
-                continue
-            project = self.project_for(session.binding.project)
-            if project is None or project.alias != session.target.project_alias:
-                continue
-            try:
-                await verify_binding(session.binding, directory, self.agent)
-            except SessionUnbound:
-                continue
-            found[identity] = session
-        if len(found) > self.TOTAL_THREADS:
-            raise DiscoveryUnavailable("已核验会话超过目录容量，不能使用不完整列表派发。")
+            threads = await self.project_threads(cwd, budget)
+            for identity in sorted(loaded.intersection(threads)):
+                thread = threads[identity]
+                if not isinstance(thread.get("sessionId"), str) or not thread["sessionId"]:
+                    raise ValueError("Native session identity required")
+                binding = SessionBinding(None, cwd, generation, identity, thread["sessionId"])
+                try:
+                    await verify_binding(binding, None, self.agent)
+                except SessionUnbound:
+                    unverified.append({"project_alias": project.alias, "reason": "native_identity_changed"})
+                    continue
+                title = thread.get("name") or "Codex 会话"
+                session = self._describe(binding, title=title)
+                found[session.target.session_id] = session
+                for endpoint in endpoints:
+                    old_key = legacy_binding_key(endpoint, binding)
+                    if old_key in aliases and aliases[old_key].binding != binding:
+                        raise ValueError("Conflicting legacy native identity")
+                    aliases[old_key] = session
+        if self.agent.runtime_identity != generation:
+            raise DiscoveryUnavailable("发现期间原生运行时已变化，本次未授予派发资格。")
         # Replace only after the complete discovery succeeded.
         self.sessions = found
+        self.legacy_targets = aliases
         self.unverified = unverified
         needle = keyword.casefold()
         return tuple(sorted((session for session in found.values() if needle in
@@ -173,6 +183,10 @@ class SessionCatalog:
 
     async def require(self, target: Target) -> CatalogSession:
         session = self.sessions.get(target.session_id)
+        if session is None:
+            current = self.legacy_targets.get(target.session_id)
+            if current is not None:
+                session = replace(current, target=replace(current.target, session_id=target.session_id))
         if session is None or session.target != target:
             raise SessionUnbound("所选会话已无法核验或不在有效会话目录中")
         await verify_binding(session.binding, self.directory, self.agent)

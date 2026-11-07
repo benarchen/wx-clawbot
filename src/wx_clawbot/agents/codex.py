@@ -7,7 +7,7 @@ from pathlib import Path
 
 from websockets.asyncio.client import unix_connect
 
-from .rpc import JsonRpc
+from .rpc import JsonRpc, ConnectionLost
 from .base import Capabilities, SubmissionReceipt, thread_is_loaded
 from .. import __version__
 
@@ -19,6 +19,23 @@ class CodexConnection:
                                 interrupt=True, shared_interactions=True)
     def __init__(self, transport):
         self.rpc = JsonRpc(transport)
+
+    @property
+    def runtime_identity(self):
+        try:
+            metadata = self.socket_path.stat()
+            if (stat.S_ISSOCK(metadata.st_mode) and metadata.st_uid == os.getuid()
+                    and not stat.S_IMODE(metadata.st_mode) & 0o077
+                    and (metadata.st_dev, metadata.st_ino) == self._runtime_identity):
+                return self._runtime_identity
+        except OSError:
+            pass
+        self.rpc._fail(ConnectionLost("Native runtime endpoint generation changed"))
+        return None
+
+    def _check_runtime(self):
+        if self.runtime_identity is None:
+            raise ConnectionLost("Native runtime endpoint generation changed")
 
     @classmethod
     async def connect(cls, socket: Path) -> "CodexConnection":
@@ -32,7 +49,8 @@ class CodexConnection:
             max_size=JsonRpc.MAX_MESSAGE, max_queue=2,
         )
         connection = cls(transport)
-        connection.runtime_identity = (metadata.st_dev, metadata.st_ino)
+        connection.socket_path = socket
+        connection._runtime_identity = (metadata.st_dev, metadata.st_ino)
         try:
             result = await connection.rpc.request("initialize", {
                 "clientInfo": {"name": "wx-clawbot", "version": __version__},
@@ -52,6 +70,7 @@ class CodexConnection:
             connection.server_version = server_version
             connection.capabilities = replace(cls.capabilities, image_input=server_version in {"0.165.0", "0.166.0", "0.167.0"})
             connection.server_info = result
+            connection._check_runtime()
             await connection.rpc.notify("initialized", {})
             return connection
         except BaseException:
@@ -59,13 +78,16 @@ class CodexConnection:
             raise
 
     async def inspect(self, thread_id: str) -> dict:
+        self._check_runtime()
         result = await self.rpc.request("thread/read", {"threadId": thread_id, "includeTurns": False})
+        self._check_runtime()
         thread = result.get("thread", {})
         if thread.get("id") != thread_id:
             raise ValueError("Native thread identity mismatch")
         return thread
 
     async def list_project_threads(self, project: Path, *, cursor: str | None = None) -> dict:
+        self._check_runtime()
         project = project.resolve(strict=True)
         if not project.is_dir():
             raise ValueError("Existing project directory required")
@@ -73,6 +95,7 @@ class CodexConnection:
         if cursor is not None:
             params["cursor"] = cursor
         result = await self.rpc.request("thread/list", params)
+        self._check_runtime()
         if not isinstance(result, dict) or not isinstance(result.get("data"), list):
             raise ValueError("Invalid native thread page")
         directories = {}
@@ -89,20 +112,27 @@ class CodexConnection:
     async def is_loaded(self, thread_id: str) -> bool:
         if not isinstance(thread_id, str) or not thread_id:
             raise ValueError("Exact native thread identity required")
-        cursor, seen = None, set()
+        return thread_id in await self.loaded_threads()
+
+    async def loaded_threads(self) -> frozenset[str]:
+        """A bounded complete runtime snapshot, containing opaque identities only."""
+        self._check_runtime()
+        cursor, seen, identities = None, set(), set()
         for _ in range(10):
             params = {"limit": 100}
             if cursor:
                 params["cursor"] = cursor
             result = await self.rpc.request("thread/loaded/list", params)
             rows = result.get("data") if isinstance(result, dict) else None
-            if not isinstance(rows, list) or len(rows) > 100 or any(not isinstance(v, str) or not v for v in rows):
+            if not isinstance(rows, list) or len(rows) > 100 or any(not isinstance(v, str) or not 0 < len(v) <= 256 for v in rows):
                 raise ValueError("Invalid native loaded-thread page")
-            if thread_id in rows:
-                return True
+            if identities.intersection(rows) or len(set(rows)) != len(rows):
+                raise ValueError("Duplicate native loaded-thread identity")
+            identities.update(rows)
             cursor = result.get("nextCursor")
             if cursor is None:
-                return False
+                self._check_runtime()
+                return frozenset(identities)
             if not isinstance(cursor, str) or not cursor or cursor in seen:
                 raise ValueError("Invalid native loaded-thread cursor")
             seen.add(cursor)

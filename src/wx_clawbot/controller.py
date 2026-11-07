@@ -40,6 +40,8 @@ def target_record(session):
     value = asdict(session.target)
     value["cwd"] = str(session.target.cwd)
     value["thread_id"] = session.binding.thread_id
+    value["runtime_identity"] = list(session.binding.runtime_identity)
+    value["native_session_id"] = session.binding.native_session_id
     return value
 
 
@@ -54,6 +56,7 @@ class Controller:
         self.changes = asyncio.Lock()
         self.launch_timeout = launch_timeout
         self.last_managed = {}
+        self.unrestored_selection = None
         self.host = host
         self.selection_timeout = 25
         self.recovering = False
@@ -88,13 +91,6 @@ class Controller:
         if command.name in {"message", "send"}:
             if self.selection_pending:
                 raise RouteError("会话选择尚在处理中，请等待明确回执后再发送任务。")
-            if self.host is not None and self.host.state != "ready":
-                raise RouteError(str(HostUnavailable(self.host.phase)))
-            if self.host is not None:
-                try:
-                    self.host.connection
-                except HostUnavailable as exc:
-                    raise RouteError(str(exc)) from None
             if not self.native_ready:
                 raise RouteError("原生运行时尚未就绪，任务未接收；请查询 /status。")
             dispatch = self.routes.freeze(command.text, target=target, has_images=has_images)
@@ -158,8 +154,8 @@ class Controller:
                 host_deadline = asyncio.get_running_loop().time() + self.selection_timeout
                 async with asyncio.timeout(budget):
                     if self.host is not None and name in {"sessions", "cd", "new"}:
-                        await self.reply(message, "已接收会话操作，正在连接宿主并核验；尚未就绪。", suffix="-processing")
-                    if self.host is not None and name in {"sessions", "cd", "new"}:
+                        await self.reply(message, "已接收会话操作，正在核验；尚未就绪。", suffix="-processing")
+                    if self.host is not None and not self.native_ready and name in {"sessions", "cd", "new"}:
                         async with asyncio.timeout_at(host_deadline):
                             await self.host.ensure(launch=True, explicit=True)
                     if self.before_change is not None:
@@ -210,7 +206,12 @@ class Controller:
                                     self.recovery_requested.set()
                             raise
                         self.routes = candidate
-                        if self.host is not None and name in {"sessions", "cd", "new"}:
+                    if self.host is not None and name in {"sessions", "cd", "new"}:
+                        try:
+                            self.host.connection
+                        except HostUnavailable:
+                            pass
+                        else:
                             self.host.verified(self.host.generation)
             # A successful cancellation already commits its sole reply with the task terminal state.
             if text is not None:
@@ -229,7 +230,7 @@ class Controller:
             await self.reply(message, "会话操作超时，尚未确认就绪；请核对宿主后刷新，不要重发未知任务。", priority=0)
         except SessionUnbound:
             await self.reply(message,
-                "所选会话无法可靠接入，原终端、进程或原生身份可能已变化；本条操作未确认完成，"
+                "所选会话无法可靠接入，原生连接、对话身份或加载状态可能已变化；本条操作未确认完成，"
                 "不会自动切换到桌面其他会话或重发任务。请用 /status 核对任务，再用 /sessions 明确选择。", priority=0)
         except LaunchPending:
             await self.reply(message, "会话身份或启动就绪尚未确认，请检查终端后用 /sessions 刷新；不会重复创建或执行。", priority=0)
@@ -299,6 +300,8 @@ class Controller:
             return await self._refresh_contents(keyword)
 
     async def _refresh_contents(self, keyword=""):
+        if self.routes.cwd is not None:
+            self.catalog.include_directory(self.routes.cwd)
         registry = self.starter.registry
         for filename in registry.root.glob("*.json"):
             if filename.name.endswith(".boot.json"):
@@ -311,7 +314,7 @@ class Controller:
             if record["phase"] in {"starting", "handshaking", "unknown", "ready"}:
                 try:
                     binding = await reconcile_launch(registry, filename.stem, self.catalog.directory, self.catalog.agent)
-                except (SessionUnbound, LaunchPending):
+                except (SessionUnbound, LaunchPending, HostUnavailable):
                     continue
                 self.catalog.managed_threads.add(binding.thread_id)
                 self.catalog.remember_verified(binding, managed=True, title=record.get("title") or "Codex 会话")
@@ -325,10 +328,11 @@ class Controller:
             if session is None or session.target != target:
                 raise RouteCommitFailed("Durable selection has no verified identity record")
             return target_record(session)
-        return {"version": 1, "revision": routes.revision, "mode": routes.mode,
+        return {"version": 2, "revision": routes.revision, "mode": routes.mode,
                 "project": routes.project.alias if routes.project else None,
                 "cwd": str(routes.cwd) if routes.cwd else None,
                 "target": encode(routes.target), "observer": encode(routes.observer),
+                "unrestored_selection": self.unrestored_selection,
                 "last_managed": [encode(t) for t in self.last_managed.values()
                                  if t.session_id in self.catalog.sessions][-100:]}
 
@@ -348,8 +352,22 @@ class Controller:
         snapshot = await self.state.load_routes()
         if snapshot is None:
             return
-        if snapshot.get("version") != 1 or type(snapshot.get("revision")) is not int or snapshot["revision"] < 0:
+        if (type(snapshot.get("version")) is not int or snapshot["version"] not in {1, 2}
+                or type(snapshot.get("revision")) is not int or snapshot["revision"] < 0):
             raise RouteCommitFailed("Invalid durable route version or revision")
+        prior = snapshot.get("unrestored_selection")
+        if prior is not None and (not isinstance(prior, dict) or set(prior) != {"version", "target", "observer"}):
+            raise RouteCommitFailed("Invalid unrestored selection record")
+        self.unrestored_selection = prior
+        history = snapshot.get("last_managed", [])
+        if not isinstance(history, list) or len(history) > 100:
+            raise RouteCommitFailed("Invalid managed route history")
+        for record in [snapshot.get("target"), snapshot.get("observer"), *history]:
+            if isinstance(record, dict) and isinstance(record.get("cwd"), str):
+                try:
+                    self.catalog.include_directory(Path(record["cwd"]))
+                except (ValueError, OSError):
+                    pass
         await self._refresh()
         routes = Routes(tuple(self.routes.projects.values()))
         routes.revision = snapshot["revision"] + 1
@@ -361,8 +379,20 @@ class Controller:
                 return None
             if not isinstance(record, dict):
                 raise RouteCommitFailed("Invalid durable route target")
+            if snapshot["version"] == 2 and (not isinstance(record.get("runtime_identity"), list)
+                    or len(record["runtime_identity"]) != 2
+                    or any(type(v) is not int or v <= 0 for v in record["runtime_identity"])):
+                stale = True
+                return None
             session = self.catalog.sessions.get(record.get("session_id"))
-            if session is None or target_record(session) != record:
+            if session is None and snapshot["version"] == 1:
+                session = self.catalog.legacy_targets.get(record.get("session_id"))
+            expected = target_record(session) if session is not None else None
+            if expected is not None and snapshot["version"] == 1:
+                expected.pop("runtime_identity")
+                expected.pop("native_session_id")
+                expected["session_id"] = record.get("session_id")
+            if session is None or expected != record:
                 stale = True
                 return None
             try:
@@ -383,9 +413,15 @@ class Controller:
                 stale = True
         target = await verified(snapshot.get("target"))
         observer = await verified(snapshot.get("observer"))
+        if (snapshot.get("target") is not None and target is None
+                or snapshot.get("observer") is not None and observer is None):
+            # Diagnostic evidence only; never considered a routing candidate.
+            self.unrestored_selection = {key: snapshot.get(key) for key in ("version", "target", "observer")}
         mode = snapshot.get("mode")
-        if mode not in {"focused", "managed", "unbound"} or (mode == "managed" and target and target.origin != "managed"):
+        if mode not in {"focused", "managed", "unbound"}:
             raise RouteCommitFailed("Invalid durable route mode")
+        if mode == "managed" and target and target.origin != "managed":
+            target, stale = None, True
         if target and mode != "unbound":
             await self.subscriptions.acquire(target, "route")
             routes.target, routes.mode = target, mode
@@ -393,9 +429,6 @@ class Controller:
         if observer:
             await self.subscriptions.acquire(observer, "observer")
             routes.observer = observer
-        history = snapshot.get("last_managed", [])
-        if not isinstance(history, list) or len(history) > 100:
-            raise RouteCommitFailed("Invalid managed route history")
         for record in history:
             target = await verified(record)
             if target and target.origin == "managed":
@@ -443,11 +476,12 @@ class Controller:
             if previous:
                 await self.subscriptions.release(previous, "route")
             snapshot = routes.snapshot(tuple(s.target for s in sessions))
-            rows = [f"{i}．{s.target.project_alias}｜{s.title}｜{'受管会话' if s.target.origin == 'managed' else '原终端'}\n会话：{s.target.session_id}\n目录：{s.target.cwd}"
+            rows = [f"{i}．{s.target.project_alias}｜{s.title}｜{'受管会话' if s.target.origin == 'managed' else '既有原生会话'}\n会话：{s.target.session_id}\n目录：{s.target.cwd}"
                     for i, s in enumerate(sessions, 1)]
             missing = len(self.catalog.unverified)
             return ("会话列表（10 分钟有效；已退出输入聚焦）：\n" + ("\n".join(rows) or "暂无已核验会话。")
-                    + (f"\n另有 {missing} 个终端无法建立新的会话身份关联；已核验目标仍独立复验。" if missing else "")
+                    + (f"\n另有 {missing} 个会话未通过准确原生身份核验。" if missing else "")
+                    + f"\n{self.catalog.scope_note}"
                     + f"\n列表：{snapshot.list_id}")
         if name == "focus":
             await self._set_focus(target, revision, routes)
@@ -481,6 +515,7 @@ class Controller:
             return "已取消观察订阅；执行目标及已接收任务保留。"
         if name in {"cd", "new"}:
             project, cwd = destination
+            self.catalog.include_directory(cwd)
             if not self.native_ready:
                 raise RouteError("iTerm2 已连接，但原生运行时尚未就绪；没有创建 Codex 会话，请查询 /status。")
             if name == "cd":
@@ -499,6 +534,9 @@ class Controller:
                 if matches:
                     raise RouteError("该目录有多个受管会话，请用 /sessions 和 /focus 明确选择。")
             # Stable source native ID maps one launch request to at most one visible terminal.
+            if self.host is not None:
+                async with asyncio.timeout_at(host_deadline):
+                    await self.host.ensure(launch=True, explicit=True)
             launch_id = hashlib.sha256((self.state.credentials.bot_id + "\0" + message_id).encode()).hexdigest()[:32]
             await self.state.queue_reply(launch_id + "-starting",
                 f"已接收可见启动请求：{project.alias}。正在核验启动，尚未就绪。", priority=2)

@@ -27,11 +27,10 @@ class BindingTests(unittest.IsolatedAsyncioTestCase):
     async def test_current_pairing_is_valid(self):
         self.assertEqual(await verify_binding(self.binding, self.directory, self.agent), self.thread)
 
-    async def test_stale_terminal_stops_before_native_lookup(self):
+    async def test_closed_terminal_does_not_revoke_loaded_native_binding(self):
         self.directory.validate.return_value = False
-        with self.assertRaises(SessionUnbound):
-            await verify_binding(self.binding, self.directory, self.agent)
-        self.agent.inspect.assert_not_called()
+        self.assertEqual(await verify_binding(self.binding, self.directory, self.agent), self.thread)
+        self.directory.validate.assert_not_called()
 
     async def test_runtime_session_and_project_changes_are_rejected(self):
         for runtime, session, cwd, state in [((2, 3), "fixture-session", str(self.project), "idle"),
@@ -52,20 +51,23 @@ class BindingTests(unittest.IsolatedAsyncioTestCase):
         self.directory.current_thread_id.return_value = None
         self.assertEqual(await verify_binding(self.binding, self.directory, self.agent), self.thread)
 
-    async def test_initial_binding_still_requires_matching_displayed_identity(self):
-        for displayed in (None, "new-desktop-thread"):
-            self.directory.current_thread_id.return_value = displayed
-            with self.subTest(displayed=displayed), self.assertRaises(SessionUnbound):
-                await verify_binding(self.binding, self.directory, self.agent, require_visible=True)
-        self.agent.inspect.assert_not_called()
+    async def test_initial_native_binding_needs_no_fabricated_host_or_screen_identity(self):
+        from dataclasses import replace
+        binding = replace(self.binding, endpoint=None)
+        self.directory.current_thread_id.side_effect = AssertionError("No screen identity allowed")
+        self.directory.validate.side_effect = AssertionError("No fabricated endpoint allowed")
+        self.assertEqual(await verify_binding(binding, self.directory, self.agent), self.thread)
 
     async def test_native_response_for_another_thread_is_rejected(self):
         self.thread["id"] = "another-thread"
         with self.assertRaises(SessionUnbound):
             await verify_binding(self.binding, self.directory, self.agent)
 
-    async def test_process_exit_during_native_check_is_rejected(self):
-        self.directory.validate.side_effect = [True, False]
+    async def test_runtime_change_during_native_check_is_rejected(self):
+        async def changed(_):
+            self.agent.runtime_identity = (2, 3)
+            return self.thread
+        self.agent.inspect.side_effect = changed
         with self.assertRaises(SessionUnbound):
             await verify_binding(self.binding, self.directory, self.agent)
 

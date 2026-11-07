@@ -122,7 +122,7 @@ Capabilities 至少区分 observe、submit、queue、interrupt、shared_interact
 
 ## 4. 会话身份与启动握手
 
-已有会话映射需要形成 terminal_id、进程身份、runtime、thread_id 四者的证据链。窗口名、cwd、会话预览只能辅助展示。无法唯一确定时返回候选让用户选择，不能把选目录当成映射成功。
+TGT02 的既有对话接入以准确 runtime、thread_id、native session、注册 cwd、加载与订阅确认形成原生证据链，不要求 terminal_id 或进程证明当前显示。窗口名、cwd、标题与预览只能辅助展示，不能据此猜 thread。可见新建另需自有 boot 进程回执与唯一完成握手；宿主来源可选且不得伪造。具体兼容及发现范围见[原生身份契约](native-session-identity.md)，实际交付状态见 ROADMAP。
 
 新会话启动先持久化 launch_id，再调用 iTerm2。启动命令只包含可信解释器、固定启动入口和随机 launch_id；目标目录及选项由私有启动登记读取。使用 exec 的 argv 传入 Codex 参数，用户文本不进入 Shell 命令。iTerm2 的字符串 command 如必需，逐参数进行 Shell 引用，路径中的空格、引号和替换符必须测试。
 

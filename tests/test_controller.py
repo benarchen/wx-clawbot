@@ -38,13 +38,15 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
             projects.append(Project(alias, cwd))
             target = Target("session-" + alias, alias, cwd, "managed")
             self.sessions.append(SimpleNamespace(target=target, title=alias,
-                                  binding=SimpleNamespace(thread_id="thread-" + alias)))
-        self.agent = SimpleNamespace(capabilities=Capabilities(observe=True, queue=True, interrupt=True, shared_interactions=True),
+                                  binding=SimpleNamespace(thread_id="thread-" + alias, runtime_identity=(1, 2),
+                                                          native_session_id="native-" + alias)))
+        self.agent = SimpleNamespace(runtime_identity=(1, 2), capabilities=Capabilities(observe=True, queue=True, interrupt=True, shared_interactions=True),
                                      observe_loaded=AsyncMock(), unsubscribe=AsyncMock(),
                                      inspect=AsyncMock(return_value={"status": {"type": "idle"}}),
                                      rpc=SimpleNamespace(request=AsyncMock(), respond=AsyncMock()))
         self.catalog = SimpleNamespace(agent=self.agent, sessions={s.target.session_id: s for s in self.sessions},
                                        managed_threads=set(), unverified=[], directory=None, remember_verified=Mock(),
+                                       include_directory=Mock(), legacy_targets={}, scope_note="注册根与已知目录。",
                                        discover=AsyncMock(return_value=tuple(self.sessions)))
         async def require(target):
             return self.catalog.sessions[target.session_id]
@@ -161,7 +163,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.gather(work, retire)
         self.assertEqual((await self.state.load_routes())["target"]["session_id"], self.sessions[0].target.session_id)
 
-    async def test_host_generation_change_before_queue_add_prevents_submission(self):
+    async def test_native_generation_change_before_queue_add_prevents_submission(self):
         await self.select()
         host = SimpleNamespace(state="ready", phase="ready", generation=1, connection=object())
         self.controller.host = host
@@ -169,7 +171,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         async def changed(task_id, state, **kwargs):
             result = await update(task_id, state, **kwargs)
             if state == "dispatching":
-                host.generation += 1
+                self.controller.native_generation += 1
             return result
         with patch.object(self.state, "task_update", side_effect=changed):
             await self.command("never submit on stale proof")
@@ -461,7 +463,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
     async def test_cd_reuses_explicitly_focused_managed_session_among_multiple_candidates(self):
         original = self.sessions[0]
         extra_target = Target("session-one-extra", "one", original.target.cwd, "managed")
-        extra = SimpleNamespace(target=extra_target, title="extra", binding=SimpleNamespace(thread_id="thread-extra"))
+        extra = SimpleNamespace(target=extra_target, title="extra", binding=SimpleNamespace(thread_id="thread-extra", runtime_identity=(1, 2), native_session_id="native-extra"))
         self.catalog.sessions[extra_target.session_id] = extra
         self.catalog.discover.return_value = (*self.sessions, extra)
         await self.command("/sessions")
@@ -773,6 +775,8 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
             return self.catalog.sessions[current.session_id]
         self.catalog.require.side_effect = require
         self.agent.observe_loaded.reset_mock()
+        self.agent.inspect.return_value = {"id": task["thread_id"], "cwd": str(target.cwd),
+                                           "sessionId": "native-current", "status": {"type": "idle"}}
         return task
 
     async def test_changed_session_id_reconciles_exact_external_terminal_without_route_or_replay(self):
@@ -789,7 +793,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.agent.rpc.respond.assert_not_awaited()
         self.agent.observe_loaded.assert_not_awaited()
 
-    async def test_changed_session_reconciliation_requires_unique_terminal_client_and_verified_binding(self):
+    async def test_changed_session_reconciliation_requires_unique_client_and_exact_native_history(self):
         task = await self.changed_identity_external_task()
         valid = {"id": "desktop-turn", "status": "interrupted", "items": [
             {"type": "userMessage", "clientId": "desktop-native-client"}]}
@@ -806,6 +810,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
                 await self.engine.reconcile()
                 self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
         self.catalog.require.side_effect = SessionUnbound("Original binding cannot be verified")
+        self.agent.inspect.return_value["cwd"] = "/unrelated-project"
         self.agent.rpc.request.reset_mock()
         await self.engine.reconcile()
         self.agent.rpc.request.assert_not_awaited()
@@ -825,6 +830,8 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
                 raise SessionUnbound("Old runtime identity")
             return self.catalog.sessions[target.session_id]
         self.catalog.require.side_effect = require
+        self.agent.inspect.return_value = {"id": task["thread_id"], "cwd": str(target.cwd),
+                                           "sessionId": "native-current", "status": {"type": "idle"}}
         self.agent.rpc.request.return_value = {"data": [{"id": "original-turn", "status": "completed", "items": [
             {"type": "userMessage", "clientId": task["client_id"]},
             {"type": "agentMessage", "text": "original result"}]}], "nextCursor": None}
@@ -834,20 +841,22 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["target"], task["target"])
         self.assertEqual(self.queue.add.await_count, 1)
 
-    async def test_changed_session_reconciliation_never_guesses_thread_project_or_directory(self):
+    async def test_historical_reconciliation_never_guesses_native_thread_directory_or_client(self):
         task = await self.changed_identity_external_task()
-        original = next(iter(self.catalog.sessions.values()))
-        variants = [SimpleNamespace(target=original.target, binding=SimpleNamespace(thread_id="other-thread")),
-                    SimpleNamespace(target=Target("other", "one", original.target.cwd), binding=original.binding),
-                    SimpleNamespace(target=Target("other", "two", self.root / "one"), binding=original.binding)]
-        for session in variants:
-            with self.subTest(session=session):
-                self.catalog.sessions = {session.target.session_id: session}
-                await self.engine.reconcile()
-        duplicate = SimpleNamespace(target=Target("duplicate", "two", original.target.cwd), binding=original.binding)
-        self.catalog.sessions = {s.target.session_id: s for s in (original, duplicate)}
-        await self.engine.reconcile()
+        valid = dict(self.agent.inspect.return_value)
+        self.catalog.sessions = {}
+        variants = [{**valid, "id": "other-thread"}, {**valid, "cwd": str(self.root / "unrelated")},
+                    {**valid, "sessionId": None}]
+        self.agent.rpc.request.reset_mock()
+        for metadata in variants:
+            with self.subTest(metadata=metadata):
+                self.agent.inspect.return_value = metadata
+                await self.engine.reconcile_results()
         self.agent.rpc.request.assert_not_awaited()
+        self.agent.inspect.return_value = valid
+        self.agent.rpc.request.return_value = {"data": [{"id": "desktop-turn", "status": "completed",
+            "items": [{"type": "userMessage", "clientId": "different-client"}]}], "nextCursor": None}
+        await self.engine.reconcile()
         self.queue.add.assert_not_awaited()
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
 
@@ -862,7 +871,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         await self.select()
         original = self.sessions[1]
         other = Target("second-terminal-same-project", "two", original.target.cwd, "managed")
-        session = SimpleNamespace(target=other, title="other", binding=SimpleNamespace(thread_id="thread-other"))
+        session = SimpleNamespace(target=other, title="other", binding=SimpleNamespace(thread_id="thread-other", runtime_identity=(1, 2), native_session_id="native-other"))
         self.catalog.sessions[other.session_id] = session
         await self.command("first holds repository")
         # Select a verified second terminal in the same project, while first remains queued.
@@ -904,7 +913,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         await self.select()
         original = self.sessions[1]
         other = Target("desktop-same-project", "two", original.target.cwd, "original")
-        self.catalog.sessions[other.session_id] = SimpleNamespace(target=other, binding=SimpleNamespace(thread_id="desktop-thread"))
+        self.catalog.sessions[other.session_id] = SimpleNamespace(target=other, binding=SimpleNamespace(thread_id="desktop-thread", runtime_identity=(1, 2), native_session_id="native-desktop"))
         self.agent.inspect.return_value = {"status": {"type": "active"}}
         await self.command("wait for desktop")
         self.assertEqual((await self.state.tasks())[0]["state"], "received")
@@ -1090,7 +1099,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
     async def test_newly_visible_desktop_session_is_discovered_before_repository_admission(self):
         await self.select()
         other = Target("new-desktop-terminal", "two", self.sessions[1].target.cwd, "original")
-        session = SimpleNamespace(target=other, binding=SimpleNamespace(thread_id="new-desktop-thread"))
+        session = SimpleNamespace(target=other, binding=SimpleNamespace(thread_id="new-desktop-thread", runtime_identity=(1, 2), native_session_id="native-new-desktop"))
         async def refresh(*_):
             self.catalog.sessions[other.session_id] = session
             return tuple(self.catalog.sessions.values())
