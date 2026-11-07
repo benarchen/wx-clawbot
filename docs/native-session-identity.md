@@ -1,6 +1,6 @@
 # 原生会话身份与宿主来源
 
-TGT02 候选已完成双路径真实原生接入、切换、恢复与关闭／卸载验收，冻结检查状态见[交付记录](validation/native-session-no-footer.md)。本文件描述候选行为，不表示日常已部署；正式 0.1.7 的历史边界见[TGT01](validation/wechat-independent-target.md)，唯一进度源为 [ROADMAP](../ROADMAP.md)。
+TGT02 已完成双路径真实原生接入、切换、恢复与关闭／卸载验收，并随 0.1.8 发布部署，本文件描述该版本行为。[功能证据](validation/native-session-no-footer.md)、[发布切换](validation/native-session-release.md)分别记录工程与上线结果；旧 0.1.7 的边界见[TGT01](validation/wechat-independent-target.md)，唯一进度源为 [ROADMAP](../ROADMAP.md)。
 
 ## 选择与证据
 

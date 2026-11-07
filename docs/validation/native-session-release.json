@@ -1,10 +1,10 @@
 {
   "version": "0.1.8",
   "schema": 6,
-  "status": "prepublication_verified",
+  "status": "published_and_deployed",
   "repository": "https://github.com/benarchen/wx-clawbot",
-  "git_published": false,
-  "deployed": false,
+  "git_published": true,
+  "deployed": true,
   "global_statusline_modified": false,
   "test_wechat_sends": 0,
   "source_sha256": "c3cca6c23cd07ebd9e9716c57f0c02e4de959f52ade6732f2bf7101045421da1",
@@ -23,10 +23,10 @@
     "private_values_compared": 2875,
     "private_matches": 0,
     "reachable_objects": {
-      "tree": 382,
-      "blob": 869,
-      "commit": 55,
-      "tag": 6
+      "blob": 907,
+      "tree": 392,
+      "commit": 56,
+      "tag": 7
     },
     "archives": [
       {
@@ -44,9 +44,62 @@
     ],
     "validated_fix_files_unchanged": true,
     "production_configuration_preserved": true,
-    "deployment_phase": false,
-    "production_version": "0.1.7",
+    "deployment_phase": true,
+    "production_version": "0.1.8",
     "production_schema": 6,
     "host_native_ready": true
+  },
+  "verified_at_beijing": "2026-11-07 17:37",
+  "functional_commit": "f2de0efe69122fbf9c6e45b880d3603a1529080b",
+  "tag": "v0.1.8",
+  "tag_points_to_functional_commit": true,
+  "remote_functional_proof": {
+    "status": "passed",
+    "refs": {
+      "refs/heads/dev": "f2de0efe69122fbf9c6e45b880d3603a1529080b",
+      "refs/heads/main": "f2de0efe69122fbf9c6e45b880d3603a1529080b",
+      "refs/tags/v0.1.8": "e9cad67947f747ba1f304d3ebc38546e3e83b454",
+      "refs/tags/v0.1.8^{}": "f2de0efe69122fbf9c6e45b880d3603a1529080b"
+    },
+    "default_branch": "main",
+    "visibility": "public"
+  },
+  "deployment": {
+    "status": "passed",
+    "version": "0.1.8",
+    "schema": 6,
+    "source_sha256": "c3cca6c23cd07ebd9e9716c57f0c02e4de959f52ade6732f2bf7101045421da1",
+    "wheel_sha256": "d43d12b76439135afee7ba959c20101ff5a2cd3648e9b254bb0d34ebfda07842",
+    "normal_stop": true,
+    "normal_old_exit_code": 0,
+    "downtime_seconds": 17.423,
+    "single_verified_consumer": true,
+    "actual_argv_and_cwd_verified": true,
+    "host_ready": true,
+    "native_ready": true,
+    "manifest_and_managed_source_match": true,
+    "changed_plist_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "configuration_credentials_global_config_preserved": true,
+    "original_native_processes_preserved": true,
+    "identical_business_tables_except_route_revision": 10,
+    "route_roles_and_target_preserved": true,
+    "route_snapshot_upgraded": true,
+    "route_native_identity_verified": true,
+    "route_snapshot_version": 2,
+    "original_route_choices_restored": 0,
+    "route_recovery_notifications": 0,
+    "old_outbox_rows_preserved": 587,
+    "no_route_redirection": true,
+    "frozen_outbox_rows": 587,
+    "unknown_results_preserved": 2,
+    "backup_integrity_and_foreign_keys": "passed",
+    "new_process_start_events": 1,
+    "schema_migration": false,
+    "database_restore": false,
+    "test_wechat_sends": 0,
+    "native_submissions": 0
   }
 }

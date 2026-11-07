@@ -1,6 +1,6 @@
 # TGT02：无状态栏 ID 的原生会话接入验证
 
-状态：G00 至 G09、T01 至 T32 适用范围及 A01 至 A12 已验收通过，候选交付完成。源码候选暂沿用 0.1.7／schema 6，尚未发布或部署；日常仍运行原独立 0.1.7，首次发现仍需 ID。范围见[施工清单](../../goals/20261107-1453-native-session-no-footer.md)，行为见[身份契约](../native-session-identity.md)，[机器摘要](native-session-no-footer.json)仅保存可公开结果。
+状态：G00 至 G09、T01 至 T32 适用范围及 A01 至 A12 已验收通过，工程候选交付完成。工程验收时沿用 0.1.7／schema 6 且未部署；本人后续授权的 0.1.8 已发布并完成本机切换，日常不再要求显示 ID，见[发布记录](native-session-release.md)。本页保留工程阶段证据，范围见[施工清单](../../goals/20261107-1453-native-session-no-footer.md)，行为见[身份契约](../native-session-identity.md)，[机器摘要](native-session-no-footer.json)仅保存可公开结果。
 
 ## 协议基线
 
@@ -87,4 +87,4 @@ Python 3.14.5 的独立非 editable 安装、release manifest 验证及全部包
 
 ## 交付与限制
 
-候选代码、最小脱敏协议样本（test_native_identity／test_visible_launch 内联 fixture）、[显式探针](../../tests/integration/native_session_no_footer.py)、[完整验收器](../../tests/integration/native_session_no_footer_flow.py)、身份／兼容说明和[后续切换操作卡](../operations.md#tgt02无状态栏-id-候选与切换)均可审查。D01 至 D07 及逐项验收结论见施工清单。私有记录位于 `.tmp/native-session-no-footer/`，不进入 Git；未执行提交、标签、推送或部署，日常 ID 目前应继续保留。
+候选代码、最小脱敏协议样本（test_native_identity／test_visible_launch 内联 fixture）、[显式探针](../../tests/integration/native_session_no_footer.py)、[完整验收器](../../tests/integration/native_session_no_footer_flow.py)、身份／兼容说明和[切换操作卡](../operations.md#tgt02无状态栏-id-候选与切换)均可审查。D01 至 D07 及逐项验收结论见施工清单。私有记录位于 `.tmp/native-session-no-footer/`，不进入 Git；工程阶段未发布／部署，后续 0.1.8 的实际结果单独记录，不改写原冻结候选身份。

@@ -2,7 +2,7 @@
 
 ## TGT02：无状态栏 ID 候选与切换
 
-TGT02 已完成真实原生候选验收，尚未发布或部署。日常仍运行原 `0.1.7`；候选也暂沿用该版本字段，必须用源码／wheel SHA-256 区分。[验收记录](validation/native-session-no-footer.md)、[身份与旧记录兼容](native-session-identity.md)为本轮依据，早期要求读页脚的记录保留为历史。
+TGT02 已完成真实原生验收，随后随 0.1.8 发布部署。当前日常独立非 editable 0.1.8／schema 6 已核对实际 argv／cwd／manifest 和父子来源，首次接入无需状态栏或标题 ID；[发布切换](validation/native-session-release.md)、[功能验收](validation/native-session-no-footer.md)、[身份与旧记录兼容](native-session-identity.md)分别记录证据。早期要求读页脚的旧版本记录保留为历史。
 
 候选从后台列出注册根与已知准确 cwd 内的已加载原生对话，不宣称正在某个窗口显示；无需状态栏或标题 ID。子目录不递归扫描，可先用 `/cd <已注册范围内的绝对目录>` 登记准确 cwd，再刷新 `/sessions`；注意 `/cd` 无受管匹配时按原契约可见新建。原生已加载且准确核验时，宿主不可用不阻塞已有对话派发；可见新建仍依赖 iTerm2。列表不完整、目标卸载或身份变化会明确拒绝，不重新开启 ID 排障，不从存档加载替代对象。
 
@@ -15,9 +15,9 @@ TGT02 已完成真实原生候选验收，尚未发布或部署。日常仍运�
 
 验收器用单进程 `--remote` 锁定既有 daemon，`-c tui.status_line=...` 从启动前隐藏 ID；读屏仅作隐藏／原生菜单断言，路由读取屏幕身份入口会主动报错。最多一个自有窗口、两个标签，使用合成 Inbox／Outbox 与隔离 SQLite。失败不重复 probe／flow；先只读核对准确意图和原生终态。若仅卡在退订后的延迟卸载，原工作均已 completed 且 phase 为 desktop_switch_verified，可用相同 flow 命令加 `--finish`；它只做卸载拒绝与自有空闲清理，不重放业务。仍未卸载则停止等待，不强制结束原生对象。
 
-未来发布和本机切换按以下顺序执行，本次未执行：
+后续发布和切换沿用以下操作卡，本次 0.1.8 已按相同顺序完成：
 
-1. 明确发布版本，更新包版本与受影响文档后重新冻结 wheel／lock／manifest，必要检查通过。当前候选保存在项目私有 `.tmp/native-session-no-footer/artifacts/`，摘要见验收记录；不能把同名 `0.1.7` 当成已发布新版，也不能原地覆盖旧 release。
+1. 明确发布版本，更新包版本与受影响文档后重新冻结 wheel／lock／manifest，必要检查通过。本次 0.1.8 制品保存在私有 `.tmp/native-session-release-20261107/artifacts/`，原工程候选另存 `.tmp/native-session-no-footer/artifacts/`；以摘要区分，不原地覆盖旧 release。
 2. 对准确发布／部署对象取得本人授权；按 ENG01 从同一冻结 wheel 安装到新独立目录，先验证非 editable、父子解释器及 manifest，不用开发路径补包。
 3. 正常停止本项目原消费者，核对退出和发送状态，保存私有一致性账本备份、旧运行参数、manifest、任务／unknown／冻结 Outbox 摘要及全局配置摘要。schema 仍为 6，无迁移；不得覆盖备份清空原数据。
 4. 仅修改本项目托管入口至新解释器与 manifest，启动一次。核对唯一消费者、实际 argv／cwd、父子来源、包摘要、native ready 和准确路由；旧 v1 不能复验时保留诊断并提示重新选择，不按标题自动选 A 或 B。核对旧任务及 unknown 未重放、冻结回执未改写。
