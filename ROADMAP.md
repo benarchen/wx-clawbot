@@ -4,9 +4,7 @@
 
 ## 当前阶段
 
-本人已要求将 TGT01 提交、合并 main、打 tag、推送 GitHub 并切换本机运行版本；0.1.7／schema 6 独立制品 723 项／40.526 秒、57 文件 manifest、父子渲染及公开内容检查通过，预装与空闲／托管差异核对通过。即将正常提交并发布 v0.1.7，生产仍 0.1.6，尚未停服或切换。[发布记录](docs/validation/wechat-independent-release.md)。
-
-TGT01 微信独立选择候选已验收：桌面焦点或同一终端切换 thread 不自动改变微信目标，原目标不可可靠接入时提示，不替换／复制／重放。723 项／40.393 秒及必要检查通过；0.167.0 真实同进程 A→B 后准确 A 上下文续接、显式 B 派发、关闭终端拒绝及配置保护通过，自有端点已清理。首次发现仍依赖准确页脚，未提交或部署。[施工清单](goals/20261107-1027-wechat-independent-target.md)、[交付证据](docs/validation/wechat-independent-target.md)。
+TGT01 微信独立选择已随 0.1.7 发布部署：26 文件功能提交 `219912c`、main 快进合并、annotated v0.1.7、双分支／标签原子推送及独立远端核验通过。同一冻结非 editable 制品已本机加载，723 项／40.526 秒与必要检查、实际 argv／cwd／manifest／父子来源／唯一消费者、host／0.167.0 native ready 均通过；正常退出 0、13 表备份，原路由、587 旧回执、两条 unknown 及配置保持，请求停止至验收 7.692 秒。桌面切换不改微信目标；准确 A 续接、显式 B 与失效提示真实通过，首次发现仍依赖准确页脚。实际结果文档另行正常同步，不移动标签。[施工清单](goals/20261107-1027-wechat-independent-target.md)、[功能证据](docs/validation/wechat-independent-target.md)、[发布记录](docs/validation/wechat-independent-release.md)。
 
 0.1.6 兼容版发布／部署已完成：15 文件功能提交 bcc3c40、main 快进合并与双分支原子推送、独立远端核验通过；随后本机已加载同一独立非 editable 制品，host／0.167.0 native ready。712 项／40.498 秒及实际加载／旧数据保护通过；旧 584 回执／两条 unknown 保持，旧失效选择清除且唯一自然恢复通知 API accepted。stopped 至首次 ready 1.748 秒，请求停止至最终验收 69.574 秒。[交付记录](docs/validation/codex-0167-release.md)。
 
@@ -63,7 +61,7 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 
 ## 待办事项
 
-- 首次发现的线程 ID 显示依赖仍保留：本人已确认微信独立选择并完成 TGT01 候选，后续准确绑定不再要求桌面显示同一 thread；未知原终端的首次关联仍需可信来源。本次不移到标题、不修改原生 CLI 或全局配置，不把后台 loaded 列表当作首次关联证明。[调研与已确认决策](docs/validation/thread-identity-alternatives.md)。
+- 首次发现的线程 ID 显示依赖仍保留：微信独立选择已随 0.1.7 发布部署，后续准确绑定不再要求桌面显示同一 thread；未知原终端的首次关联仍需可信来源。本次不移到标题、不修改原生 CLI 或全局配置，不把后台 loaded 列表当作首次关联证明。[调研与已确认决策](docs/validation/thread-identity-alternatives.md)。
 
 - 0.167.0 后续验收：核心兼容已随 0.1.6 提交、main 合并、推送并部署，712 项及真实冷启动／运行保护通过。新版异步问题动态验收与图片手机整链路仍未完成，保持各自门禁与范围，不把核心通过扩写为全部功能通过。[记录](docs/validation/codex-0167-release.md)。
 
@@ -81,6 +79,8 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - IMG01 后续：同消息图文。本人于 2026-10-29 明确后置，不阻塞本次单图交付；当前客户端把一起发送的图片和文字拆为两条，只有解析覆盖，尚无单条图文真机证据。后续先确认可实际发送的客户端／协议形态，再验证一条原始消息对应一次带图文提交；不得用合成 inbox 或跨消息自动拼接冒充通过。[原 A03 要求](goals/20261028-1135-image-input.md)。
 
 ## 最近完成
+
+- 2026-11-07 11:12 TGT01 的 0.1.7 发布部署完成：提交 `219912c`、main 快进、annotated v0.1.7 及双分支／标签原子推送、独立远端核验通过；同一冻结制品实际加载、单消费者及 host／native ready，原路由／587 旧回执／两条 unknown／配置保护通过，正常退出与 13 表备份完成，7.692 秒请求停止至验收。[发布交付](docs/validation/wechat-independent-release.md)。
 
 - 2026-11-07 10:50 TGT01 微信独立选择候选交付：规范、首次关联／后续复验分离、旧绑定目录保留、受管恢复、失效提示及回归完成；0.167.0 原 A 上下文续接与 B 不串投、显式切换和关闭拒绝真实通过，723 项及必要检查通过。首次发现保留页脚依赖；未提交或部署。[清单](goals/20261107-1027-wechat-independent-target.md)、[交付](docs/validation/wechat-independent-target.md)。
 
@@ -120,10 +120,11 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 
 - 2026-11-03 08:07 REC01 版本归档及公开发布：本人明确授权后完整 47 文件提交 387e7ac、独立工作树正常合并 main，annotated v0.1.1 指向功能交付；dev／main／标签原子推送成功且独立远端引用一致。随后仅同步实际发布结果文档，不移动标签、不强推、不创建 Release；当前 0.1.1／schema 5 源码及健康保持，无需重启。[发布记录](docs/validation/rec01-publication.md)。
 
-- 2026-11-03 03:25 REC01 完整交付：分离未知结果与占用，准确原生终态自动释放两条历史占用，原 received 原目标唯一 completed、冻结结果精确且 API accepted。580 项、真实原生、120 秒负载及全仓／制品／隐私检查通过，原入口加载 0.1.1／schema 5、9 个旧业务表迁移精确、旧回执／配置保护、自有终端清理；G00 至 G09／T01 至 T27／A01 至 A12 通过，原生 Goal 已实际 complete。本轮 44 文件未提交／推送。[交付](docs/validation/admission-recovery.md)、[全项目检查](docs/validation/project-closeout.md)。
 
 
 ## 最近验证
+
+- 2026-11-07 11:12 0.1.7 独立制品 723 项／40.526 秒、编译／依赖／文档／diff 与 57 文件 manifest 通过；277 公开文件、2827 私密候选、两份制品及可达历史零匹配。实际 argv／cwd／父子来源／单消费者／双组件 ready，13 表备份完整性、原路由和 587 回执／投递尝试／两条 unknown／其余 10 表逐行保护通过。零迁移／恢复／额外微信测试／原生提交，远端双分支与注释标签独立复核。[机器摘要](docs/validation/wechat-independent-release.json)。
 
 - 2026-11-07 10:50 TGT01 最终 723 项／40.393 秒、编译／依赖／差异／文档通过；初次全量的 17 项 Unix socket bind 被沙箱拒绝，正常权限下完整通过。0.167.0 持续订阅下 A→B 后原 A 唯一 client／turn completed 并回忆启动标记，B 历史／显示不变，显式 B completed，关闭后零新增任务且提示；断连卸载 A 的拒绝及并发目录登记先失败后通过。22 份变更的私有标识与格式检查零匹配，配置保护和专用端点清理通过，零微信测试发送／直接生产账本写入。[脱敏摘要](docs/validation/wechat-independent-target.json)。
 
@@ -162,5 +163,3 @@ W00 至 W07、IMG01 单图、HOST01、MD01 Android 和 PERF01 必要范围已验
 - 2026-11-04 23:42 AUD01 清单核对：G00 至 G07／T01 至 T26／A01 至 A12 编号连续，施工项均未勾选；本地文档链接与锚点、最近记录各不超过 20 条及差异格式通过。仅文档核验，未重跑代码回归、创建 Goal、派发原生任务或切换服务。[清单](goals/20261104-2338-native-diagnostics-rules.md)。
 
 - 2026-11-04 22:46 ENG01 发布前后核验：680 项（39.681 秒）及编译／依赖／差异／文档通过；251 份公开文本与全部 1118 个可达对象、2637 个私密候选值扫描零匹配。双分支／标签远端准确，服务实际进程／代次／源码保持，host／native ready。[机器记录](docs/validation/eng01-publication.json)。
-
-- 2026-11-04 13:30 ENG01 根目录最终检查：680 项（43.102 秒）、编译／依赖／差异／文档通过；准确 manifest／父子源码／实际 PID／cwd／唯一消费者和 host／native ready 核对。原 539／当前 540 冻结、两条 unknown 及其他业务表保持；最终负载 p95 22.646／19.252、最大 179.893／203.267 毫秒。[机器摘要](docs/validation/engineering-hardening.json)。

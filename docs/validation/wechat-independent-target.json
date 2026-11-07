@@ -1,5 +1,5 @@
 {
-  "status": "candidate_verified",
+  "status": "released_and_deployed",
   "verified_at_beijing": "2026-11-07 10:50",
   "offline": {
     "tests": 723,
@@ -36,7 +36,9 @@
   },
   "wechat_test_sends": 0,
   "direct_production_ledger_writes": 0,
-  "deployed": false,
-  "committed": false,
-  "initial_discovery_requires_footer_identity": true
+  "deployed": true,
+  "committed": true,
+  "initial_discovery_requires_footer_identity": true,
+  "released_version": "0.1.7",
+  "release_record": "wechat-independent-release.json"
 }
