@@ -4,19 +4,15 @@
 
 ## 当前阶段
 
-MVP 已按确认范围交付。最近一次已记录的日常部署为独立非 editable 0.1.8／schema 6，路由快照 version 2；dev／main 和 annotated v0.1.8 已公开同步，实际加载与旧数据保护通过。[发布／切换证据](docs/validation/native-session-release.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
+MVP 已按确认范围交付。最近一次已记录的日常部署为独立非 editable 0.1.9／schema 6，路由快照 version 2；dev／main 和 annotated v0.1.9 已公开同步，实际加载与旧数据保护通过。[发布／切换证据](docs/validation/maintenance-release.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
 
 微信独立选择且首次接入无需状态栏／标题 ID：后台按注册根及已知准确 cwd 发现，准确原生身份／loaded／订阅复验；可见新建保留自有 boot 与唯一完成握手。桌面切换不改投，关闭窗口后以原生可用性为准，unknown 不重放。[当前身份契约](docs/native-session-identity.md)、[TGT02 验收](docs/validation/native-session-no-footer.md)。
 
-DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检查的架构图、现行技术与 ADR、开发／测试／安全／运维、导航及需求追溯齐备。16 个共同事实、22 项冲突／范围问题已复核关闭，113 个原文件逐项有处置，产品／版本门禁及本机运行保持。原生 Goal 已实际 complete；未提交或部署。[施工清单](goals/20261108-0130-project-documentation-restructure.md)、[报告](docs/validation/documentation-restructure.md)。
+DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检查的架构图、现行技术与 ADR、开发／测试／安全／运维、导航及需求追溯齐备。16 个共同事实、22 项冲突／范围问题已复核关闭，113 个原文件逐项有处置。原生 Goal 已实际 complete，成果已随 0.1.9 公开交付。[施工清单](goals/20261108-0130-project-documentation-restructure.md)、[报告](docs/validation/documentation-restructure.md)。
 
-`/sessions` 纯查询与 `/help` 核对已完成开发和离线验收：保留输入目标／观察／任务，不启动宿主或触发对账；退出输入目标使用 `/unfocus`。帮助覆盖 15 个命令及 6 个别名，765 项检查通过。本次修复及 DOC01 尚未提交或部署，日常独立 0.1.8 仍为原行为。[修复与核对记录](docs/validation/sessions-query-help.md)。
+`/sessions` 纯查询与 `/help` 核对已随 0.1.9 发布并本机加载：保留输入目标／观察／任务，不启动宿主或触发对账；退出输入目标使用 `/unfocus`。帮助覆盖 15 个命令及 6 个别名，开发阶段 765 项及最终版本 771 项检查通过。[修复与核对记录](docs/validation/sessions-query-help.md)。
 
-冷启动零额外 Shell 修复已完成开发及专用真实验收：AppKit noop 首事件与退出即失效的启动参数，不写持久偏好；一次应用启动、一个窗口、双项目两个 Codex 标签、重复 cd 复用与自有终端清理通过，冻结制品 771 项通过。首轮失败保留，未提交或部署。[验收记录](docs/validation/iterm-single-window.md)。
-
-## 进行中
-
-- 0.1.9 发布与本机切换：本人已明确授权本轮文档整理、sessions／help 与冷启动修复一并提交、main 合并、注释 tag、推送及独立制品切换。版本提升及现行文档同步完成，schema 6／快照 v2／依赖锁保持；正在冻结检查和公开审计，日常仍运行原 0.1.8。[发布记录](docs/validation/maintenance-release.md)。
+冷启动零额外 Shell 修复已随 0.1.9 发布并本机加载：AppKit noop 首事件与退出即失效的启动参数，不写持久偏好；一次应用启动、一个窗口、双项目两个 Codex 标签、重复 cd 复用与自有终端清理通过，冻结制品 771 项通过。首轮失败保留，发布部署没有重复操作用户终端。[验收记录](docs/validation/iterm-single-window.md)。
 
 ## 交付状态与运行说明
 
@@ -62,6 +58,8 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 ## 最近完成
 
+- 2026-11-08 14:07 0.1.9 公开交付与本机切换：49 文件功能提交 666cf93、main 快进、annotated v0.1.9 及双分支／标签原子推送完成，GitHub API 独立核验通过。同一独立制品实际加载，唯一消费者及 host／native ready，638 条旧回执、两条 unknown 和原输入目标保持；正常停止至验收 16.231 秒，无迁移／数据恢复／重放或额外测试消息。结果文档单独归档，标签固定。[记录](docs/validation/maintenance-release.md)。
+
 - 2026-11-08 13:50 冷启动默认 Shell 修复开发验收：改用 AppKit noop 与进程临时 startup 参数，沿用 SDK 创建及唯一原生握手；iTerm2 3.7.7／daemon 0.167.0 真实一次拉起、一个窗口／两个 Codex 标签、两次 cd 复用及安全清理通过，零额外 Shell。首轮失败保留；与此前 sessions／DOC01 一样尚未提交或部署。[记录](docs/validation/iterm-single-window.md)。
 
 - 2026-11-08 12:46 sessions 纯查询与 help 核对：分离查询和选择事务，刷新／筛选不清目标、不释放订阅、不启动宿主、不触发创建或任务对账；显式 unfocus 保留观察和任务。补齐 15 命令／6 别名的前置、快照／ID、停止与答复格式，现行文档交叉同步；未提交、部署或处理多余 Shell。[记录](docs/validation/sessions-query-help.md)。
@@ -100,9 +98,9 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 - 2026-11-04 23:42 AUD01 施工清单制定：明确日志故障可见性及规则加载责任闭环的目标、边界、自测、验收和交付文档；原生能力不足时不得仅删承诺即宣告修复。仅编写清单与进度导航，未创建 Goal、修改实现、部署或外发微信。[清单](goals/20261104-2338-native-diagnostics-rules.md)。
 
-- 2026-11-04 22:46 ENG01 0.1.3 Git 交付：50 文件功能提交 425fda5、独立工作树 main 快进合并、annotated v0.1.3 及 main／dev／标签原子推送完成，独立远端引用核对一致。注释明确变更／验证／性能取舍及能力边界；仅归档结果文档，不移动标签、不重启服务。[发布记录](docs/validation/eng01-publication.md)。
-
 ## 最近验证
+
+- 2026-11-08 14:07 0.1.9：冻结制品 771 项／40.413 秒、编译／依赖／文档／diff 通过，56 个非版本包文件与真实验收候选相同；85 份 Markdown、1003 个本地链接／锚点通过。13 表一致性备份及外键／完整性、实际 argv／cwd／父子 manifest、唯一消费者、原生准确路由与旧行保护通过。新增提交／tag、公开文件与两份制品私密值审计零匹配，最终归档继续复核。[摘要](docs/validation/maintenance-release.json)。
 
 - 2026-11-08 13:50 第二冻结候选真实冷启动：四条合成 cd、两个唯一 completed 握手，launch／wait_ready／connect 各一次、终端创建两次；核验阶段 26.344 秒。两个自有终端清理并复验缺席，收尾零窗口／终端，受保护配置及持久启动偏好保持。冻结包 771 项／40.319 秒及编译／依赖／文档／diff 通过，源码一致；无真实微信或生产账本直接写入。[摘要](docs/validation/iterm-single-window.json)。
 
@@ -141,5 +139,3 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 - 2026-11-05 21:21 AUD01 发布核验：独立非 editable 0.1.4 完整 702 项／39.968 秒及编译／依赖／文档通过；57 个包文件与新 manifest 一致，较真实验收候选仅版本声明变化。259 公开文件、2736 私密候选、两份制品及 1164 个可达对象零匹配；双分支／标签独立远端核验及生产保护通过。[摘要](docs/validation/aud01-publication.json)。
 
 - 2026-11-05 21:09 AUD01 完工审计：702 项全量原始日志及最终 12 项定向、真实十轮历史／九轮规则实验／断连恢复与现场保护证据通过；57 个包文件与冻结制品一致，18 份公开变更／6 个私密候选零匹配，文档／JSON／链接／差异格式通过；已确认原生限制契约，Goal 实际 complete。[摘要](docs/validation/native-diagnostics-rules.json)。
-
-- 2026-11-05 14:14 AUD01 最终自主核验：独立候选 702 项／39.514 秒及编译／依赖／文档通过，最终常量复用另经 12 项定向；九轮规则任务及一次启动握手均 completed／零工具，队列前后变更证据准确，真实客户端断连／重连通过。制品源一致、公开 16 文件／6 私密候选零匹配；未部署，A06 待决定。[摘要](docs/validation/native-diagnostics-rules.json)。

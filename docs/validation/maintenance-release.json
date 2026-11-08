@@ -1,10 +1,10 @@
 {
-  "status": "verified_before_publication",
+  "status": "published_and_deployed",
   "version": "0.1.9",
   "schema": 6,
   "route_snapshot_version": 2,
-  "git_published": false,
-  "local_deployed": false,
+  "git_published": true,
+  "local_deployed": true,
   "source_sha256": "ebc003f60509152906f31af84ae4a6c1a44f4acbdd396743fc08e5158bd8fa47",
   "wheel_sha256": "52fdeee15c281f3bed9a04bdd5a2f547171686e5213b00cfec79af1b3dad2a7c",
   "frozen_checks": {
@@ -45,10 +45,10 @@
     "private_values_compared": 3118,
     "private_matches": 0,
     "reachable_objects": {
-      "blob": 918,
-      "tree": 396,
-      "commit": 57,
-      "tag": 7
+      "blob": 967,
+      "tree": 406,
+      "commit": 58,
+      "tag": 8
     },
     "archives": [
       {
@@ -66,12 +66,80 @@
     ],
     "validated_fix_files_unchanged": true,
     "production_configuration_preserved": true,
-    "deployment_phase": false,
-    "production_version": "0.1.8",
+    "deployment_phase": true,
+    "production_version": "0.1.9",
     "production_schema": 6,
     "host_native_ready": true
   },
   "validated_candidate_difference": [
     "__init__.py"
-  ]
+  ],
+  "verified_at_beijing": "2026-11-08 14:07",
+  "functional_publication": {
+    "status": "passed",
+    "repository": "benarchen/wx-clawbot",
+    "default_branch": "main",
+    "visibility": "public",
+    "functional_commit": "666cf93241b4390c02f15ac59c1f63df071dc97c",
+    "refs": [
+      {
+        "name": "main",
+        "ref": "refs/heads/main",
+        "type": "commit",
+        "sha": "666cf93241b4390c02f15ac59c1f63df071dc97c"
+      },
+      {
+        "name": "dev",
+        "ref": "refs/heads/dev",
+        "type": "commit",
+        "sha": "666cf93241b4390c02f15ac59c1f63df071dc97c"
+      },
+      {
+        "name": "tag",
+        "ref": "refs/tags/v0.1.9",
+        "type": "tag",
+        "sha": "1e9797818115eebe73d0aa1510fd2f8d0c21ee42"
+      }
+    ],
+    "tag_peeled_commit": "666cf93241b4390c02f15ac59c1f63df071dc97c"
+  },
+  "deployment": {
+    "status": "passed",
+    "version": "0.1.9",
+    "schema": 6,
+    "source_sha256": "ebc003f60509152906f31af84ae4a6c1a44f4acbdd396743fc08e5158bd8fa47",
+    "wheel_sha256": "52fdeee15c281f3bed9a04bdd5a2f547171686e5213b00cfec79af1b3dad2a7c",
+    "normal_stop": true,
+    "normal_old_exit_code": 0,
+    "downtime_seconds": 16.231,
+    "single_verified_consumer": true,
+    "actual_argv_and_cwd_verified": true,
+    "host_ready": true,
+    "native_ready": true,
+    "manifest_and_managed_source_match": true,
+    "changed_plist_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "configuration_credentials_global_config_preserved": true,
+    "original_native_processes_preserved": true,
+    "identical_business_tables_except_route_revision": 10,
+    "route_roles_and_target_preserved": true,
+    "route_snapshot_upgraded": false,
+    "route_native_identity_verified": true,
+    "route_snapshot_version": 2,
+    "original_route_choices_restored": 1,
+    "route_recovery_notifications": 0,
+    "old_outbox_rows_preserved": 638,
+    "no_route_redirection": true,
+    "frozen_outbox_rows": 638,
+    "unknown_results_preserved": 2,
+    "backup_integrity_and_foreign_keys": "passed",
+    "new_process_start_events": 1,
+    "schema_migration": false,
+    "database_restore": false,
+    "test_wechat_sends": 0,
+    "native_submissions": 0
+  },
+  "privacy_audit_scope": "post_deployment_before_result_document_commit"
 }

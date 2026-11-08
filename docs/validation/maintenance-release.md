@@ -1,6 +1,6 @@
 # 0.1.9：文档整理、查询边界与冷启动修复发布
 
-状态：本人于 2026-11-08 明确授权提交、合并、打 tag、推送 GitHub 和切换本机版本，当前正在准备发布。尚未完成的阶段不作成功声明；实际结果与摘要随后追加，进度以 [ROADMAP](../../ROADMAP.md) 为准。
+状态：2026-11-08 14:07，0.1.9 功能提交、main 快进、annotated v0.1.9、双分支／标签原子推送及 GitHub 独立核验已完成；本机已加载同一独立非 editable 制品，健康及旧数据保护通过。本人明确授权全部操作，结果文档另行正常归档，标签固定。进度以 [ROADMAP](../../ROADMAP.md) 为准。
 
 ## 本次范围与顺序
 
@@ -18,7 +18,7 @@
 
 若切换失败，先保留当前数据库与诊断，保持停止并核对准确失败阶段；只恢复兼容 schema 6 的原独立 0.1.8 制品及原托管参数，不用旧备份覆盖已有新写入。配置、凭据和全局设置不在本轮变更范围。预检与制品验证均在正常停服之前完成，停服期间不等待模型或授权。
 
-[机器摘要](maintenance-release.json)按实际阶段更新；日常加载通过前仍以原 0.1.8 为运行版本。
+[机器摘要](maintenance-release.json)按实际阶段记录；下面“此时尚未停止”等措辞属于发布前快照，实际加载结果见末节。
 
 ## 发布前核验
 
@@ -29,3 +29,17 @@
 发布前公开内容与实际私密值比较：306 份文件、3118 个私密候选、918 个 blob／396 个 tree／57 个 commit／7 个 tag，以及 wheel／sdist 两份制品，零匹配。新增发布记录与提交／部署收尾仍继续复核，不把这组计数当作后续全部审计数量。
 
 同一 wheel 已预装到全新私有版本目录，manifest 完全一致；隔离渲染子进程输出五段并通过来源核验。当前 0.1.8 正式实例可核验、host／native ready，活动任务、等待／持有占用、pending／sending、同步及有效异步交互均为零。仅 ProgramArguments／WorkingDirectory 的 plist 差异已生成，plutil 校验通过，原 plist 已私有留存；此时尚未停止日常服务。
+
+## 2026-11-08 14:07 实际发布与部署
+
+49 文件功能提交为 `666cf93241b4390c02f15ac59c1f63df071dc97c`。dev 正常提交，独立工作树 main 快进合并；annotated v0.1.9 指向该提交，标签对象 `1e9797818115eebe73d0aa1510fd2f8d0c21ee42`。双分支与标签正常原子推送成功，GitHub API 独立读取 main／dev／标签及其 peeled 目标，均与本地一致。默认 main、公共仓库；无强推、旧标签移动或额外 GitHub Release。
+
+本机从独立 0.1.8 正常切换至同一冻结的独立 0.1.9：旧 managed 退出 0，消费者锁释放后备份 13 表，完整性与外键通过；只替换原 Label 的 ProgramArguments／WorkingDirectory，bootout／bootstrap 一次。新实际 argv／cwd／manifest、渲染父子来源、唯一消费者、managed 源摘要及 host／native ready 通过；请求停止至验收 16.231 秒。
+
+schema 保持 6，路由快照保持 version 2，没有迁移或数据恢复。638 条旧冻结回执和其原投递尝试、两条 unknown 及另外 10 张业务表逐行保持；原输入目标按准确 runtime／thread／native session／cwd 复验后恢复，未改投，恢复通知为零。没有额外微信测试消息、原生任务提交或未知重放；不能由此推定手机实收验收。
+
+配置、凭据、Codex 全局设置与原生进程保持；旧独立制品、原 plist 及私有账本备份保留。正式服务现已具备 sessions 纯查询、补齐的 help 与冷启动修复行为。真实冷启动使用工程候选完成，本次发布与该候选仅版本声明差异，部署阶段没有再次退出或操作用户终端。
+
+实际结果文档另行正常提交并同步 main／dev，v0.1.9 固定指向功能提交，不为追加说明移动标签；最终文档引用以 Git 分支为准。
+
+[功能提交](https://github.com/benarchen/wx-clawbot/commit/666cf93241b4390c02f15ac59c1f63df071dc97c) · [v0.1.9](https://github.com/benarchen/wx-clawbot/tree/v0.1.9) 。
