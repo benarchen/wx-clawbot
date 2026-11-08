@@ -94,10 +94,8 @@ class Routes:
         for target in targets:
             self.validate_target(target)
         snapshot = SessionList("list-" + uuid.uuid4().hex, tuple(targets), self.clock() + self.ttl)
-        # Listing ends focused input; an independent observation remains intact.
-        self.target, self.mode = None, "unbound"
+        # A query replaces only numeric lookup data, never durable selection.
         self.list = snapshot
-        self.revision += 1
         return snapshot
 
     def select(self, index: int, *, snapshot: SessionList | None = None) -> Target:

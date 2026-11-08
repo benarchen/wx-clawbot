@@ -1,9 +1,24 @@
 import unittest
+import re
 
-from wx_clawbot.commands import CommandError, parse_command
+from wx_clawbot.commands import ALIASES, CommandError, parse_command
+from wx_clawbot.controller import HELP
 
 
 class CommandTests(unittest.TestCase):
+    def test_help_covers_every_supported_command_and_alias_with_parseable_syntax(self):
+        samples = {"help": "", "projects": "", "cd": " fixture", "new": " 标题",
+                   "sessions": " keyword", "focus": " 1", "unfocus": "", "attach": " 1",
+                   "detach": "", "send": " 1 task", "status": " t-fixture", "stop": " t-fixture",
+                   "approve": " r-fixture", "deny": " r-fixture", "answer": " q-fixture answer"}
+        documented = set(re.findall(r"`/([a-z]+)(?:\s[^`]*)?`", HELP))
+        self.assertEqual(documented, set(samples) | set(ALIASES))
+        for name, args in samples.items():
+            with self.subTest(command=name):
+                self.assertEqual(parse_command("/" + name + args).name, name)
+        for alias, name in ALIASES.items():
+            self.assertEqual(parse_command("/" + alias + samples[name]).name, name)
+
     def test_ordinary_text_is_preserved_including_code_and_shell_characters(self):
         text = "检查以下命令，不执行：\n  echo '$HOME'; $(touch NEVER)\n"
         result = parse_command(text)

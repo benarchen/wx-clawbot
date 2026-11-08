@@ -99,20 +99,16 @@ class RuntimeLifecycleTests(RuntimeFixture):
         self.backend.launch.assert_not_awaited()
         self.assertEqual(await self.state.tasks(), [])
 
-    async def test_sessions_can_launch_app_and_explain_no_verified_native_sessions(self):
-        async def launched():
-            self.backend.identity.return_value = "application"
-        self.backend.launch.side_effect = launched
-        self.backend.connect.return_value = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
-        with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])), \
-                patch("iterm2.async_get_app",new=AsyncMock(return_value=SimpleNamespace(windows=[]))):
-            await self.command("/sessions")
+    async def test_sessions_while_native_unavailable_reports_failure_without_launching_host(self):
+        await self.command("/sessions")
         rows = await self.replies()
-        self.assertEqual(len(rows), 2)  # Progress and final use distinct durable IDs.
-        self.assertTrue(any("暂无已核验" in row for row in rows))
-        self.backend.launch.assert_awaited_once()
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(any("未刷新" in row and "未就绪" in row for row in rows))
+        self.assertFalse(any("暂无" in row for row in rows))
+        self.backend.launch.assert_not_awaited()
+        self.backend.connect.assert_not_awaited()
         self.starter.start.assert_not_awaited()
-        self.assertEqual(self.host.state, "ready")
+        self.assertIsNone(self.runtime.controller.routes.list)
 
     async def test_host_watch_connects_running_app_without_launch_or_native_dependency(self):
         self.backend.identity.return_value = "application"
@@ -127,8 +123,9 @@ class RuntimeLifecycleTests(RuntimeFixture):
 
     async def test_offline_listing_does_not_erase_observer_waiting_for_revalidation(self):
         observer = {"session_id": "old-session", "thread_id": "old-thread"}
-        await self.state.save_routes({"cwd": str(self.root), "revision": 7, "observer": observer,
-                                      "last_managed": []})
+        saved = {"cwd": str(self.root), "revision": 7, "observer": observer,
+                 "target": {"session_id": "old-target"}, "last_managed": []}
+        await self.state.save_routes(saved)
         await self.runtime.initialize()
         self.backend.identity.return_value = "application"
         self.backend.connect.return_value = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
@@ -136,8 +133,8 @@ class RuntimeLifecycleTests(RuntimeFixture):
                 patch("iterm2.async_get_app",new=AsyncMock(return_value=SimpleNamespace(windows=[]))):
             await self.command("/sessions")
         snapshot = await self.state.load_routes()
-        self.assertEqual(snapshot["observer"], observer)
-        self.assertIsNone(snapshot["target"])
+        self.assertEqual(snapshot, saved)
+        self.backend.launch.assert_not_awaited()
 
     async def test_cd_when_native_missing_connects_host_but_never_creates_codex(self):
         self.backend.identity.return_value = "application"

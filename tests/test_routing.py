@@ -64,13 +64,14 @@ class RoutingTests(unittest.TestCase):
         with self.assertRaises(RouteError):
             self.routes.select(1)
 
-    def test_list_refresh_ends_input_focus_but_keeps_observation(self):
+    def test_list_refresh_preserves_input_observation_directory_mode_and_revision(self):
         r = self.routes
         r.focus(self.b, expected=r.revision)
         r.attach_confirmed(self.a, expected=r.revision)
-        r.snapshot((self.a, self.b))
-        with self.assertRaises(RouteError):
-            r.freeze("must select again")
+        before = r.target, r.observer, r.project, r.cwd, r.mode, r.revision
+        r.snapshot(())  # Even a filtered/empty list cannot clear a selection.
+        self.assertEqual((r.target, r.observer, r.project, r.cwd, r.mode, r.revision), before)
+        self.assertEqual(r.freeze("still reaches B").target, self.b)
         self.assertEqual(r.observer, self.a)
 
     def test_late_async_selection_cannot_overwrite_a_newer_route(self):

@@ -12,7 +12,7 @@ class HostUnavailable(ConnectionError):
     def __init__(self, phase="connect"):
         self.phase = phase
         messages = {
-            "not_running": "iTerm2 尚未启动；可用 /sessions、/cd 或 /new 按需启动。",
+            "not_running": "iTerm2 尚未启动；可用 /cd 或 /new 按需启动。/sessions 仅查询，不启动应用。",
             "authentication": "iTerm2 连接／授权阶段未完成或超时，请在电脑端核对授权；不能据此判断 API 未启用。",
             "launch": "iTerm2 启动未确认，请在电脑端核对；没有创建或执行 Codex 任务。",
             "changed": "iTerm2 连接已变化，请刷新会话后重试；没有自动重放操作。",
@@ -113,7 +113,28 @@ class ItermBackend:
         return identity
 
     async def launch(self):
-        code, _ = await run_process(["/usr/bin/open", "-g", "-b", "com.googlecode.iterm2"])
+        # Suppress the startup-only default window in this process's volatile
+        # argument domain. Keep restoration and later Dock opens unchanged.
+        # A noop initial event avoids the separate open/reopen window request.
+        script = '''ObjC.import("AppKit");
+const workspace = $.NSWorkspace.sharedWorkspace;
+const url = workspace.URLForApplicationWithBundleIdentifier("com.googlecode.iterm2");
+if (url.isNil()) throw new Error("iTerm2 application is unavailable");
+const config = $.NSWorkspaceOpenConfiguration.configuration;
+config.activates = false;
+config.arguments = $(["-OpenNewWindowAtStartup", "NO"]);
+config.appleEvent = $.NSAppleEventDescriptor.appleEventWithEventClassEventIDTargetDescriptorReturnIDTransactionID(
+    0x61736372, 0x6e6f6f70, $(), -1, 0);
+let done = false, failed = false;
+workspace.openApplicationAtURLConfigurationCompletionHandler(url, config, function(app, error) {
+    failed = !app || app.isNil();
+    done = true;
+});
+while (!done) $.NSRunLoop.currentRunLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(0.05));
+if (failed) throw new Error("iTerm2 application launch failed");'''
+        code, _ = await run_process([
+            "/usr/bin/osascript", "-l", "JavaScript", "-e", script,
+        ])
         if code:
             raise HostUnavailable("launch")
 

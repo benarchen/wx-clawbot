@@ -18,18 +18,41 @@ from .output import render_segments, render_in_worker
 
 
 HELP = ("## 项目与会话\n\n"
-        "`/projects`：项目列表\n\n`/cd <别名或目录>`：选择或创建受管会话\n\n"
-        "`/new [标题]`：当前目录新建可见会话\n\n`/sessions [关键词]`：列出会话并退出输入聚焦\n\n"
-        "`/focus <序号>`：选择普通消息目标\n\n`/unfocus`：退出输入聚焦\n\n"
-        "`/attach <序号>`：独立观察桌面任务\n\n`/detach`：只取消观察\n\n"
+        "`/projects`：列出已注册项目及目录可用状态，不扫描全部仓库。\n\n"
+        "`/cd <别名或目录>`：复用同目录的准确受管会话；没有时在 iTerm2 可见新建，成功后选为输入目标。"
+        "多个候选无法确定时要求明确选择；不自动选既有非受管会话。目录限注册范围，相对路径基于当前目录。\n\n"
+        "`/new [标题]`：在已选择的当前目录可见新建并选中；标题最多 128 字符。"
+        "`/cd`、`/new` 可按需启动 iTerm2，窗口出现不等于会话已就绪。\n\n"
+        "`/sessions [关键词]`（`/ss`）：纯查询，按项目别名、目录或标题筛选。"
+        "保留输入目标和观察订阅，不启动 iTerm2、不释放会话或触发任务对账。"
+        "仅发现注册根与已知准确目录中的已加载、可核验原生会话，不递归扫描子目录或恢复存档。\n\n"
+        "`/focus <序号>`（`/f`）：核验并选择后续普通消息的输入目标；不跟随桌面窗口变化。\n\n"
+        "`/unfocus`（`/uf`）：退出输入目标；观察订阅和已接收任务保留，不关闭终端或删除聊天记录。\n\n"
+        "`/attach <序号>`（`/a`）：独立观察该会话后续桌面任务的进展、结果和交互，不重放历史。"
+        "最多一个观察目标，选择另一个时替换原订阅，不改变输入目标。\n\n"
+        "`/detach`（`/ua`）：只取消观察，保留输入目标和已接收任务。\n\n"
+        "序号来自最近一次成功的 `/sessions` 列表，10 分钟有效；刷新后按新列表选。"
+        "`s-` 是桥接会话编号，不能代替序号。列表查询不保证下次派发成功，每次派发仍须核验准确原生对象。\n\n"
         "## 任务控制\n\n"
-        "`/send <序号> <指令>`：向列表会话提交一次任务\n\n"
-        "`/status [任务 ID]`：状态\n\n`/stop [任务 ID]`：取消或请求中断\n\n"
+        "`/send <序号> <指令>`（`/s`）：向列表目标提交一次任务，不改变输入目标。"
+        "普通文本或单张静态 JPEG／PNG 发往已选目标；当前不支持同消息图文合并输入。\n\n"
+        "`/status [任务 ID]`：不带 ID 查目标、观察、未结束任务、交互及投递汇总；"
+        "带完整 `t-` 任务 ID 查该任务状态、占用及相关异步补充问题。离线显示最后记录，不重发完整结果。\n\n"
+        "`/stop [任务 ID]`：撤销尚未提交的任务、移除原生队列项或请求中断，须以原生确认判定。"
+        "省略 ID 仅在当前目标恰好有一个有效候选时可用，否则须给完整 `t-` ID；不撤销已产生的效果。\n\n"
         "## 审批与追问\n\n"
-        "`/approve <请求 ID>`、`/deny <请求 ID>`：一次性审批\n\n"
-        "`/answer <请求 ID> <回答>`：追问答复")
+        "`/approve <请求 ID>`、`/deny <请求 ID>`：对通知中的同步 `r-` 审批作一次性允许／拒绝，不授予永久许可。\n\n"
+        "`/answer <请求 ID> <回答>`：按通知中的准确 ID 答复。同步 `r-` 单题可用文本，"
+        "多题用题目 ID 到回答数组的 JSON，例如 `{\"choice\":[\"答案\"]}`；"
+        "异步 `q-` 单题可用文本，多题用完整 q 键到字符串的 JSON，例如 `{\"q1\":\"答案一\",\"q2\":\"答案二\"}`。"
+        "同步答案须符合原生题型和选项；异步为本人补充文本，不代表任务暂停，仅已核验版本支持，以实际通知为准。\n\n"
+        "微信答复入口有效期 10 分钟；已处理、过期、断连或原生身份已变的旧请求拒绝，不自动变成新任务。\n\n"
+        "选择／观察变更须原生连接可用。原生离线时可查帮助、项目和最后状态；"
+        "带准确任务 ID 的 `/stop` 仅可本地撤销尚未提交的 received 任务，其他原生操作拒绝。\n\n"
+        "`/help`：显示本说明。`<>` 为必填，`[]` 为可选，输入时不带括号；"
+        "未知命令不会执行 Shell。执行结果未知时先查 `/status`，不要重复提交。")
 
-SELECTIONS = {"cd", "new", "sessions", "focus", "unfocus"}
+SELECTIONS = {"cd", "new", "focus", "unfocus"}
 
 
 class RouteCommitFailed(RuntimeError):
@@ -82,7 +105,7 @@ class Controller:
         if command.name not in {"help", "projects", "status", "stop", "approve", "deny", "answer"}:
             if self.recovering:
                 raise RouteError("会话正在恢复核验，请等待明确就绪状态后重新选择；任务未执行。")
-        if command.name in SELECTIONS | {"attach", "detach"} and self.selection_pending:
+        if command.name in SELECTIONS | {"sessions", "attach", "detach"} and self.selection_pending:
             raise RouteError("会话选择尚在处理中，请等待明确回执后重试；本条操作未排队。")
         revision, snapshot = self.routes.revision, self.routes.list
         dispatch, target = None, None
@@ -147,15 +170,17 @@ class Controller:
                 text = "已注册项目：\n" + "\n".join(rows)
             elif name == "help":
                 text = HELP
+            elif name == "sessions":
+                text = await self._query_sessions(command.argument, generation)
             else:
-                if not self.native_ready and name not in {"sessions", "cd", "new"}:
+                if not self.native_ready and name not in {"cd", "new"}:
                     raise RouteError("原生运行时未就绪，选择／观察操作未改变，请查询 /status。")
                 budget = self.selection_timeout + (self.launch_timeout + 15 if name in {"cd", "new"} else 0)
                 host_deadline = asyncio.get_running_loop().time() + self.selection_timeout
                 async with asyncio.timeout(budget):
-                    if self.host is not None and name in {"sessions", "cd", "new"}:
+                    if self.host is not None and name in {"cd", "new"}:
                         await self.reply(message, "已接收会话操作，正在核验；尚未就绪。", suffix="-processing")
-                    if self.host is not None and not self.native_ready and name in {"sessions", "cd", "new"}:
+                    if self.host is not None and not self.native_ready and name in {"cd", "new"}:
                         async with asyncio.timeout_at(host_deadline):
                             await self.host.ensure(launch=True, explicit=True)
                     if self.before_change is not None:
@@ -172,14 +197,6 @@ class Controller:
                                 raise RouteError("原生连接已变化，本条操作未重放，请刷新会话。")
                             try:
                                 snapshot = self._snapshot(candidate)
-                                if not self.native_ready:
-                                    previous = await self.state.load_routes()
-                                    if previous:
-                                        # Listing explicitly clears input focus,
-                                        # but must not erase an independent
-                                        # observer awaiting native revalidation.
-                                        snapshot["observer"] = previous.get("observer")
-                                        snapshot["last_managed"] = previous.get("last_managed", [])
                                 save = asyncio.create_task(self.state.save_routes(snapshot))
                                 try:
                                     await asyncio.shield(save)
@@ -206,7 +223,7 @@ class Controller:
                                     self.recovery_requested.set()
                             raise
                         self.routes = candidate
-                    if self.host is not None and name in {"sessions", "cd", "new"}:
+                    if self.host is not None and name in {"cd", "new"}:
                         try:
                             self.host.connection
                         except HostUnavailable:
@@ -223,11 +240,17 @@ class Controller:
                 raise
             await self.reply(message, "原生连接已断开，本条操作未重放；未知任务请查询状态。", priority=0)
         except (CommandError, RouteError, DiscoveryUnavailable) as exc:
-            await self.reply(message, str(exc), priority=0)
+            text = str(exc)
+            if command.name == "sessions" and "未刷新" not in text:
+                text += "\n本次未刷新列表；输入目标与观察订阅未改变，旧列表有效期未延长。"
+            await self.reply(message, text, priority=0)
         except HostUnavailable as exc:
             await self.reply(message, str(exc), priority=0)
         except TimeoutError:
-            await self.reply(message, "会话操作超时，尚未确认就绪；请核对宿主后刷新，不要重发未知任务。", priority=0)
+            text = ("会话查询超时，本次未刷新列表；输入目标和观察订阅未改变，旧列表有效期未延长。"
+                    if command.name == "sessions" else
+                    "会话操作超时，尚未确认就绪；请核对宿主后刷新，不要重发未知任务。")
+            await self.reply(message, text, priority=0)
         except SessionUnbound:
             await self.reply(message,
                 "所选会话无法可靠接入，原生连接、对话身份或加载状态可能已变化；本条操作未确认完成，"
@@ -298,6 +321,26 @@ class Controller:
     async def _refresh(self, keyword=""):
         async with asyncio.timeout(self.selection_timeout):
             return await self._refresh_contents(keyword)
+
+    async def _query_sessions(self, keyword, generation):
+        if not self.native_ready:
+            raise RouteError("原生运行时未就绪，本次未刷新会话列表；输入目标和观察订阅未改变。请查询 /status。")
+        async with asyncio.timeout(self.selection_timeout), self.changes:
+            if self.routes.cwd is not None:
+                self.catalog.include_directory(self.routes.cwd)
+            # Discovery reads loaded native identities. Unlike selection refresh,
+            # it must not reconcile launches, tasks, subscriptions or host recovery.
+            sessions = await self.catalog.discover(keyword)
+            if not self.native_ready or generation is not None and generation != self.native_generation:
+                raise RouteError("原生连接已变化，本次未刷新会话列表，请稍后重试。")
+            snapshot = self.routes.snapshot(tuple(s.target for s in sessions))
+            rows = [f"{i}．{s.target.project_alias}｜{s.title}｜{'受管会话' if s.target.origin == 'managed' else '既有原生会话'}\n会话：{s.target.session_id}\n目录：{s.target.cwd}"
+                    for i, s in enumerate(sessions, 1)]
+            missing = len(self.catalog.unverified)
+            return ("会话列表（序号 10 分钟有效；输入目标与观察订阅未改变）：\n"
+                    + ("\n".join(rows) or "暂无匹配的已核验会话。")
+                    + (f"\n另有 {missing} 个会话未通过准确原生身份核验。" if missing else "")
+                    + f"\n{self.catalog.scope_note}\n列表：{snapshot.list_id}")
 
     async def _refresh_contents(self, keyword=""):
         if self.routes.cwd is not None:
@@ -465,24 +508,6 @@ class Controller:
     async def _change(self, command, revision, target, destination, message_id, routes, *, host_deadline=None):
         name = command.name
         routes._check_revision(revision)
-        if name == "sessions":
-            async with asyncio.timeout_at(host_deadline):
-                sessions = await self._refresh(command.argument)
-                if self.engine:
-                    # Startup can skip unknown tasks whose modal hides the footer.
-                    # Explicit revalidation permits read-only reconciliation.
-                    await self.engine.reconcile()
-            previous = routes.target
-            if previous:
-                await self.subscriptions.release(previous, "route")
-            snapshot = routes.snapshot(tuple(s.target for s in sessions))
-            rows = [f"{i}．{s.target.project_alias}｜{s.title}｜{'受管会话' if s.target.origin == 'managed' else '既有原生会话'}\n会话：{s.target.session_id}\n目录：{s.target.cwd}"
-                    for i, s in enumerate(sessions, 1)]
-            missing = len(self.catalog.unverified)
-            return ("会话列表（10 分钟有效；已退出输入聚焦）：\n" + ("\n".join(rows) or "暂无已核验会话。")
-                    + (f"\n另有 {missing} 个会话未通过准确原生身份核验。" if missing else "")
-                    + f"\n{self.catalog.scope_note}"
-                    + f"\n列表：{snapshot.list_id}")
         if name == "focus":
             await self._set_focus(target, revision, routes)
             return f"执行目标：{target.project_alias}｜{target.session_id}\n目录：{target.cwd}"

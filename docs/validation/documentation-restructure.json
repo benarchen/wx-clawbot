@@ -1,0 +1,3999 @@
+{
+  "goal": "DOC01",
+  "status": "accepted",
+  "baseline": {
+    "head": "8278de5645a57f2fc0348b746d59899bfe0bdadd",
+    "branch": "dev",
+    "time": "2026-11-08T01:40:45.070831+08:00"
+  },
+  "baseline_files": 113,
+  "inventory": [
+    {
+      "path": "AGENTS.md",
+      "classification": "current",
+      "baseline_sha256": "352359c646b65259182d27859071a43e3877d63831ddb157d2907c9c3bc600a5",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "wx-clawbot 项目规范",
+          "handling": "same_heading",
+          "current_path": "AGENTS.md",
+          "current_heading": "wx-clawbot 项目规范",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/AGENTS.md"
+        },
+        {
+          "old_heading": "定位与边界",
+          "handling": "same_heading",
+          "current_path": "AGENTS.md",
+          "current_heading": "定位与边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/AGENTS.md"
+        },
+        {
+          "old_heading": "结构与文档权威",
+          "handling": "same_heading",
+          "current_path": "AGENTS.md",
+          "current_heading": "结构与文档权威",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/AGENTS.md"
+        },
+        {
+          "old_heading": "工作流与验证",
+          "handling": "same_heading",
+          "current_path": "AGENTS.md",
+          "current_heading": "工作流与验证",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/AGENTS.md"
+        }
+      ]
+    },
+    {
+      "path": "LICENSE",
+      "classification": "current",
+      "baseline_sha256": "eea2654d4de44b9761b1e66c125ba08ea4ded10df2992a8cad1cf533852f9a88",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "README.md",
+      "classification": "current",
+      "baseline_sha256": "720a7f042027dbc2acd38651cb2006c3149ad7cb47c1a5532f59f82777e9ada3",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "wx-clawbot",
+          "handling": "same_heading",
+          "current_path": "README.md",
+          "current_heading": "wx-clawbot",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/README.md"
+        },
+        {
+          "old_heading": "安装与使用",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "README.md",
+          "current_heading": "快速开始",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/README.md"
+        },
+        {
+          "old_heading": "桌面普通任务排队",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/desktop-queue-contract.md",
+          "current_heading": "已确认的首版契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/README.md"
+        },
+        {
+          "old_heading": "开发与文档",
+          "handling": "same_heading",
+          "current_path": "README.md",
+          "current_heading": "开发与文档",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/README.md"
+        }
+      ]
+    },
+    {
+      "path": "ROADMAP.md",
+      "classification": "current",
+      "baseline_sha256": "27a027d32a365f8ef1adc57a5038f8419242b3a660831df1deb68bd5c10be280",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "当前进度",
+          "handling": "same_heading",
+          "current_path": "ROADMAP.md",
+          "current_heading": "当前进度",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/ROADMAP.md"
+        },
+        {
+          "old_heading": "当前阶段",
+          "handling": "same_heading",
+          "current_path": "ROADMAP.md",
+          "current_heading": "当前阶段",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/ROADMAP.md"
+        },
+        {
+          "old_heading": "交付状态与运行说明",
+          "handling": "same_heading",
+          "current_path": "ROADMAP.md",
+          "current_heading": "交付状态与运行说明",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/ROADMAP.md"
+        },
+        {
+          "old_heading": "待办事项",
+          "handling": "same_heading",
+          "current_path": "ROADMAP.md",
+          "current_heading": "待办事项",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/ROADMAP.md"
+        },
+        {
+          "old_heading": "最近完成",
+          "handling": "same_heading",
+          "current_path": "ROADMAP.md",
+          "current_heading": "最近完成",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/ROADMAP.md"
+        },
+        {
+          "old_heading": "最近验证",
+          "handling": "same_heading",
+          "current_path": "ROADMAP.md",
+          "current_heading": "最近验证",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/ROADMAP.md"
+        }
+      ]
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "classification": "current",
+      "baseline_sha256": "44ccfd946ce6b3ba9e5545b58e209e4cf1bc83bda45d26b73f511351e5a3f094",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/architecture-design.md",
+      "classification": "current",
+      "baseline_sha256": "f8398b6b8631d1dda66d502fec62ddcfb0f2a4b57aa4d897f109fe8ee5332529",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "微信本地 Agent 工作台：架构设计",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "wx-clawbot 当前架构",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "1. 需求与证据边界",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "1. 需求与证据边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "已确认需求",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/product-design.md",
+          "current_heading": "2. 用户目标与首版边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "2026-10-24 问答确认的六项使用决策",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/product-design.md",
+          "current_heading": "六项问答决策",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "新截图直接给出的命令",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/reference/architecture-from-screenshots.md",
+          "current_heading": null,
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "2. 设计决策与未决边界",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "2. 设计决策与未决边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "3. 系统结构",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "3. 系统结构",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "4. 核心数据模型",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "4. 核心数据模型",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "5. 项目、目录与上下文",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "5. 项目、目录与上下文",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "6. 命令与路由契约",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "6. 命令与路由契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "7. 原终端与接管的实现边界",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "7. 原终端与接管的实现边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "8. Codex 适配与未来扩展",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "8. Codex 适配与未来扩展",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "9. 调度、执行状态与交互",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "9. 调度、执行状态与交互",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "10. 消息与执行可靠性",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "10. 消息与执行可靠性",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "11. 本机部署与数据边界",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "11. 本机部署与数据边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "12. 性能、可观测性与测试",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "12. 性能、可观测性与测试",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "PERF01 事件与结果处理",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "12. 性能、可观测性与测试",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "13. 实施顺序与交付边界",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "13. 实施顺序与交付边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "14. 来源与待确认项",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "14. 来源与待确认项",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "REC01：结果与占用分离契约",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "REC01：结果与占用分离契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        },
+        {
+          "old_heading": "ASK01 已确认施工契约",
+          "handling": "same_heading",
+          "current_path": "docs/architecture-design.md",
+          "current_heading": "ASK01 已确认施工契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/architecture-design.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/async-questions.md",
+      "classification": "current",
+      "baseline_sha256": "0b1e9e3652302276b5be3344a98db9c125ca195e5bd4256cf685dc7684f40e17",
+      "handling": "scoped_fact_correction",
+      "section_destinations": [
+        {
+          "old_heading": "ASK01 异步补充答复契约",
+          "handling": "same_heading",
+          "current_path": "docs/async-questions.md",
+          "current_heading": "ASK01 异步补充答复契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/async-questions.md"
+        },
+        {
+          "old_heading": "能力边界与原生依据",
+          "handling": "same_heading",
+          "current_path": "docs/async-questions.md",
+          "current_heading": "能力边界与原生依据",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/async-questions.md"
+        },
+        {
+          "old_heading": "问题、答案与证据",
+          "handling": "same_heading",
+          "current_path": "docs/async-questions.md",
+          "current_heading": "问题、答案与证据",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/async-questions.md"
+        },
+        {
+          "old_heading": "持久化及严格任务关联",
+          "handling": "same_heading",
+          "current_path": "docs/async-questions.md",
+          "current_heading": "持久化及严格任务关联",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/async-questions.md"
+        },
+        {
+          "old_heading": "实施及验证入口",
+          "handling": "same_heading",
+          "current_path": "docs/async-questions.md",
+          "current_heading": "实施及验证入口",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/async-questions.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/command-contract-proposal.md",
+      "classification": "current",
+      "baseline_sha256": "5db9627b627348f1a2b83da7a44c81939243663ed62e881608d58c1328fdd2fb",
+      "handling": "scoped_fact_correction",
+      "section_destinations": [
+        {
+          "old_heading": "attach／detach 命令契约",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/command-contract-proposal.md",
+          "current_heading": "微信命令与选择契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/command-contract-proposal.md"
+        },
+        {
+          "old_heading": "HOST01：宿主生命周期契约",
+          "handling": "same_heading",
+          "current_path": "docs/command-contract-proposal.md",
+          "current_heading": "HOST01：宿主生命周期契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/command-contract-proposal.md"
+        },
+        {
+          "old_heading": "REC01：准入状态与本地处置",
+          "handling": "same_heading",
+          "current_path": "docs/command-contract-proposal.md",
+          "current_heading": "REC01：准入状态与本地处置",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/command-contract-proposal.md"
+        },
+        {
+          "old_heading": "ASK01 已确认施工契约",
+          "handling": "same_heading",
+          "current_path": "docs/command-contract-proposal.md",
+          "current_heading": "ASK01 已确认施工契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/command-contract-proposal.md"
+        },
+        {
+          "old_heading": "微信独立选择原生会话",
+          "handling": "same_heading",
+          "current_path": "docs/command-contract-proposal.md",
+          "current_heading": "微信独立选择原生会话",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/command-contract-proposal.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/desktop-queue-contract.md",
+      "classification": "current",
+      "baseline_sha256": "6aab20f7e81d6b9c8ff04ca33b9067f0fd715596e9f73b967246e28022886f8f",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/development-contracts.md",
+      "classification": "current",
+      "baseline_sha256": "11c1ccf7af4c7af36b12f1b66d5fdf2b530ff8478621b0a570f7a2eec9de7e77",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "wx-clawbot 开发契约与接口验证方案",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "wx-clawbot 开发契约与接口验证方案",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "1. 项目结构约定",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "1. 项目结构约定",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "2. 模块边界",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "2. 模块边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "3. 规范化对象与接口",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "3. 规范化对象与接口",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "IMG01 图片输入契约",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "IMG01 图片输入契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "4. 会话身份与启动握手",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "4. 会话身份与启动握手",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "5. 排队、任务与取消",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "5. 排队、任务与取消",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "6. 双端审批与追问",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "6. 双端审批与追问",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "7. 微信请求字段核对清单",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "7. 微信请求字段核对清单",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "8. 数据与错误处理",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "8. 数据与错误处理",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "9. 关键接口验证关卡",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "9. 关键接口验证关卡",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "MD01：新出站排版与冻结契约",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "MD01：新出站排版与冻结契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "REC01：占用恢复接口",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "REC01：占用恢复接口",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        },
+        {
+          "old_heading": "ASK01 已确认施工契约",
+          "handling": "same_heading",
+          "current_path": "docs/development-contracts.md",
+          "current_heading": "ASK01 已确认施工契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/development-contracts.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/image-input.md",
+      "classification": "current",
+      "baseline_sha256": "f893c91340ee1e5d742043db79dae38241385fc777616af6bfe81bfa442e9d3e",
+      "handling": "scoped_fact_correction",
+      "section_destinations": [
+        {
+          "old_heading": "微信图片输入使用指南",
+          "handling": "same_heading",
+          "current_path": "docs/image-input.md",
+          "current_heading": "微信图片输入使用指南",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/image-input.md"
+        },
+        {
+          "old_heading": "使用前提",
+          "handling": "same_heading",
+          "current_path": "docs/image-input.md",
+          "current_heading": "使用前提",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/image-input.md"
+        },
+        {
+          "old_heading": "发一张图片",
+          "handling": "same_heading",
+          "current_path": "docs/image-input.md",
+          "current_heading": "发一张图片",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/image-input.md"
+        },
+        {
+          "old_heading": "图片与说明如何关联",
+          "handling": "same_heading",
+          "current_path": "docs/image-input.md",
+          "current_heading": "图片与说明如何关联",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/image-input.md"
+        },
+        {
+          "old_heading": "目标、排队与取消",
+          "handling": "same_heading",
+          "current_path": "docs/image-input.md",
+          "current_heading": "目标、排队与取消",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/image-input.md"
+        },
+        {
+          "old_heading": "常见失败与恢复",
+          "handling": "same_heading",
+          "current_path": "docs/image-input.md",
+          "current_heading": "常见失败与恢复",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/image-input.md"
+        },
+        {
+          "old_heading": "图片保存与维护",
+          "handling": "same_heading",
+          "current_path": "docs/image-input.md",
+          "current_heading": "图片保存与维护",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/image-input.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/native-session-evidence.md",
+      "classification": "historical_investigation",
+      "baseline_sha256": "c09027f524aad6aacef2b2413422ca592ec0f379794bad1fdc1354d2b9b09aa7",
+      "handling": "historical_scope_banner_only",
+      "section_destinations": [
+        {
+          "old_heading": "W02 原生连接证据",
+          "handling": "same_heading",
+          "current_path": "docs/native-session-evidence.md",
+          "current_heading": "W02 原生连接证据",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/native-session-evidence.md"
+        },
+        {
+          "old_heading": "测试边界",
+          "handling": "same_heading",
+          "current_path": "docs/native-session-evidence.md",
+          "current_heading": "测试边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/native-session-evidence.md"
+        },
+        {
+          "old_heading": "真实握手定位与结果",
+          "handling": "same_heading",
+          "current_path": "docs/native-session-evidence.md",
+          "current_heading": "真实握手定位与结果",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/native-session-evidence.md"
+        },
+        {
+          "old_heading": "已实现的安全边界",
+          "handling": "same_heading",
+          "current_path": "docs/native-session-evidence.md",
+          "current_heading": "已实现的安全边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/native-session-evidence.md"
+        },
+        {
+          "old_heading": "未通过关卡",
+          "handling": "same_heading",
+          "current_path": "docs/native-session-evidence.md",
+          "current_heading": "未通过关卡",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/native-session-evidence.md"
+        },
+        {
+          "old_heading": "API 启用后的现场定位",
+          "handling": "same_heading",
+          "current_path": "docs/native-session-evidence.md",
+          "current_heading": "API 启用后的现场定位",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/native-session-evidence.md"
+        },
+        {
+          "old_heading": "现场恢复与持久信任关卡",
+          "handling": "same_heading",
+          "current_path": "docs/native-session-evidence.md",
+          "current_heading": "现场恢复与持久信任关卡",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/native-session-evidence.md"
+        },
+        {
+          "old_heading": "后续验收完成记录",
+          "handling": "same_heading",
+          "current_path": "docs/native-session-evidence.md",
+          "current_heading": "后续验收完成记录",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/native-session-evidence.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/native-session-identity.md",
+      "classification": "current",
+      "baseline_sha256": "0c896cfe92b6e1038e941c15bc92e36236be0da588f5b0b989b0eefde55fd684",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/operations.md",
+      "classification": "current",
+      "baseline_sha256": "a8f731dd87543c15c0c0f01fd57cd0888466c70d02f9dbac6f263e33d8eb17d0",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "前台使用与运维",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "前台使用与运维",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "TGT02：无状态栏 ID 候选与切换",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "TGT02：无状态栏 ID 候选与切换",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "AUD01：候选诊断与规则验收",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "AUD01：候选诊断与规则验收",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "iTerm2 冷启动连接",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "iTerm2 冷启动连接",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "安装与准备",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "安装与准备",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "启动、查询与退出",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "启动、查询与退出",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "iTerm2 退出、按需启动与恢复",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "iTerm2 退出、按需启动与恢复",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "故障定位",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "故障定位",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "图片运行与资源边界",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "图片运行与资源边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "只重试回执",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "只重试回执",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "用户级 launchd 托管、日志与卸载",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "用户级 launchd 托管、日志与卸载",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "出站排版与冻结回执核对",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "出站排版与冻结回执核对",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "上下文观察与定时验收",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "上下文观察与定时验收",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "PERF01 候选的独立验证与生产切换",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "PERF01 候选的独立验证与生产切换",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "REC01 候选的准入诊断与受控切换",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "REC01 候选的准入诊断与受控切换",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "ASK01：异步答复与 schema 6",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "ASK01：异步答复与 schema 6",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "ENG01：独立运行制品与开发隔离",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "ENG01：独立运行制品与开发隔离",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        },
+        {
+          "old_heading": "ENG01：本地检查、性能与真实原生交接",
+          "handling": "same_heading",
+          "current_path": "docs/operations.md",
+          "current_heading": "ENG01：本地检查、性能与真实原生交接",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/product-design.md",
+      "classification": "current",
+      "baseline_sha256": "7f0eb2ef7ae00dd8e943b2974882227acb6db3a843bd340d695054756aa34f2a",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "微信本地 Agent 工作台：产品设计",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/product-design.md",
+          "current_heading": "wx-clawbot 产品需求文档（PRD）",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "1. 产品定位",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "1. 产品定位",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "2. 用户目标与首版边界",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "2. 用户目标与首版边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "已确认",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "已确认",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "六项问答决策",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "六项问答决策",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "首版设计范围",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "首版设计范围",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "后续扩展",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "后续扩展",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "IMG01：入站静态图片扩展",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "IMG01：入站静态图片扩展",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "3. 用户理解模型",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "3. 用户理解模型",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "4. 命令与交互",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "4. 命令与交互",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "5. 典型使用流程",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "5. 典型使用流程",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "场景 A：微信进入项目并推进工作",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "场景 A：微信进入项目并推进工作",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "场景 B：切换项目并返回",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "场景 B：切换项目并返回",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "场景 C：操作电脑已有终端",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "场景 C：操作电脑已有终端",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "场景 D：独立观察桌面任务",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "场景 D：独立观察桌面任务",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "场景 E：跨项目审批",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "场景 E：跨项目审批",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "场景 F：电脑与微信共同排队",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "场景 F：电脑与微信共同排队",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "6. 回执与可理解性",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "6. 回执与可理解性",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "7. 产品约束",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "7. 产品约束",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "8. 首版验收",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "8. 首版验收",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "9. 产品交付顺序",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "goals/implementation-plan.md",
+          "current_heading": null,
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "10. 尚需确认的信息与本轮交付",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "10. 尚需确认的信息与本轮交付",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "REC01：异常恢复与日常交付",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "REC01：异常恢复与日常交付",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        },
+        {
+          "old_heading": "ASK01 已确认施工契约",
+          "handling": "same_heading",
+          "current_path": "docs/product-design.md",
+          "current_heading": "ASK01 已确认施工契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/product-design.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/project-rules.md",
+      "classification": "current",
+      "baseline_sha256": "0836a68883ddd0c77982e2561a5ada4901a5dba2bfa676c07ef439b75040ebca",
+      "handling": "scoped_fact_correction",
+      "section_destinations": [
+        {
+          "old_heading": "项目规则加载责任与当前边界",
+          "handling": "same_heading",
+          "current_path": "docs/project-rules.md",
+          "current_heading": "项目规则加载责任与当前边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/project-rules.md"
+        },
+        {
+          "old_heading": "当前责任",
+          "handling": "same_heading",
+          "current_path": "docs/project-rules.md",
+          "current_heading": "当前责任",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/project-rules.md"
+        },
+        {
+          "old_heading": "0.166.0 源码证据",
+          "handling": "same_heading",
+          "current_path": "docs/project-rules.md",
+          "current_heading": "0.166.0 源码证据",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/project-rules.md"
+        },
+        {
+          "old_heading": "操作边界",
+          "handling": "same_heading",
+          "current_path": "docs/project-rules.md",
+          "current_heading": "操作边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/project-rules.md"
+        },
+        {
+          "old_heading": "已确认的原生限制契约",
+          "handling": "same_heading",
+          "current_path": "docs/project-rules.md",
+          "current_heading": "已确认的原生限制契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/project-rules.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/protocol-baseline.md",
+      "classification": "current",
+      "baseline_sha256": "fc37b79df809e07e5f28f744d278dff05a9d94199a338a8da6d03efacb3883e0",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "W01 协议与依赖证据",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/protocol-baseline.md",
+          "current_heading": "协议、依赖与兼容基线",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/protocol-baseline.md"
+        },
+        {
+          "old_heading": "版本与重建",
+          "handling": "same_heading",
+          "current_path": "docs/protocol-baseline.md",
+          "current_heading": "版本与重建",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/protocol-baseline.md"
+        },
+        {
+          "old_heading": "维护与许可证",
+          "handling": "same_heading",
+          "current_path": "docs/protocol-baseline.md",
+          "current_heading": "维护与许可证",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/protocol-baseline.md"
+        },
+        {
+          "old_heading": "连接与接口边界",
+          "handling": "same_heading",
+          "current_path": "docs/protocol-baseline.md",
+          "current_heading": "连接与接口边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/protocol-baseline.md"
+        },
+        {
+          "old_heading": "微信参考冻结",
+          "handling": "same_heading",
+          "current_path": "docs/protocol-baseline.md",
+          "current_heading": "微信参考冻结",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/protocol-baseline.md"
+        },
+        {
+          "old_heading": "ASK01：结构化异步补充",
+          "handling": "same_heading",
+          "current_path": "docs/protocol-baseline.md",
+          "current_heading": "ASK01：结构化异步补充",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/protocol-baseline.md"
+        },
+        {
+          "old_heading": "0.167.0 兼容核验",
+          "handling": "same_heading",
+          "current_path": "docs/protocol-baseline.md",
+          "current_heading": "0.167.0 兼容核验",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/protocol-baseline.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/reference/architecture-from-screenshots.md",
+      "classification": "reference",
+      "baseline_sha256": "bf2efef86cac5a7a483a3d4bc012e96cb65a8660b1ab763df3b432ed8f7200d0",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/state-schema.md",
+      "classification": "current",
+      "baseline_sha256": "6649cd218d61ac4d27913e54b14fd738e58588cab19d698009ee749805c27d40",
+      "handling": "scoped_fact_correction",
+      "section_destinations": [
+        {
+          "old_heading": "运行账本版本与升级",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "运行账本版本与升级",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        },
+        {
+          "old_heading": "版本 2 到 3：图片附件",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "版本 2 到 3：图片附件",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        },
+        {
+          "old_heading": "版本 1 到 2",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "版本 1 到 2",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        },
+        {
+          "old_heading": "状态与恢复不变量",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "状态与恢复不变量",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        },
+        {
+          "old_heading": "输出、容量与保留期",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "输出、容量与保留期",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        },
+        {
+          "old_heading": "验证范围",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "验证范围",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        },
+        {
+          "old_heading": "PERF01 候选版本 3 到 4",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "PERF01 候选版本 3 到 4",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        },
+        {
+          "old_heading": "REC01 候选版本 4 到 5",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "REC01 候选版本 4 到 5",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        },
+        {
+          "old_heading": "ASK01 已确认施工契约",
+          "handling": "same_heading",
+          "current_path": "docs/state-schema.md",
+          "current_heading": "ASK01 已确认施工契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/state-schema.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/technical-decisions.md",
+      "classification": "current",
+      "baseline_sha256": "4c4bb3218b3ba1175eeb3460030dc55a22ae70601c67b326ccf89dc1e9188945",
+      "handling": "restructured_current",
+      "section_destinations": [
+        {
+          "old_heading": "wx-clawbot 技术选型与决策记录",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "wx-clawbot 技术选型与架构决策记录（ADR）",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md",
+          "current_topics": "ADR-01 至 ADR-09；T01 至 T10 映射表；历史来源"
+        },
+        {
+          "old_heading": "1. 选型结论",
+          "handling": "same_heading",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "1. 选型结论",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md"
+        },
+        {
+          "old_heading": "2. 为什么调整草稿中的 Go",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "ADR-01：以 Python 单进程集成 I/O",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md",
+          "current_topics": "ADR-01 至 ADR-09；T01 至 T10 映射表；历史来源"
+        },
+        {
+          "old_heading": "3. 设计输入时的静态快照",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "历史来源与维护",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md",
+          "current_topics": "ADR-01 至 ADR-09；T01 至 T10 映射表；历史来源"
+        },
+        {
+          "old_heading": "4. Codex：优先接入共享运行时",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "ADR-02：控制同一既有原生对象，分离宿主来源",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md",
+          "current_topics": "ADR-01 至 ADR-09；T01 至 T10 映射表；历史来源"
+        },
+        {
+          "old_heading": "5. iTerm2 SDK 与依赖审查",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/protocol-baseline.md",
+          "current_heading": "维护与许可证",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md",
+          "current_topics": "ADR-01 至 ADR-09；T01 至 T10 映射表；历史来源"
+        },
+        {
+          "old_heading": "6. 微信文本通道的证据与范围",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "ADR-04：最小微信协议适配与独立身份",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md",
+          "current_topics": "ADR-01 至 ADR-09；T01 至 T10 映射表；历史来源"
+        },
+        {
+          "old_heading": "7. 本机目录与生命周期",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/operations.md",
+          "current_heading": "安装与准备",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md",
+          "current_topics": "ADR-01 至 ADR-09；T01 至 T10 映射表；历史来源"
+        },
+        {
+          "old_heading": "8. 设计输入时的未决项与开工条件（历史）",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "历史来源与维护",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md",
+          "current_topics": "ADR-01 至 ADR-09；T01 至 T10 映射表；历史来源"
+        },
+        {
+          "old_heading": "REC01：按证据释放占用",
+          "handling": "same_heading",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "REC01：按证据释放占用",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md"
+        },
+        {
+          "old_heading": "ASK01 已确认施工契约",
+          "handling": "same_heading",
+          "current_path": "docs/technical-decisions.md",
+          "current_heading": "ASK01 已确认施工契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/validation/admission-recovery.json",
+      "classification": "history",
+      "baseline_sha256": "609902f9c312a37809f7ed5fe974c0afcefe56bf4c72875463ad7662a6b8e247",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/admission-recovery.md",
+      "classification": "history",
+      "baseline_sha256": "c6ded89c826417a00337d8d235564b847503ed644d4154e3bf3cc5760fa823a8",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/admission-recovery.patch",
+      "classification": "history",
+      "baseline_sha256": "197f5c7de6f980a9ef94c7cbf0d23f95606d4438de5be9aa0369096662f74889",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/ask01-publication.json",
+      "classification": "history",
+      "baseline_sha256": "5d7125946501474be49d8bc7954ee8d46a0887fdaaa76c563c73080108329517",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/ask01-publication.md",
+      "classification": "history",
+      "baseline_sha256": "e56acc79020784c3740e5e59a6c9fd126b59e5e8f3a87ab5052522bc48c1bb80",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/async-questions.json",
+      "classification": "history",
+      "baseline_sha256": "02080fd922533290a0779588387f5297567061914541e63bc70f580385a2a182",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/async-questions.md",
+      "classification": "history",
+      "baseline_sha256": "be62bf48bef886a1a63ed0912a9d6a0afa600a6180e4d15209c89b1efa9bd812",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/aud01-local-deployment.json",
+      "classification": "history",
+      "baseline_sha256": "daa40dc58b83a392da8ffddd88e3cc3f2f964754a9aa5561492015a9c6e4e637",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/aud01-local-deployment.md",
+      "classification": "history",
+      "baseline_sha256": "6fe22a73ab1dcea56b74b7d35b6455cd43c3e74a02a2cb4d355f958d5b09aab5",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/aud01-publication.json",
+      "classification": "history",
+      "baseline_sha256": "7e7f12eead1ff17282a234b18cca42e9a2fe40c33f520151850af5cf0c7c0643",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/aud01-publication.md",
+      "classification": "history",
+      "baseline_sha256": "624671614ae6a734f69386ee363d49d96bc842cd4107cf47c8597f043c8b1a01",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/bridge-supervision.json",
+      "classification": "history",
+      "baseline_sha256": "609682389e47cd3f066e3b64025f2febf69e82d3167b7b528745bdf0c3353af2",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/bridge-supervision.md",
+      "classification": "history",
+      "baseline_sha256": "0f36a728f1132c5e5aa6a6fef7ce9f2ce1f4d915d85b6918fb8c6667335d5371",
+      "handling": "historical_scope_banner_only",
+      "section_destinations": [
+        {
+          "old_heading": "微信桥接进程恢复与托管",
+          "handling": "same_heading",
+          "current_path": "docs/validation/bridge-supervision.md",
+          "current_heading": "微信桥接进程恢复与托管",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/validation/bridge-supervision.md"
+        },
+        {
+          "old_heading": "已确认的故障与恢复",
+          "handling": "same_heading",
+          "current_path": "docs/validation/bridge-supervision.md",
+          "current_heading": "已确认的故障与恢复",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/validation/bridge-supervision.md"
+        },
+        {
+          "old_heading": "本次实施契约",
+          "handling": "same_heading",
+          "current_path": "docs/validation/bridge-supervision.md",
+          "current_heading": "本次实施契约",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/validation/bridge-supervision.md"
+        },
+        {
+          "old_heading": "实施结果",
+          "handling": "same_heading",
+          "current_path": "docs/validation/bridge-supervision.md",
+          "current_heading": "实施结果",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/validation/bridge-supervision.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/validation/codex-0165.json",
+      "classification": "history",
+      "baseline_sha256": "4acd0792bad05361326332cbf826a69aac4ccda28d3a4dfc98baf03d62598fd4",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/codex-0166.json",
+      "classification": "history",
+      "baseline_sha256": "7d81da1294ad6db542944c95eba88d039be18fc65154d75c2aefc86f2ad2fc63",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/codex-0167-release.json",
+      "classification": "history",
+      "baseline_sha256": "995e286f5f945d53b1eaa7b950a61e24231ef40a8412bbfa2af8680e7ae68714",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/codex-0167-release.md",
+      "classification": "history",
+      "baseline_sha256": "0a91f9cebe268f9bda797c333de9e4e0a6b8442b54c77bf77346deef2d6e00cc",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/codex-0167.json",
+      "classification": "history",
+      "baseline_sha256": "4284e559043cb05734b72715e1b0814dd90c3acf595a82b9a589f4e965cb9d8d",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/config-drift-20261025.md",
+      "classification": "history",
+      "baseline_sha256": "b3cbfaffeb5755fcc969e75b2c0bbfd220136922d73b9d4388aceffef3a5a107",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/context-recovery.json",
+      "classification": "history",
+      "baseline_sha256": "c9846e458b045c52a8c6b96bf96db6e53ba6c7c77a80bd7693069829af190af4",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/eng01-publication.json",
+      "classification": "history",
+      "baseline_sha256": "40aec35e074474ff812fff90af9fce2b44751ac8ff82ba2a469f7527fb979f59",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/eng01-publication.md",
+      "classification": "history",
+      "baseline_sha256": "afe46782936484fdb573cb941980c829686cfd2a4e8112f39677326b5448eecc",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/engineering-hardening.json",
+      "classification": "history",
+      "baseline_sha256": "bcefa109d10610d5774fbd2ce99b5de263c75a0bbec30da11c7e16a4cf087a67",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/engineering-hardening.md",
+      "classification": "history",
+      "baseline_sha256": "095cfe955a69775e39c576ecd3716e0a6a30187bed8216803dcb508cba47d1ba",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/host-lifecycle-recovery.json",
+      "classification": "history",
+      "baseline_sha256": "b3dd4d90aef5785edcd6f52038aa771ac8328ac856cde78a0c35b3457faa549b",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/host-lifecycle-recovery.md",
+      "classification": "history",
+      "baseline_sha256": "db249851ee0e7bbc10fbf1e1b6dad0822e4c8ba4c5a20880ed18809ded93ebde",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/image-input.json",
+      "classification": "history",
+      "baseline_sha256": "588ea0f12f320fdbcd6f6083a1bf1e7c8f44058ad00879ab46c22d25981ca9a3",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/image-input.md",
+      "classification": "history",
+      "baseline_sha256": "c20d4eef3916d086d2bc45dc95c187696d28b3fea39900e554e42291c0cdb469",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/iterm-cold-start-investigation.md",
+      "classification": "history",
+      "baseline_sha256": "b819967d828cc3d4f054fd56b9f4da2d03c5e76f11f3c0c4a04469631a2467e2",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/iterm-cold-start-live.json",
+      "classification": "history",
+      "baseline_sha256": "2bbb087bd24d3b60dd92bc8d36d3112664232eaedd45add1dd2ecf17ba9e990e",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/iterm-cold-start-live.md",
+      "classification": "history",
+      "baseline_sha256": "03c07ff1182ba6ca0ae424f1ba736377adb0ffe6c3707a566ed22afef1586f0b",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/iterm-cold-start-release.json",
+      "classification": "history",
+      "baseline_sha256": "f9a57fbb7ee483499afe5bc6d6463039b9636f4f9d6ce30d47c3b820375d6cbd",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/iterm-cold-start-release.md",
+      "classification": "history",
+      "baseline_sha256": "1d88fb59f181e8ac9751f2efdfcf0341220b59240edc559b12c6912900002d19",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/local-release.json",
+      "classification": "history",
+      "baseline_sha256": "207203bbe18090af2e3136681f53456f7152fe33663c99d6e25eb478ddb5c059",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/local-release.md",
+      "classification": "history",
+      "baseline_sha256": "2f5210248f620a0590165c9d1835d001d9e7207b40389c07e7d48db5971956bf",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/mit-license.json",
+      "classification": "history",
+      "baseline_sha256": "b7094c102f33cfde079b4eaf3d79fff1c69ac806e53dd7ce3b1ed0ea6dcc5b80",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/mit-license.md",
+      "classification": "history",
+      "baseline_sha256": "d5dbd9e1683c6cf320e12597ff8e26efd076dd1560c774a0e1b38378a8477ffc",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/native-diagnostics-rules.json",
+      "classification": "history",
+      "baseline_sha256": "926db175d61081b5583922caa6b8e3156bbe3e0b63472ff0d0940734d2f9491b",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/native-diagnostics-rules.md",
+      "classification": "history",
+      "baseline_sha256": "ede2210a4001148c53dbb4a2fcc97d49f20ce16e43538a1d6fb916bc6f6b57e5",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/native-session-no-footer.json",
+      "classification": "history",
+      "baseline_sha256": "f66db11cfac6e59c15607ce82e0675b53cf910ca02623ac0bc065c6171e8d985",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/native-session-no-footer.md",
+      "classification": "history",
+      "baseline_sha256": "39214d3bd15557a0453175d2aaa6ef2dd16139245662079159622dff23f568a3",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/native-session-release.json",
+      "classification": "history",
+      "baseline_sha256": "6e66ba4df2c784849cfc587897e4be87a191f874552808e9b6c97e829450edf5",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/native-session-release.md",
+      "classification": "history",
+      "baseline_sha256": "b3f0cd450cc4f050964236eebe7c96b25d60c6ba576cb808e13f89b60fbd00ab",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/performance-optimization-manifest.json",
+      "classification": "history",
+      "baseline_sha256": "4258e96b5e1fa711d7d4058d3ff068c95b30a2ce73ffc517f24770f4ced770d0",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/performance-optimization.json",
+      "classification": "history",
+      "baseline_sha256": "1c523a0ccea2203ae8c2b2080f43089e85e13c9ef493580da2771da95d83e738",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/performance-optimization.md",
+      "classification": "history",
+      "baseline_sha256": "e82079119cd9e10e03f164e588a62bd4be41c14541a4332e3a5fbf16f10c4916",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/performance-optimization.patch",
+      "classification": "history",
+      "baseline_sha256": "ce96e8912694a41f482f2c4d89863016b92a9321a5b67c1455e1f74fb3849387",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/project-closeout.md",
+      "classification": "history",
+      "baseline_sha256": "adb921a4ad8e4e4cc60396d65af94d75e3a39bddc36e4c5d40c2c9fde11cf436",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/rec01-publication.json",
+      "classification": "history",
+      "baseline_sha256": "654d7904b371dc16c56ad2f1b59436e99d4f498c1dd23fbebfe3b5d2e9b8215e",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/rec01-publication.md",
+      "classification": "history",
+      "baseline_sha256": "6ebc81ce610e2dec9ba354a63a04362f0be32898af4a49d957f3bc4591224a44",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/thread-identity-alternatives.md",
+      "classification": "history",
+      "baseline_sha256": "0daa1ed74631facb9e394b9a622e0776447399f05a405a3553299c63a2163962",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w02.json",
+      "classification": "history",
+      "baseline_sha256": "f4e9ea2b70429a45fecae3e74a388dc4fc4e88113a1d16ce37865aa50693607f",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w02.md",
+      "classification": "history",
+      "baseline_sha256": "a29131216bc25eacba19063cbe0a20999b523e7902a697eee8d4615c8d14855a",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w03.json",
+      "classification": "history",
+      "baseline_sha256": "a461bf30abbd7e88f40a0cb8d2ce62d619f126b23ca6bc74b6548a5fe6aea0f7",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w03.md",
+      "classification": "history",
+      "baseline_sha256": "1deb6361bc2b50f205892cddfd35d140eb206d791e7686f9029e1c85090936e7",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w04.md",
+      "classification": "history",
+      "baseline_sha256": "68f2103ae026cdac37b46187f7914c88e20fa94e76e56e6f35d71dabf11d1927",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w05.json",
+      "classification": "history",
+      "baseline_sha256": "2d19bae7e57cf40c604c59c84a51c7c3d75b50e665834aaf53fdcb0d94f526a9",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w05.md",
+      "classification": "history",
+      "baseline_sha256": "45df23976e483638f60d17c3175ed2c2a7c082a4daf90b3c3708bd3845f4294b",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w06.json",
+      "classification": "history",
+      "baseline_sha256": "59f372f4403e6a9c39f093f5ee3959150b78b1bf9370b56c1181f5b158ca12db",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w06.md",
+      "classification": "history",
+      "baseline_sha256": "be252a500056649ce11d0495a7674528fefb5ce72f363205ae5611e51d4e44ba",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w07.json",
+      "classification": "history",
+      "baseline_sha256": "4124a5e67523abb354a48dd518912bd3ef51fcdb19e46ffa03f031dca3033c5c",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w07.md",
+      "classification": "history",
+      "baseline_sha256": "8ca4460188664b29c6e9da2dd92ebf970ee920b32567861851b4e36220625692",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/w08.md",
+      "classification": "history",
+      "baseline_sha256": "123ca2baa42af0b3f64e8b033688413beb376adc404d03ea30e995ef8a3b6425",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/wechat-independent-release.json",
+      "classification": "history",
+      "baseline_sha256": "3bb9d97553f2b01dfbcb3c5fb4ac2874c4e0c60dde015d11194e9c9d05c13d88",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/wechat-independent-release.md",
+      "classification": "history",
+      "baseline_sha256": "c71327997884d303f959d6ee9876bd515e101c90e924de666e2d432e4b6722b6",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/wechat-independent-target.json",
+      "classification": "history",
+      "baseline_sha256": "e7b376f1a6fb33dabe6f4b118170b7ca7956d69ddae7b0427b26b81f9cfa51e0",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/wechat-independent-target.md",
+      "classification": "history",
+      "baseline_sha256": "05569634c64392b78c760b96ef595291e1b4693a9587bf4f797c4e338a989bfb",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/wechat-markdown.json",
+      "classification": "history",
+      "baseline_sha256": "e6a7be3ff2770e1812475a0aaaa8d68ca432dfac0e7978c9a5a0fb058ea4b3b3",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/validation/wechat-markdown.md",
+      "classification": "history",
+      "baseline_sha256": "7d7048f9081a9adf13473ed5e24dcb1667fb383751e98675ddb5ecf907897603",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "docs/wechat-markdown.md",
+      "classification": "current",
+      "baseline_sha256": "64558b10a2e6f86f68abc861d6364d606c05dcc35f657a08a15b0dc5d09b74f4",
+      "handling": "scoped_fact_correction",
+      "section_destinations": [
+        {
+          "old_heading": "微信出站 Markdown 排版",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-markdown.md",
+          "current_heading": "微信出站 Markdown 排版",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-markdown.md"
+        },
+        {
+          "old_heading": "格式与兼容规则",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-markdown.md",
+          "current_heading": "格式与兼容规则",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-markdown.md"
+        },
+        {
+          "old_heading": "长消息与复制",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-markdown.md",
+          "current_heading": "长消息与复制",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-markdown.md"
+        },
+        {
+          "old_heading": "入账、历史与运行边界",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-markdown.md",
+          "current_heading": "入账、历史与运行边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-markdown.md"
+        },
+        {
+          "old_heading": "自测与人工验收",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-markdown.md",
+          "current_heading": "自测与人工验收",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-markdown.md"
+        },
+        {
+          "old_heading": "PERF01 性能边界",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-markdown.md",
+          "current_heading": "PERF01 性能边界",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-markdown.md"
+        },
+        {
+          "old_heading": "已验收环境",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-markdown.md",
+          "current_heading": "已验收环境",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-markdown.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/wechat-protocol.md",
+      "classification": "current",
+      "baseline_sha256": "c7da4e25dcb421102fa82f6ff8981420c1abccc9ae434ae52f325a1d6036629c",
+      "handling": "scoped_fact_correction",
+      "section_destinations": [
+        {
+          "old_heading": "微信通道协议与联调入口",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-protocol.md",
+          "current_heading": "微信通道协议与联调入口",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-protocol.md"
+        },
+        {
+          "old_heading": "请求字段与本项目选择",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-protocol.md",
+          "current_heading": "请求字段与本项目选择",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-protocol.md"
+        },
+        {
+          "old_heading": "身份、去重、游标和回复上下文",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-protocol.md",
+          "current_heading": "身份、去重、游标和回复上下文",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-protocol.md"
+        },
+        {
+          "old_heading": "前台扫码与本人联调",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-protocol.md",
+          "current_heading": "前台扫码与本人联调",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-protocol.md"
+        },
+        {
+          "old_heading": "新增二维码依赖",
+          "handling": "same_heading",
+          "current_path": "docs/wechat-protocol.md",
+          "current_heading": "新增二维码依赖",
+          "immutable_original": "https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/wechat-protocol.md"
+        }
+      ]
+    },
+    {
+      "path": "docs/wechat-reference.json",
+      "classification": "reference",
+      "baseline_sha256": "d74e5964ccfb347a982f43c1cce32345f51ba9132a3c82fd8d29e97d0e1dfc00",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261024-1644-w00-bootstrap.md",
+      "classification": "history",
+      "baseline_sha256": "c2345c20fade4d028103c61f54405d99e6364ed71bae36ae3c55385144016047",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261024-1648-w01-protocol-baseline.md",
+      "classification": "history",
+      "baseline_sha256": "1308c399b8271e74eb903154ba74b50b5f6161b2149e4937498b6b8fe1649bb0",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261024-1653-w02-native-session.md",
+      "classification": "history",
+      "baseline_sha256": "280714922bb936d8c155d1cf0a5fb5d761fe86dc7cee87a15276549d404764ab",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261024-2145-w03-interactions-queue.md",
+      "classification": "history",
+      "baseline_sha256": "55658e11f4d9b85cba25414ddc7fbdd7d6ed989b34ccc6ce7ac55412de5fe3e6",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261025-0050-w04-wechat-text.md",
+      "classification": "history",
+      "baseline_sha256": "cab8a87b420b8eb1a59452b1d5b3b2bf76351e9dc3647592420a8de8449eb304",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261025-0906-w05-project-routing.md",
+      "classification": "history",
+      "baseline_sha256": "2b1ada1b7a471d81e2f598fa99e137b351a02e8db1419b09956f34a4337cd246",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261025-1702-w06-recovery-delivery.md",
+      "classification": "history",
+      "baseline_sha256": "f916cbaacc6db0ab0a06874e01cc93141dd1b88d51c573c12982f0fe0b474e7e",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261025-2134-w07-foreground-operations.md",
+      "classification": "history",
+      "baseline_sha256": "f675bc5d6236287e92fb99bcb901c3178a334bc743fe0270278df186b42992b6",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261025-2148-w08-product-acceptance.md",
+      "classification": "history",
+      "baseline_sha256": "e7c020efc3308168c5d2bacf3d5186a2af2eaf7fbd09b1bb027999f2c9be761b",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261028-1135-image-input.md",
+      "classification": "history",
+      "baseline_sha256": "61c29269a2451846f09e7fac32c6474ea7ea28fdab44482f6862a5ef73fb1b20",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261029-1038-host-lifecycle-recovery.md",
+      "classification": "history",
+      "baseline_sha256": "f39f30bfd16b6ce3015e30083a91b89b2ef95b354c1ddf8ccd5f4d31e3b7057f",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261029-1217-wechat-markdown-rendering.md",
+      "classification": "history",
+      "baseline_sha256": "a257690af26aba7cc6135cbfa938e8f58dc0c89754e74b8c4ee52e73351b5cdc",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261031-2132-performance-optimization.md",
+      "classification": "history",
+      "baseline_sha256": "b015589db1ab272c866e14f0a013e320def4220264c2eaae455b9501f832480e",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261103-0020-admission-recovery-closeout.md",
+      "classification": "history",
+      "baseline_sha256": "ea08aef6d7b422f55fb811c2c766556ffb2f962fb8a46f00f22bc5dba7574159",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261103-1038-async-question-bridge.md",
+      "classification": "history",
+      "baseline_sha256": "2ea0f993b5c14703aeb3b2b7562aa84fe25168e91a00bddd691030ff968fc2cb",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261103-2356-engineering-hardening.md",
+      "classification": "history",
+      "baseline_sha256": "06a7328012d0ac9879f134eda9bc48cbd5d8bfb76fe08855ab4327dfb8c4d1b2",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261104-2338-native-diagnostics-rules.md",
+      "classification": "history",
+      "baseline_sha256": "2ca694476020c64279b6eb4eef0cff937802b86e0b976f707dbca038243993df",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261107-1027-wechat-independent-target.md",
+      "classification": "history",
+      "baseline_sha256": "b08dea5e6f1e9f85ea6054fa563b035b6d2d0220ab4864887e4262a4208b480c",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261107-1453-native-session-no-footer.md",
+      "classification": "history",
+      "baseline_sha256": "e59017cbf494b2ef162ca559e80e0faf8927201095d2aa5cc424ea700e1a0b40",
+      "handling": "unchanged",
+      "section_destinations": []
+    },
+    {
+      "path": "goals/20261108-0130-project-documentation-restructure.md",
+      "classification": "history",
+      "baseline_sha256": "c7ca34188c12df3342bae67751b86427cb9b5843a91e7de40ae0335362135588",
+      "handling": "current_goal_execution_record",
+      "section_destinations": [
+        {
+          "old_heading": "DOC01：MVP 交付后的项目文档全面整理",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "DOC01：MVP 交付后的项目文档全面整理"
+        },
+        {
+          "old_heading": "状态、目标与本轮授权",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "状态、目标与本轮授权"
+        },
+        {
+          "old_heading": "已知基线与核对入口",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "已知基线与核对入口"
+        },
+        {
+          "old_heading": "外部结构参考与采用原则",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "外部结构参考与采用原则"
+        },
+        {
+          "old_heading": "产品能力与工程边界",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "产品能力与工程边界"
+        },
+        {
+          "old_heading": "文档职责、目标内容与维护位置",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "文档职责、目标内容与维护位置"
+        },
+        {
+          "old_heading": "PRD 专项施工与验收要求",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "PRD 专项施工与验收要求"
+        },
+        {
+          "old_heading": "架构图专项施工与验收要求",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "架构图专项施工与验收要求"
+        },
+        {
+          "old_heading": "跨文档一致性核对办法",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "跨文档一致性核对办法"
+        },
+        {
+          "old_heading": "分阶段检查点",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "分阶段检查点"
+        },
+        {
+          "old_heading": "自测与核对矩阵",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "自测与核对矩阵"
+        },
+        {
+          "old_heading": "最终验收标准",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "最终验收标准"
+        },
+        {
+          "old_heading": "完成后的交付文档与证据",
+          "handling": "same_heading",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "完成后的交付文档与证据"
+        },
+        {
+          "old_heading": "本轮计划编制的交付范围",
+          "handling": "topic_restructured_with_immutable_original",
+          "current_path": "goals/20261108-0130-project-documentation-restructure.md",
+          "current_heading": "历史：计划编制阶段的交付范围"
+        }
+      ]
+    },
+    {
+      "path": "goals/implementation-plan.md",
+      "classification": "history",
+      "baseline_sha256": "5cc254b7d2cf09f8f149baa5364423bf6982d806f6bfcc7afc6fa7a4d86f4c07",
+      "handling": "unchanged",
+      "section_destinations": []
+    }
+  ],
+  "fact_ledger": [
+    {
+      "id": "K01",
+      "topic": "版本与数据格式",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "应用 0.1.8、schema 6、路由快照 2 分别管理",
+      "authority": "docs/state-schema.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "pyproject.toml",
+        "src/wx_clawbot/schema.py",
+        "src/wx_clawbot/controller.py"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "ROADMAP.md",
+        "docs/operations.md",
+        "docs/async-questions.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K02",
+      "topic": "会话与原生身份",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "完整 runtime／thread／native session／cwd、loaded；宿主来源可选",
+      "authority": "docs/native-session-identity.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/sessions.py",
+        "src/wx_clawbot/catalog.py",
+        "tests/test_native_identity.py"
+      ],
+      "reviewed_consumers": [
+        "AGENTS.md",
+        "README.md",
+        "docs/product-design.md",
+        "docs/architecture-design.md",
+        "docs/development-contracts.md",
+        "docs/image-input.md",
+        "docs/async-questions.md",
+        "docs/project-rules.md",
+        "docs/operations.md",
+        "SECURITY.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K03",
+      "topic": "微信独立选择",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "桌面切换不改投，目标在接收时固定，失效明确拒绝",
+      "authority": "docs/command-contract-proposal.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/routing.py",
+        "src/wx_clawbot/controller.py",
+        "tests/test_independent_target.py",
+        "docs/validation/native-session-no-footer.md"
+      ],
+      "reviewed_consumers": [
+        "AGENTS.md",
+        "README.md",
+        "docs/product-design.md",
+        "docs/architecture-design.md",
+        "docs/native-session-identity.md",
+        "docs/operations.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K04",
+      "topic": "输入与观察",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "focus／managed 与 observer 独立，send 单次，detach 只退订",
+      "authority": "docs/command-contract-proposal.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/subscriptions.py",
+        "src/wx_clawbot/routing.py",
+        "tests/test_subscriptions.py"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "docs/product-design.md",
+        "docs/architecture-design.md",
+        "docs/operations.md",
+        "docs/image-input.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K05",
+      "topic": "列表／发现范围",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "sessions 清输入目标；精确注册 cwd，不递归，完整有界发现",
+      "authority": "docs/native-session-identity.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/catalog.py",
+        "src/wx_clawbot/routing.py",
+        "tests/test_native_target_lifecycle.py"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "docs/command-contract-proposal.md",
+        "docs/product-design.md",
+        "docs/operations.md",
+        "docs/architecture-design.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K06",
+      "topic": "可见创建",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "持久化 launch、自有 boot、唯一非派生 completed 握手，未知不重建",
+      "authority": "docs/development-contracts.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/hosts/visible.py",
+        "src/wx_clawbot/launcher.py",
+        "tests/test_visible_launch.py",
+        "docs/validation/native-session-no-footer.md"
+      ],
+      "reviewed_consumers": [
+        "AGENTS.md",
+        "README.md",
+        "docs/product-design.md",
+        "docs/architecture-design.md",
+        "docs/operations.md",
+        "docs/technical-decisions.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K07",
+      "topic": "排队／取消",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "原生队列权威，桌面专用 queue，取消须各自确认",
+      "authority": "docs/desktop-queue-contract.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/agents/queue.py",
+        "src/wx_clawbot/execution.py",
+        "tests/test_native_queue.py",
+        "docs/validation/w03.md"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "docs/product-design.md",
+        "docs/architecture-design.md",
+        "docs/development-contracts.md",
+        "docs/operations.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K08",
+      "topic": "结果／占用／投递",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "独立状态；unknown 不重放，严格证据释放占用不伪结果",
+      "authority": "docs/state-schema.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/runtime_state.py",
+        "src/wx_clawbot/occupancy.py",
+        "src/wx_clawbot/admission_recovery.py",
+        "tests/test_admission_recovery.py"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "docs/product-design.md",
+        "docs/architecture-design.md",
+        "docs/development-contracts.md",
+        "docs/command-contract-proposal.md",
+        "docs/operations.md",
+        "SECURITY.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K09",
+      "topic": "同步与异步",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "同步原生裁决、回答数组；异步原 turn 补充、q 键字符串，无首答独占",
+      "authority": "docs/async-questions.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/interactions.py",
+        "src/wx_clawbot/async_questions.py",
+        "tests/test_async_questions.py",
+        "docs/validation/async-questions.md"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "docs/product-design.md",
+        "docs/architecture-design.md",
+        "docs/development-contracts.md",
+        "docs/command-contract-proposal.md",
+        "docs/operations.md",
+        "docs/protocol-baseline.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K10",
+      "topic": "版本与能力",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "原生核心、图片代码／schema、真实原生、手机和异步门禁分别说明",
+      "authority": "docs/protocol-baseline.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/agents/codex.py",
+        "src/wx_clawbot/async_questions.py",
+        "tests/fixtures/codex-contract.json",
+        "docs/validation/codex-0167.json",
+        "docs/validation/host-lifecycle-recovery.md"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "docs/product-design.md",
+        "docs/image-input.md",
+        "docs/async-questions.md",
+        "docs/testing.md",
+        "docs/operations.md",
+        "docs/requirements-traceability.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K11",
+      "topic": "图片与客户端",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "单静态图／文本结果，混合图文后置，Android 与 Mac 证据分层",
+      "authority": "docs/image-input.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/channels/messages.py",
+        "src/wx_clawbot/images.py",
+        "tests/test_image_messages.py",
+        "docs/validation/image-input.md",
+        "docs/validation/wechat-markdown.md"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "docs/product-design.md",
+        "docs/wechat-protocol.md",
+        "docs/wechat-markdown.md",
+        "docs/testing.md",
+        "docs/protocol-baseline.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K12",
+      "topic": "原生规则和全局设置",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "不保证刷新／检测／自动阻断，旧单次配置授权不持续生效",
+      "authority": "docs/project-rules.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "AGENTS.md",
+        "docs/validation/native-diagnostics-rules.md",
+        "goals/20261024-1653-w02-native-session.md",
+        "goals/20261025-0906-w05-project-routing.md"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "docs/product-design.md",
+        "docs/architecture-design.md",
+        "docs/development-contracts.md",
+        "docs/technical-decisions.md",
+        "SECURITY.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K13",
+      "topic": "实际接口与账本",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "小型 Protocol，真实 13 表，概念模型不冒充 API／DDL",
+      "authority": "docs/development-contracts.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/agents/base.py",
+        "src/wx_clawbot/routing.py",
+        "src/wx_clawbot/channels/messages.py",
+        "src/wx_clawbot/schema.py"
+      ],
+      "reviewed_consumers": [
+        "docs/architecture-design.md",
+        "docs/state-schema.md",
+        "docs/development.md",
+        "docs/requirements-traceability.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K14",
+      "topic": "部署／进程／备份",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "managed 同进程调用 serve，独立 release；回退代码不覆盖新数据",
+      "authority": "docs/operations.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "src/wx_clawbot/managed.py",
+        "src/wx_clawbot/service.py",
+        "src/wx_clawbot/release.py",
+        "config/launchd.example.plist",
+        "scripts/build_release.py"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "AGENTS.md",
+        "docs/architecture-design.md",
+        "docs/development.md",
+        "docs/testing.md",
+        "docs/technical-decisions.md",
+        "SECURITY.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K15",
+      "topic": "许可与安全范围",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "自有 MIT 不改依赖授权，无全机沙箱或安全认证／披露 SLA",
+      "authority": "SECURITY.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "LICENSE",
+        "THIRD_PARTY_NOTICES.md",
+        "src/wx_clawbot/channels/private.py",
+        "src/wx_clawbot/channels/http.py"
+      ],
+      "reviewed_consumers": [
+        "AGENTS.md",
+        "README.md",
+        "docs/product-design.md",
+        "docs/protocol-baseline.md",
+        "docs/technical-decisions.md",
+        "docs/operations.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    },
+    {
+      "id": "K16",
+      "topic": "文档权威与历史",
+      "scope": "0.1.8 文档基线；证据按各自历史版本和类型，不是本次重验",
+      "fact": "AGENTS 管规则，ROADMAP 管进度，历史按版本保存",
+      "authority": "docs/README.md",
+      "requirements_basis": "PRD／AGENTS／既有本人确认契约",
+      "implementation_tests_or_scoped_evidence": [
+        "AGENTS.md",
+        "goals/20261108-0130-project-documentation-restructure.md"
+      ],
+      "reviewed_consumers": [
+        "README.md",
+        "ROADMAP.md",
+        "docs/product-design.md",
+        "docs/testing.md",
+        "docs/development.md",
+        "docs/technical-decisions.md"
+      ],
+      "review": "需求、实现和证据范围逐项人工核对，消费者修正后复查",
+      "status": "verified"
+    }
+  ],
+  "conflict_ledger": [
+    {
+      "id": "C01",
+      "fact_id": "K01",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/state-schema.md",
+        "baseline_line": 5,
+        "claim_excerpt": "当前代码 `0.1.3`"
+      },
+      "location_b": {
+        "path": "pyproject.toml",
+        "claim_or_symbol": "0.1.8"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "旧当前版本与包元数据不一致",
+      "evidence": [
+        "pyproject.toml",
+        "src/wx_clawbot/schema.py",
+        "src/wx_clawbot/controller.py"
+      ],
+      "resolution": "改为 0.1.8，schema／快照分别解释",
+      "changed_files": [
+        "docs/state-schema.md",
+        "docs/async-questions.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C02",
+      "fact_id": "K02",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/technical-decisions.md",
+        "baseline_line": 119,
+        "claim_excerpt": "继续核验原进程、页脚 ID"
+      },
+      "location_b": {
+        "path": "docs/native-session-identity.md",
+        "claim_or_symbol": "派发不读页脚"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "旧恢复决策强制页脚与 TGT02 冲突",
+      "evidence": [
+        "src/wx_clawbot/sessions.py",
+        "src/wx_clawbot/catalog.py",
+        "tests/test_native_identity.py"
+      ],
+      "resolution": "ADR-02 明确替代旧映射，保留历史来源",
+      "changed_files": [
+        "docs/technical-decisions.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C03",
+      "fact_id": "K02",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/image-input.md",
+        "baseline_line": 10,
+        "claim_excerpt": "目标 Codex 状态栏显示完整"
+      },
+      "location_b": {
+        "path": "docs/native-session-identity.md",
+        "claim_or_symbol": "不读取页脚"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "图片使用前提误要求显示 ID",
+      "evidence": [
+        "src/wx_clawbot/sessions.py",
+        "src/wx_clawbot/catalog.py",
+        "tests/test_native_identity.py"
+      ],
+      "resolution": "改为准确原生身份／加载／订阅，失败说明同改",
+      "changed_files": [
+        "docs/image-input.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C04",
+      "fact_id": "K02",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/async-questions.md",
+        "baseline_line": 21,
+        "claim_excerpt": "新答案完整复验原 terminal"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/async_questions.py",
+        "claim_or_symbol": "catalog.require"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "异步新输入仍要求宿主／可见身份",
+      "evidence": [
+        "src/wx_clawbot/sessions.py",
+        "src/wx_clawbot/catalog.py",
+        "tests/test_native_identity.py"
+      ],
+      "resolution": "按原生身份、代次和准确 turn，宿主来源可选",
+      "changed_files": [
+        "docs/async-questions.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C05",
+      "fact_id": "K12",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/project-rules.md",
+        "baseline_line": 7,
+        "claim_excerpt": "桥接核验原终端进程、可见 thread"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/sessions.py",
+        "claim_or_symbol": "verify_binding"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "规则责任混入已取消显示门禁",
+      "evidence": [
+        "AGENTS.md",
+        "docs/validation/native-diagnostics-rules.md",
+        "goals/20261024-1653-w02-native-session.md",
+        "goals/20261025-0906-w05-project-routing.md"
+      ],
+      "resolution": "保留原生限制、纠正身份前置",
+      "changed_files": [
+        "docs/project-rules.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C06",
+      "fact_id": "K10",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/protocol-baseline.md",
+        "baseline_line": 19,
+        "claim_excerpt": "当前图片准入为 0.165.0／0.166.0"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/agents/codex.py",
+        "claim_or_symbol": "0.167.0"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "代码准入与旧指南版本范围不一致",
+      "evidence": [
+        "src/wx_clawbot/agents/codex.py",
+        "src/wx_clawbot/async_questions.py",
+        "tests/fixtures/codex-contract.json",
+        "docs/validation/codex-0167.json",
+        "docs/validation/host-lifecycle-recovery.md"
+      ],
+      "resolution": "矩阵分代码／schema／原生／手机，保留 0.167 专项未测",
+      "changed_files": [
+        "docs/protocol-baseline.md",
+        "docs/image-input.md",
+        "README.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C07",
+      "fact_id": "K11",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/wechat-protocol.md",
+        "baseline_line": 28,
+        "claim_excerpt": "新版 runtime 支持一张静态 JPEG／PNG 及同消息图文"
+      },
+      "location_b": {
+        "path": "docs/validation/image-input.md",
+        "claim_or_symbol": "本人明确要求同消息图文暂不完成"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "解析能力被写成产品手机交付",
+      "evidence": [
+        "src/wx_clawbot/channels/messages.py",
+        "src/wx_clawbot/images.py",
+        "tests/test_image_messages.py",
+        "docs/validation/image-input.md",
+        "docs/validation/wechat-markdown.md"
+      ],
+      "resolution": "分清解析与已交付单图，保留同消息图文后置",
+      "changed_files": [
+        "docs/wechat-protocol.md",
+        "docs/product-design.md",
+        "docs/image-input.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C08",
+      "fact_id": "K12",
+      "origin": "baseline",
+      "location_a": {
+        "path": "AGENTS.md",
+        "baseline_line": 10,
+        "claim_excerpt": "本次施工获准新增"
+      },
+      "location_b": {
+        "path": "docs/native-session-identity.md",
+        "claim_or_symbol": "不修改全局显示设置"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "旧单次授权成为常驻执行规范",
+      "evidence": [
+        "AGENTS.md",
+        "docs/validation/native-diagnostics-rules.md",
+        "goals/20261024-1653-w02-native-session.md",
+        "goals/20261025-0906-w05-project-routing.md"
+      ],
+      "resolution": "改为历史指针与不自动修改的稳定边界",
+      "changed_files": [
+        "AGENTS.md",
+        "docs/product-design.md",
+        "SECURITY.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C09",
+      "fact_id": "K03",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/architecture-design.md",
+        "baseline_line": 25,
+        "claim_excerpt": "原终端继续运行，微信作为远程入口"
+      },
+      "location_b": {
+        "path": "docs/native-session-identity.md",
+        "claim_or_symbol": "终端改 ID 或退出不自动改变微信目标"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "旧终端中心叙事误约束准确原生选择",
+      "evidence": [
+        "src/wx_clawbot/routing.py",
+        "src/wx_clawbot/controller.py",
+        "tests/test_independent_target.py",
+        "docs/validation/native-session-no-footer.md"
+      ],
+      "resolution": "当前五视图分离原生对象与可选宿主，旧稿固定提交保存",
+      "changed_files": [
+        "docs/architecture-design.md",
+        "docs/product-design.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C10",
+      "fact_id": "K12",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/product-design.md",
+        "baseline_line": 197,
+        "claim_excerpt": "路径正确、规则分别读取"
+      },
+      "location_b": {
+        "path": "docs/project-rules.md",
+        "claim_or_symbol": "不承诺逐轮"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "P02／旧规则文字可能导出逐轮加载保证",
+      "evidence": [
+        "AGENTS.md",
+        "docs/validation/native-diagnostics-rules.md",
+        "goals/20261024-1653-w02-native-session.md",
+        "goals/20261025-0906-w05-project-routing.md"
+      ],
+      "resolution": "P02 明确原生限制，规则变化需本人新建复验",
+      "changed_files": [
+        "docs/product-design.md",
+        "docs/requirements-traceability.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C11",
+      "fact_id": "K13",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/development-contracts.md",
+        "baseline_line": 95,
+        "claim_excerpt": "建议内部方法"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/agents/base.py",
+        "claim_or_symbol": "class AgentAdapter"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "概念接口可能被当作现有 API",
+      "evidence": [
+        "src/wx_clawbot/agents/base.py",
+        "src/wx_clawbot/routing.py",
+        "src/wx_clawbot/channels/messages.py",
+        "src/wx_clawbot/schema.py"
+      ],
+      "resolution": "列真实类／方法／能力，具体 Codex 队列独立类",
+      "changed_files": [
+        "docs/development-contracts.md",
+        "docs/architecture-design.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C12",
+      "fact_id": "K13",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/development-contracts.md",
+        "baseline_line": 187,
+        "claim_excerpt": "建议最小表：projects、sessions"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/schema.py",
+        "claim_or_symbol": "V1_COLUMNS"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "建议表与实际结构混杂",
+      "evidence": [
+        "src/wx_clawbot/agents/base.py",
+        "src/wx_clawbot/routing.py",
+        "src/wx_clawbot/channels/messages.py",
+        "src/wx_clawbot/schema.py"
+      ],
+      "resolution": "当前 13 表、逻辑关联与实际外键分明，配置／目录不造表",
+      "changed_files": [
+        "docs/state-schema.md",
+        "docs/development-contracts.md",
+        "docs/architecture-design.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C13",
+      "fact_id": "K08",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/architecture-design.md",
+        "baseline_line": 103,
+        "claim_excerpt": "这些是待确认默认值"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/retention.py",
+        "claim_or_symbol": "days"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "已实现容量／保留期还称实施前待确认",
+      "evidence": [
+        "src/wx_clawbot/runtime_state.py",
+        "src/wx_clawbot/occupancy.py",
+        "src/wx_clawbot/admission_recovery.py",
+        "tests/test_admission_recovery.py"
+      ],
+      "resolution": "数值以当前账本和身份专题维护，PRD 仅区分限制／样本／目标",
+      "changed_files": [
+        "docs/architecture-design.md",
+        "docs/product-design.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C14",
+      "fact_id": "K08",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/development-contracts.md",
+        "baseline_line": 142,
+        "claim_excerpt": "received -> submitting"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/runtime_state.py",
+        "claim_or_symbol": "dispatching"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "建议状态名与真实状态名不一致",
+      "evidence": [
+        "src/wx_clawbot/runtime_state.py",
+        "src/wx_clawbot/occupancy.py",
+        "src/wx_clawbot/admission_recovery.py",
+        "tests/test_admission_recovery.py"
+      ],
+      "resolution": "明确 prepared／received／dispatching／stopping／unknown 及三类独立状态",
+      "changed_files": [
+        "docs/development-contracts.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C15",
+      "fact_id": "K16",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/development-contracts.md",
+        "baseline_line": 225,
+        "claim_excerpt": "本次允许对既有确认本人绑定进行一次即时旧上下文观察"
+      },
+      "location_b": {
+        "path": "docs/validation/w08.md",
+        "claim_or_symbol": "上下文收尾"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "旧单次观察／候选 MD01 状态混入长期当前契约",
+      "evidence": [
+        "AGENTS.md",
+        "goals/20261108-0130-project-documentation-restructure.md"
+      ],
+      "resolution": "保留日期证据与固定原稿，当前手册明确旧额度不继承",
+      "changed_files": [
+        "docs/development-contracts.md",
+        "docs/operations.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C16",
+      "fact_id": "K16",
+      "origin": "baseline",
+      "location_a": {
+        "path": "ROADMAP.md",
+        "baseline_line": 13,
+        "claim_excerpt": "TGT01 微信独立选择已随 0.1.7"
+      },
+      "location_b": {
+        "path": "docs/validation/native-session-release.md",
+        "claim_or_symbol": "0.1.8"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "当前阶段堆叠多次已流转发布叙事",
+      "evidence": [
+        "AGENTS.md",
+        "goals/20261108-0130-project-documentation-restructure.md"
+      ],
+      "resolution": "收敛当前快照和历史索引，不删除版本证据",
+      "changed_files": [
+        "ROADMAP.md",
+        "docs/README.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C17",
+      "fact_id": "K16",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/wechat-markdown.md",
+        "baseline_line": 7,
+        "claim_excerpt": "当前生产已加载列表兼容修正版，512 项"
+      },
+      "location_b": {
+        "path": "docs/validation/native-session-release.md",
+        "claim_or_symbol": "756"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "旧客户端阶段数量／生产就绪被误读为实时状态",
+      "evidence": [
+        "AGENTS.md",
+        "goals/20261108-0130-project-documentation-restructure.md"
+      ],
+      "resolution": "明确 MD01 当时样本与当前版本／部署源分离",
+      "changed_files": [
+        "docs/wechat-markdown.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C18",
+      "fact_id": "K14",
+      "origin": "implementation_self_review",
+      "location_a": {
+        "path": "docs/architecture-design.md",
+        "baseline_line": null,
+        "claim_excerpt": "managed 监督父进程"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/managed.py",
+        "claim_or_symbol": "code = cli_main"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "整改初稿错误画成 managed／serve 两常驻进程",
+      "evidence": [
+        "src/wx_clawbot/managed.py",
+        "src/wx_clawbot/service.py",
+        "src/wx_clawbot/release.py",
+        "config/launchd.example.plist",
+        "scripts/build_release.py"
+      ],
+      "resolution": "按源码改为同进程入口，重渲染 F02 并视觉核验",
+      "changed_files": [
+        "docs/architecture-design.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C19",
+      "fact_id": "K06",
+      "origin": "implementation_self_review",
+      "location_a": {
+        "path": "docs/architecture-design.md",
+        "baseline_line": null,
+        "claim_excerpt": "完整身份／loaded／订阅及当前活动核验"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/execution.py",
+        "claim_or_symbol": "async def dispatch"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "整改初稿订阅与持久化时序粒度不准确",
+      "evidence": [
+        "src/wx_clawbot/hosts/visible.py",
+        "src/wx_clawbot/launcher.py",
+        "tests/test_visible_launch.py",
+        "docs/validation/native-session-no-footer.md"
+      ],
+      "resolution": "F04 先 received／准入再订阅复验，F05 创建与回执顺序校正，重渲染",
+      "changed_files": [
+        "docs/architecture-design.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C20",
+      "fact_id": "K05",
+      "origin": "implementation_self_review",
+      "location_a": {
+        "path": "docs/command-contract-proposal.md",
+        "baseline_line": null,
+        "claim_excerpt": "managed 模式不等同 focused"
+      },
+      "location_b": {
+        "path": "src/wx_clawbot/routing.py",
+        "claim_or_symbol": "self.target, self.mode = None"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "整改初稿将 sessions 清目标范围写窄",
+      "evidence": [
+        "src/wx_clawbot/catalog.py",
+        "src/wx_clawbot/routing.py",
+        "tests/test_native_target_lifecycle.py"
+      ],
+      "resolution": "源代码核对后统一说明 managed／focused 都清输入目标，观察保留",
+      "changed_files": [
+        "docs/command-contract-proposal.md",
+        "README.md",
+        "docs/product-design.md",
+        "docs/operations.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C21",
+      "fact_id": "K02",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/command-contract-proposal.md",
+        "baseline_line": 27,
+        "claim_excerpt": "完整核验当前终端与原生身份"
+      },
+      "location_b": {
+        "path": "docs/native-session-identity.md",
+        "claim_or_symbol": "宿主来源可选"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "HOST01 长期命令段残留强制终端核验",
+      "evidence": [
+        "src/wx_clawbot/sessions.py",
+        "src/wx_clawbot/catalog.py",
+        "tests/test_native_identity.py"
+      ],
+      "resolution": "当前既有对象只需原生完整身份，旧宿主证据保留历史范围",
+      "changed_files": [
+        "docs/command-contract-proposal.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    },
+    {
+      "id": "C22",
+      "fact_id": "K16",
+      "origin": "baseline",
+      "location_a": {
+        "path": "docs/validation/bridge-supervision.md",
+        "baseline_line": 3,
+        "claim_excerpt": "当前已部署"
+      },
+      "location_b": {
+        "path": "docs/validation/native-session-release.md",
+        "claim_or_symbol": "0.1.8"
+      },
+      "scope": "同一当前能力／文档基线；历史差异不倒改",
+      "impact": "旧验证补充未限定当前时点，可能被误作最新部署",
+      "evidence": [
+        "AGENTS.md",
+        "goals/20261108-0130-project-documentation-restructure.md"
+      ],
+      "resolution": "只加阶段范围提示及当前进度／运维入口，原正文逐字保持",
+      "changed_files": [
+        "docs/validation/bridge-supervision.md"
+      ],
+      "recheck": "按权威事实及全部现行消费者逐主题复查；修改后复查图／例子／链接",
+      "status": "closed"
+    }
+  ],
+  "unresolved_current_high_impact_conflicts": 0,
+  "review_rounds": [
+    {
+      "round": 1,
+      "method": "逐批对已确认产品边界、源码、测试、历史范围核对",
+      "result": "passed"
+    },
+    {
+      "round": 2,
+      "method": "正文形成后冻结主题台账，核对所有现行消费者，登记剩余冲突及整改自查错误",
+      "result": "passed"
+    },
+    {
+      "round": 3,
+      "method": "修正后复查身份／版本／列表／图／示例／历史和机械检查；最后文档写入后再跑检查",
+      "result": "passed"
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "F01",
+      "source_sha256": "76194c7d133196cd4a7ef4b9b1600206979f07c5acfd54b613f52a7749d7442d",
+      "svg_sha256": "0b092274615211813cce843290675fd098088be93fa7bdd3e4bfa82cfb27d94e",
+      "png_sha256": "2b04a25d407c4773765e29d524657fe593861123636b3c8db834c7c86ad9ab1f",
+      "svg_bytes": 29866,
+      "svg_xml": "passed",
+      "source_match": true,
+      "embedded_fonts": false
+    },
+    {
+      "id": "F02",
+      "source_sha256": "b47e1a9c8d66acbaaea03ae2540de5f4911d49bf43e373e28b74b66a54511ac6",
+      "svg_sha256": "7d1337fdabccee09321fd9121e337e60c04227069957b638dea6690e9bf98c0c",
+      "png_sha256": "1b13e56118f1ae679e441fd11cda83ff68a8f8c1104f9ef7b71802e31892605c",
+      "svg_bytes": 31582,
+      "svg_xml": "passed",
+      "source_match": true,
+      "embedded_fonts": false
+    },
+    {
+      "id": "F03",
+      "source_sha256": "932eeb15cd1f221fcab2be5fbaa52b5b6a6dbbd8a9425b65bdc94942f06683c7",
+      "svg_sha256": "4074effa0f2ebf33323fcd40e9f86b7f3f6dd6e9e17151f21da622ed1e14fc45",
+      "png_sha256": "8a3500bfaee0756fe2d41f4bec6858ea67719992a6e480ce71b2526c0107344f",
+      "svg_bytes": 36194,
+      "svg_xml": "passed",
+      "source_match": true,
+      "embedded_fonts": false
+    },
+    {
+      "id": "F04",
+      "source_sha256": "c7e4ac560e9c37320c05461bf17caee9c7e20c48d01ea86b8466bf96069547d9",
+      "svg_sha256": "69437f72e1db93f17ecc82e84c0371891fe9c230ce7773cccfe4f16a476c1f13",
+      "png_sha256": "f4f9570e2f29a03cdf55b517288bcbded848e1f877ec0f64865b24acadb7b573",
+      "svg_bytes": 44961,
+      "svg_xml": "passed",
+      "source_match": true,
+      "embedded_fonts": false
+    },
+    {
+      "id": "F05",
+      "source_sha256": "95563c824120cfe888d8ea3763cb10b59a38ac3a82996786cd1574e1e2902e7d",
+      "svg_sha256": "8b2576648995ca0c2f4cb7518ba226c134d932f7508ea3790eecbf1069dd295b",
+      "png_sha256": "d86745a03e3c2aa4737e96ec35053075129f6422015accee0628a61bfd6549f9",
+      "svg_bytes": 39513,
+      "svg_xml": "passed",
+      "source_match": true,
+      "embedded_fonts": false
+    }
+  ],
+  "render_tool": {
+    "mermaid_cli": "12.2.0",
+    "browser": "local Chrome headless dedicated temporary profile",
+    "font_embed": false,
+    "outputs": "five SVG delivery files and private PNG proof",
+    "visual_review": "F01 至 F05 实际打开 PNG，中文可读，箭头／边界／失败分支可辨，无裁切或遮挡；F02／F04／F05 修改后重渲染和复查",
+    "chrome": "156.0.8078.80",
+    "node": "v26.0.0",
+    "python": "Python 3.14.5"
+  },
+  "help_verification": {
+    "time": "2026-11-08T02:06:04.677406+08:00",
+    "help_only": true,
+    "commands": [
+      {
+        "command": "wx-clawbot --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot doctor --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot serve --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot status --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot stop --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot native-probe --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot migrate-state --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot maintain-state --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot retry-reply --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot admission-report --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot admission-release --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot wechat login --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot wechat bind --help",
+        "exit_code": 0
+      },
+      {
+        "command": "wx-clawbot wechat echo --help",
+        "exit_code": 0
+      },
+      {
+        "command": "-I scripts/build_release.py --help",
+        "exit_code": 0
+      },
+      {
+        "command": "-I -m wx_clawbot.release --help",
+        "exit_code": 0
+      }
+    ],
+    "passed": true,
+    "native_submissions": 0,
+    "wechat_sends": 0
+  },
+  "reader_tasks": [
+    {
+      "id": "R01",
+      "role": "使用者",
+      "task": "找到配置、本人绑定、前台或托管选择、首次既有／新建任务与失败处理",
+      "route": [
+        "README.md#快速开始",
+        "docs/operations.md#安装与准备",
+        "docs/wechat-protocol.md#前台扫码与本人联调",
+        "docs/command-contract-proposal.md#命令总表"
+      ],
+      "method": "实际沿入口阅读并对照模板、CLI help 和路由源码；未执行安装、登录或发任务",
+      "result": "passed",
+      "notes": "连续步骤齐备，说明 sessions 清目标、cd 可能创建、ID 无需显示和 unknown 不重发"
+    },
+    {
+      "id": "R02",
+      "role": "开发者",
+      "task": "准备隔离环境、找模块／合成样本、选择安全离线检查与提交前文档维护",
+      "route": [
+        "docs/README.md#阅读路线",
+        "docs/development.md#环境与安装",
+        "docs/development.md#合成数据与调试",
+        "docs/testing.md#默认离线检查",
+        "AGENTS.md"
+      ],
+      "method": "实际检查目录／测试入口、16 条 help、示例语法、数据和权限边界；未重新安装项目环境或跑全量功能测试",
+      "result": "passed",
+      "notes": "无需私人路径／生产状态即可接手；真实原生与手机验收显式分离"
+    },
+    {
+      "id": "R03",
+      "role": "维护者",
+      "task": "找到停止、备份、冻结发布、回退与 unknown 占用／投递处置",
+      "route": [
+        "docs/operations.md#启动查询与退出",
+        "docs/operations.md#备份账本升级与数据恢复",
+        "docs/operations.md#eng01独立运行制品与开发隔离",
+        "docs/operations.md#rec01-候选的准入诊断与受控切换",
+        "SECURITY.md"
+      ],
+      "method": "实际沿手册核对 CLI／build_release help、managed／release／schema 及 plist 模板；Python 备份例只语法解析，不操作真实库／服务",
+      "result": "passed",
+      "notes": "正常 stop 与启动一次、修改 argv 需重载 job、代码回退与数据恢复分明，无 force 清锁"
+    }
+  ],
+  "limitations": [
+    "本轮只修改文档及派生 SVG，未重新执行 756 项功能回归、真实原生／微信或部署验收；历史结果保留原范围。",
+    "未重新安装或运行实际服务、未实际演练生产备份／恢复；命令核对为 help／源码／模板及示例语法和读者纸面走查。",
+    "图已在本机独立无界面 Chrome 实际渲染及逐图查看；未声称所有外部 Markdown 渲染器像素相同，提供 SVG 备查。",
+    "0.167.0 图片手机整链路和结构化异步专项未验收，异步门禁未变；同消息图文、Mac 完整排版、自然上下文失效时点、暂停队列恢复仍保留原边界。",
+    "公开内容检查为本轮文档／SVG 的确定性模式与差异人工审阅，不声称完整安全审计；既有第三方许可与支持政策不变。"
+  ],
+  "scope": {
+    "business_source_changes": 0,
+    "test_source_changes": 0,
+    "configuration_changes": 0,
+    "native_submissions": 0,
+    "wechat_sends": 0,
+    "production_operations": 0,
+    "git_writes": 0,
+    "global_settings_changes": 0,
+    "delegation": false
+  },
+  "source_references": [
+    "https://www.atlassian.com/agile/product-management/requirements",
+    "https://arc42.org/overview/",
+    "https://c4model.com/diagrams",
+    "https://adr.github.io/"
+  ],
+  "checked_at": "2026-11-08T02:16:02.057859+08:00",
+  "self_tests": [
+    {
+      "id": "T01",
+      "status": "passed",
+      "result": "完整盘点 113 个原文件，逐文件处置／原章节去向保存在 inventory；十类文档及新增入口有唯一职责。",
+      "evidence": "inventory；docs/README.md"
+    },
+    {
+      "id": "T02",
+      "status": "passed",
+      "result": "PRD 十二类内容覆盖，合并于十节及文档信息／扩展契约；无空占位、假角色、审批或市场数据。",
+      "evidence": "docs/product-design.md"
+    },
+    {
+      "id": "T03",
+      "status": "passed",
+      "result": "P01 至 P14 稳定编号、七条旅程及失败反馈、模块／现有测试／版本化证据逐项映射。",
+      "evidence": "docs/requirements-traceability.md"
+    },
+    {
+      "id": "T04",
+      "status": "passed",
+      "result": "五类成功指标含口径／证据／限制，基准目标、当前容量与历史样本分明，无新遥测或 SLA。",
+      "evidence": "PRD 第 9 节；K01／K10"
+    },
+    {
+      "id": "T05",
+      "status": "passed",
+      "result": "B01 至 B12 全部核对，单用户本机／准确对话／媒体／非目标／未知保护保持。",
+      "evidence": "boundaries；fact_ledger"
+    },
+    {
+      "id": "T06",
+      "status": "passed",
+      "result": "五幅 Mermaid 实际解析渲染 SVG／PNG，逐图打开查看；改图后重渲染复查，无裁切／遮挡。",
+      "evidence": "diagrams；render_tool"
+    },
+    {
+      "id": "T07",
+      "status": "passed",
+      "result": "五视图按 managed／service／catalog／execution／visible 等源码核对，进程／模块／外部依赖清楚。",
+      "evidence": "K02／K06／K13／K14；C18／C19"
+    },
+    {
+      "id": "T08",
+      "status": "passed",
+      "result": "页脚／标题不参与原生路由，窗口退出不自动卸载或改投，不恢复 notLoaded。",
+      "evidence": "K02／K03；C02 至 C05／C21"
+    },
+    {
+      "id": "T09",
+      "status": "passed",
+      "result": "命令总表、sessions 清 managed／focused、send 单次、focus 与 observer、冻结目标一致。",
+      "evidence": "K03 至 K05；C20"
+    },
+    {
+      "id": "T10",
+      "status": "passed",
+      "result": "原生队列权威，TUI 专用入口、取消确认、暂停与子进程限制、unknown／占用分离一致。",
+      "evidence": "K07／K08"
+    },
+    {
+      "id": "T11",
+      "status": "passed",
+      "result": "同步回答数组与 q 键字符串、期限、裁决／补充及版本门禁分别核对。",
+      "evidence": "K09／K10"
+    },
+    {
+      "id": "T12",
+      "status": "passed",
+      "result": "兼容矩阵分代码／schema／真实原生／手机，同消息图文、Mac、图片输出边界明确。",
+      "evidence": "K10／K11；C06／C07／C17"
+    },
+    {
+      "id": "T13",
+      "status": "passed",
+      "result": "应用 0.1.8、schema 6、快照 2 对照源码；历史数量／版本有作用域。",
+      "evidence": "K01；C01／C16／C22"
+    },
+    {
+      "id": "T14",
+      "status": "passed",
+      "result": "实际 Protocol／类／方法与 13 表核对；逻辑关联不误报外键，旧建议状态改为实现枚举。",
+      "evidence": "K13；C11／C12／C14"
+    },
+    {
+      "id": "T15",
+      "status": "passed",
+      "result": "ADR-01 至 ADR-09 有记录日期／来源／状态／备选／理由／后果／重评及替代关系。",
+      "evidence": "docs/technical-decisions.md"
+    },
+    {
+      "id": "T16",
+      "status": "passed",
+      "result": "开发接手纸面走查及真实入口核对通过，环境、锁、目录、合成数据和检查路线完整。",
+      "evidence": "reader_tasks R02；help_verification"
+    },
+    {
+      "id": "T17",
+      "status": "passed",
+      "result": "默认离线、合成负载、真实原生、手机和部署验收分层；未重跑旧 756 项。",
+      "evidence": "docs/testing.md；limitations"
+    },
+    {
+      "id": "T18",
+      "status": "passed",
+      "result": "运维纸面走查，16 条 help／源码／plist 核对，备份示例只语法检查；无真实部署或恢复。",
+      "evidence": "reader_tasks R03；help_verification"
+    },
+    {
+      "id": "T19",
+      "status": "passed",
+      "result": "旧一次性授权改历史，路径非沙箱、安全存储不冒充加密，真实报告渠道与隐私扫描核对。",
+      "evidence": "K12／K15；SECURITY.md"
+    },
+    {
+      "id": "T20",
+      "status": "passed",
+      "result": "原 113 路径、41 个被引用片段保留；旧历史正文保留，唯一 scope banner 比较原文通过。",
+      "evidence": "inventory；original_history_body_preserved；original_referenced_anchors_preserved"
+    },
+    {
+      "id": "T21",
+      "status": "passed",
+      "result": "现有 documents 与新增根文档链接／JSON／SVG XML 检查通过。",
+      "evidence": "mechanical_checks"
+    },
+    {
+      "id": "T22",
+      "status": "passed",
+      "result": "16 事实逐主题三轮核对，22 个冲突全部有依据／修改／复查，现行高影响未关闭为零。",
+      "evidence": "fact_ledger；conflict_ledger；review_rounds"
+    },
+    {
+      "id": "T23",
+      "status": "passed",
+      "result": "使用者／开发者／维护者三条任务链实际阅读走查，均可从当前入口找到操作与失败处理。",
+      "evidence": "reader_tasks R01 至 R03"
+    },
+    {
+      "id": "T24",
+      "status": "passed",
+      "result": "ROADMAP 收敛当前快照，旧发布指向历史；两近期节数量、倒序和实际北京时间核对。",
+      "evidence": "ROADMAP.md；mechanical_checks"
+    },
+    {
+      "id": "T25",
+      "status": "passed",
+      "result": "diff、冲突标记、中文格式／私人路径／凭据模式和变更范围通过，仅文档及 SVG。",
+      "evidence": "mechanical_checks；scope"
+    },
+    {
+      "id": "T26",
+      "status": "passed",
+      "result": "D01 至 D08、Markdown／JSON／图摘要／台账范围一致；最后记录写入后复查受影响内容。",
+      "evidence": "deliverables；mechanical_checks；final_review"
+    }
+  ],
+  "boundaries": [
+    {
+      "id": "B01",
+      "status": "preserved",
+      "facts": "K03／K15",
+      "result": "本人、本机、Codex 与非目标保持"
+    },
+    {
+      "id": "B02",
+      "status": "preserved",
+      "facts": "K02／K03／K05",
+      "result": "原生会话不等于窗口，独立选择与准确发现"
+    },
+    {
+      "id": "B03",
+      "status": "preserved",
+      "facts": "K06",
+      "result": "可见来源及唯一握手，未知不替代"
+    },
+    {
+      "id": "B04",
+      "status": "preserved",
+      "facts": "K04／K07",
+      "result": "输入、观察和冻结队列分开"
+    },
+    {
+      "id": "B05",
+      "status": "preserved",
+      "facts": "K08",
+      "result": "结果／占用／投递分离，未知不重放"
+    },
+    {
+      "id": "B06",
+      "status": "preserved",
+      "facts": "K09",
+      "result": "同步／异步语义分开"
+    },
+    {
+      "id": "B07",
+      "status": "preserved",
+      "facts": "K10",
+      "result": "逐能力门禁与实测层级保持"
+    },
+    {
+      "id": "B08",
+      "status": "preserved",
+      "facts": "K11",
+      "result": "单图输入／文本输出，其他形态后置"
+    },
+    {
+      "id": "B09",
+      "status": "preserved",
+      "facts": "K12／K15",
+      "result": "原生规则限制和非沙箱说明"
+    },
+    {
+      "id": "B10",
+      "status": "preserved",
+      "facts": "K12",
+      "result": "旧单次全局配置授权非持续许可"
+    },
+    {
+      "id": "B11",
+      "status": "preserved",
+      "facts": "K01／K14",
+      "result": "版本对象、冻结制品和本机运行分开"
+    },
+    {
+      "id": "B12",
+      "status": "preserved",
+      "facts": "K10／K11／K15",
+      "result": "后置、未测、SLA 与许可边界保持"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "A01",
+      "status": "passed",
+      "evidence": "T01／T16 至 T18",
+      "result": "十类职责与真实入口完整"
+    },
+    {
+      "id": "A02",
+      "status": "passed",
+      "evidence": "T02／T04",
+      "result": "标准 PRD 裁剪与指标真实性"
+    },
+    {
+      "id": "A03",
+      "status": "passed",
+      "evidence": "T03",
+      "result": "需求全链追溯"
+    },
+    {
+      "id": "A04",
+      "status": "passed",
+      "evidence": "T06／T07",
+      "result": "五类实际渲染与图文实现一致"
+    },
+    {
+      "id": "A05",
+      "status": "passed",
+      "evidence": "T14／T15",
+      "result": "现行技术设计与 ADR"
+    },
+    {
+      "id": "A06",
+      "status": "passed",
+      "evidence": "T16 至 T18／T23",
+      "result": "开发／测试／安全／运维任务走查"
+    },
+    {
+      "id": "A07",
+      "status": "passed",
+      "evidence": "T05／T19",
+      "result": "B01 至 B12 无扩大"
+    },
+    {
+      "id": "A08",
+      "status": "passed",
+      "evidence": "T08 至 T14／T22",
+      "result": "当前重大冲突全部关闭"
+    },
+    {
+      "id": "A09",
+      "status": "passed",
+      "evidence": "T12／T13／T17",
+      "result": "版本和证据层级明确"
+    },
+    {
+      "id": "A10",
+      "status": "passed",
+      "evidence": "T20",
+      "result": "历史／编号／路径／被引用锚点保全"
+    },
+    {
+      "id": "A11",
+      "status": "passed",
+      "evidence": "T21／T25",
+      "result": "机械与公开内容检查"
+    },
+    {
+      "id": "A12",
+      "status": "passed",
+      "evidence": "T01／T24",
+      "result": "唯一职责、维护触发与当前进度"
+    },
+    {
+      "id": "A13",
+      "status": "passed",
+      "evidence": "T26",
+      "result": "D01 至 D08 实际交付及限制"
+    },
+    {
+      "id": "A14",
+      "status": "passed",
+      "evidence": "scope／final_review",
+      "result": "业务与运行零变更，无发布，必要验收满足"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "G00",
+      "status": "passed",
+      "evidence": "inventory／baseline",
+      "result": "准确基线和完整盘点"
+    },
+    {
+      "id": "G01",
+      "status": "passed",
+      "evidence": "AGENTS／docs/README",
+      "result": "规范先行与职责维护"
+    },
+    {
+      "id": "G02",
+      "status": "passed",
+      "evidence": "boundaries／fact_ledger",
+      "result": "产品边界、兼容与权威事实"
+    },
+    {
+      "id": "G03",
+      "status": "passed",
+      "evidence": "T02 至 T05",
+      "result": "标准 PRD、旅程、需求和指标"
+    },
+    {
+      "id": "G04",
+      "status": "passed",
+      "evidence": "T06／T07",
+      "result": "五图与当前实现"
+    },
+    {
+      "id": "G05",
+      "status": "passed",
+      "evidence": "T14／T15",
+      "result": "实际设计与 ADR"
+    },
+    {
+      "id": "G06",
+      "status": "passed",
+      "evidence": "T16 至 T19",
+      "result": "开发、测试、安全和当前运维"
+    },
+    {
+      "id": "G07",
+      "status": "passed",
+      "evidence": "T20／T24",
+      "result": "README／导航／进度／历史"
+    },
+    {
+      "id": "G08",
+      "status": "passed",
+      "evidence": "T22",
+      "result": "跨文档语义核对与冲突关闭"
+    },
+    {
+      "id": "G09",
+      "status": "passed",
+      "evidence": "T01 至 T26",
+      "result": "必要检查、纸面任务和隐私"
+    },
+    {
+      "id": "G10",
+      "status": "passed",
+      "evidence": "A01 至 A14／D01 至 D08",
+      "result": "交付齐备，关闭原生 Goal 后登记实际状态"
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "D01",
+      "status": "delivered",
+      "paths": [
+        "goals/20261108-0130-project-documentation-restructure.md"
+      ],
+      "description": "施工定义与逐项实际验收"
+    },
+    {
+      "id": "D02",
+      "status": "delivered",
+      "paths": [
+        "README.md",
+        "AGENTS.md",
+        "ROADMAP.md",
+        "docs/README.md"
+      ],
+      "description": "当前入口、规范、进度及维护"
+    },
+    {
+      "id": "D03",
+      "status": "delivered",
+      "paths": [
+        "docs/product-design.md"
+      ],
+      "description": "标准 PRD"
+    },
+    {
+      "id": "D04",
+      "status": "delivered",
+      "paths": [
+        "docs/architecture-design.md",
+        "docs/diagrams/architecture-F01.svg",
+        "docs/diagrams/architecture-F02.svg",
+        "docs/diagrams/architecture-F03.svg",
+        "docs/diagrams/architecture-F04.svg",
+        "docs/diagrams/architecture-F05.svg"
+      ],
+      "description": "五类图及代码职责"
+    },
+    {
+      "id": "D05",
+      "status": "delivered",
+      "paths": [
+        "docs/development-contracts.md",
+        "docs/technical-decisions.md",
+        "docs/protocol-baseline.md",
+        "docs/state-schema.md",
+        "docs/command-contract-proposal.md",
+        "docs/async-questions.md",
+        "docs/image-input.md",
+        "docs/project-rules.md",
+        "docs/wechat-protocol.md",
+        "docs/wechat-markdown.md"
+      ],
+      "description": "现行专题、接口、数据、决策与范围"
+    },
+    {
+      "id": "D06",
+      "status": "delivered",
+      "paths": [
+        "docs/development.md",
+        "docs/testing.md",
+        "SECURITY.md",
+        "docs/operations.md"
+      ],
+      "description": "接手、验证、安全与稳定运维"
+    },
+    {
+      "id": "D07",
+      "status": "delivered",
+      "paths": [
+        "docs/requirements-traceability.md",
+        "docs/protocol-baseline.md"
+      ],
+      "description": "需求证据链与兼容矩阵"
+    },
+    {
+      "id": "D08",
+      "status": "delivered",
+      "paths": [
+        "docs/validation/documentation-restructure.md",
+        "docs/validation/documentation-restructure.json"
+      ],
+      "description": "盘点／章节去向／台账／图／检查／读者走查及限制"
+    }
+  ],
+  "mechanical_checks": {
+    "time": "2026-11-08T02:16:38.449167+08:00",
+    "checks": [
+      {
+        "check": "all_markdown_links_and_anchors",
+        "passed": true,
+        "files": 82,
+        "local_links": 973,
+        "problems": []
+      },
+      {
+        "check": "original_paths_preserved",
+        "passed": true,
+        "files": 113,
+        "missing": []
+      },
+      {
+        "check": "documentation_only",
+        "passed": true,
+        "changed": [
+          "AGENTS.md",
+          "README.md",
+          "ROADMAP.md",
+          "SECURITY.md",
+          "docs/README.md",
+          "docs/architecture-design.md",
+          "docs/async-questions.md",
+          "docs/command-contract-proposal.md",
+          "docs/development-contracts.md",
+          "docs/development.md",
+          "docs/diagrams/architecture-F01.svg",
+          "docs/diagrams/architecture-F02.svg",
+          "docs/diagrams/architecture-F03.svg",
+          "docs/diagrams/architecture-F04.svg",
+          "docs/diagrams/architecture-F05.svg",
+          "docs/image-input.md",
+          "docs/native-session-evidence.md",
+          "docs/operations.md",
+          "docs/product-design.md",
+          "docs/project-rules.md",
+          "docs/protocol-baseline.md",
+          "docs/requirements-traceability.md",
+          "docs/state-schema.md",
+          "docs/technical-decisions.md",
+          "docs/testing.md",
+          "docs/validation/bridge-supervision.md",
+          "docs/validation/documentation-restructure.json",
+          "docs/validation/documentation-restructure.md",
+          "docs/wechat-markdown.md",
+          "docs/wechat-protocol.md",
+          "goals/20261108-0130-project-documentation-restructure.md"
+        ],
+        "unexpected": []
+      },
+      {
+        "check": "original_history_body_preserved",
+        "passed": true,
+        "scope_banner_only": [
+          "docs/validation/bridge-supervision.md"
+        ],
+        "changed_body": []
+      },
+      {
+        "check": "original_referenced_anchors_preserved",
+        "passed": true,
+        "references": 41,
+        "errors": []
+      },
+      {
+        "check": "example_syntax_only",
+        "passed": true,
+        "python": 0,
+        "shell": 28,
+        "errors": []
+      },
+      {
+        "check": "public_content_patterns_and_conflict_markers",
+        "passed": true,
+        "findings": []
+      },
+      {
+        "check": "roadmap_最近完成",
+        "passed": true,
+        "count": 20
+      },
+      {
+        "check": "roadmap_最近验证",
+        "passed": true,
+        "count": 20
+      },
+      {
+        "check": "ids_P",
+        "passed": true,
+        "ids": [
+          "P01",
+          "P02",
+          "P03",
+          "P04",
+          "P05",
+          "P06",
+          "P07",
+          "P08",
+          "P09",
+          "P10",
+          "P11",
+          "P12",
+          "P13",
+          "P14"
+        ]
+      },
+      {
+        "check": "ids_T",
+        "passed": true,
+        "ids": [
+          "T01",
+          "T02",
+          "T03",
+          "T04",
+          "T05",
+          "T06",
+          "T07",
+          "T08",
+          "T09",
+          "T10",
+          "T11",
+          "T12",
+          "T13",
+          "T14",
+          "T15",
+          "T16",
+          "T17",
+          "T18",
+          "T19",
+          "T20",
+          "T21",
+          "T22",
+          "T23",
+          "T24",
+          "T25",
+          "T26"
+        ]
+      },
+      {
+        "check": "ids_A",
+        "passed": true,
+        "ids": [
+          "A01",
+          "A02",
+          "A03",
+          "A04",
+          "A05",
+          "A06",
+          "A07",
+          "A08",
+          "A09",
+          "A10",
+          "A11",
+          "A12",
+          "A13",
+          "A14"
+        ]
+      },
+      {
+        "check": "ids_B",
+        "passed": true,
+        "ids": [
+          "B01",
+          "B02",
+          "B03",
+          "B04",
+          "B05",
+          "B06",
+          "B07",
+          "B08",
+          "B09",
+          "B10",
+          "B11",
+          "B12"
+        ]
+      }
+    ],
+    "passed": true
+  },
+  "final_review": "全部必要验收、交付与最后文档检查通过，原生 Goal 已实际 complete；无须本人配合，未提交或部署。",
+  "semantic_fact_check": {
+    "result": "passed",
+    "facts": 16,
+    "conflicts_closed": 22,
+    "source_version_schema_snapshot_and_gates": true,
+    "section_destinations": true,
+    "diagram_source_matches": 5,
+    "product_code_changes": 0
+  },
+  "verified_document_sha256": {
+    "AGENTS.md": "da9e53e765cafa9a7b518677e62385c32166bbc058d3fe7be190df51bd4152ad",
+    "README.md": "57d8c34a05dcf6d902433d50f0fbc110ceb081601e3fb44cec51b04d4ade91fc",
+    "SECURITY.md": "b330014b85d60187cacbb0578425713d06a05cbd0a5b46a087d90332902b74be",
+    "docs/README.md": "f9dfffe545221cf669450df969c4f75e51110aa34a32d3966f3c4bad16174b3b",
+    "docs/architecture-design.md": "808709e59679c95ae21a949502e1565478d6b575932234493196bf723c5f75f1",
+    "docs/async-questions.md": "16c1f804c6aa94766bf453637e7ae5c5f999cad864f14f1e67e540344d5b64ab",
+    "docs/command-contract-proposal.md": "f6e99d27f2bbde914249782eb24cfe63f43e7a7691becc0d65e2c0ba6cfe9ee5",
+    "docs/development-contracts.md": "18fcd1664aac54b1bffd1ccb7ca03c9095ee1732ff58e0bc6fc2e4f4d02dd4e2",
+    "docs/development.md": "1392ed46bd1f75f156ce36cd999a2c478d89fcb1a5ef784e6075b7fda7bc272e",
+    "docs/diagrams/architecture-F01.svg": "0b092274615211813cce843290675fd098088be93fa7bdd3e4bfa82cfb27d94e",
+    "docs/diagrams/architecture-F02.svg": "7d1337fdabccee09321fd9121e337e60c04227069957b638dea6690e9bf98c0c",
+    "docs/diagrams/architecture-F03.svg": "4074effa0f2ebf33323fcd40e9f86b7f3f6dd6e9e17151f21da622ed1e14fc45",
+    "docs/diagrams/architecture-F04.svg": "69437f72e1db93f17ecc82e84c0371891fe9c230ce7773cccfe4f16a476c1f13",
+    "docs/diagrams/architecture-F05.svg": "8b2576648995ca0c2f4cb7518ba226c134d932f7508ea3790eecbf1069dd295b",
+    "docs/image-input.md": "e192852c9a6b726b5ca978713a93a14d6b69197917d5069c3eec021b6e5c142d",
+    "docs/native-session-evidence.md": "377b6eb91f9a72d0d5cd792b35bb690be00595849dd2b97897536559e82f9997",
+    "docs/operations.md": "2b8d8c077f33c5722bae888ca0ac5a54505c3ace832681dd51b2a53e65ad4da4",
+    "docs/product-design.md": "454954d3a31f921963936bd5a2461fdc30af085b33637b6fc96ef21c00a67d80",
+    "docs/project-rules.md": "b92c74c8c7fbbe7d6b2a6d5d1bfd576777827b95b2df45a8c4afc63a23fae6a2",
+    "docs/protocol-baseline.md": "4567db0660d0d1dab987c80fb727effbfb71db6661c55d988f8a3b22ad36030f",
+    "docs/requirements-traceability.md": "0bae27712a9c1d52177a82bcb97fba25abc34e8c5e0b96670e05b51cfa1d3944",
+    "docs/state-schema.md": "1f8ffcf506fabb369042cf1f089da15733c5fb01c9b91742090ad0d1d4c91295",
+    "docs/technical-decisions.md": "a4cd8f1d34fd900b337f24d24d428ac8f0f79ce94b0a35fa47d08db13f348970",
+    "docs/testing.md": "72c941219309033c0cf66678a167ae226cf8121f1c1679d78aec7f5d37068b0e",
+    "docs/validation/bridge-supervision.md": "61adda9628d55d87da7c68c6aecd897463ada0cf690dd541f9042f6fd109b170",
+    "docs/wechat-markdown.md": "bcc3e4b8b330bc37b5e4a0974ddb27dd4cdedecc40df3a756eb7fcf47551123f",
+    "docs/wechat-protocol.md": "602475d936a660bf2d905977fbf14a41440a57dd69cbb624726098ebae8e9f9f"
+  },
+  "goal_status": "complete",
+  "goal_completed_at": "2026-11-08T02:16:38.189727+08:00",
+  "goal_elapsed_seconds": 2135,
+  "final_record_recheck": {
+    "passed": true,
+    "scope": "关闭状态同步后重跑 documents、扩展文档检查和 diff；无正文、图或产品变更",
+    "time": "2026-11-08T02:16:38.449167+08:00"
+  }
+}

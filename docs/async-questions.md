@@ -1,6 +1,6 @@
 # ASK01 异步补充答复契约
 
-本文定义本人于 2026-11-03 接受的异步补充接口，已在本机 0.1.2／schema 6 加载；完整验收和实际状态见 [ROADMAP](../ROADMAP.md)，证据见[验证记录](validation/async-questions.md)。同步审批／追问的原生首答裁决保持原规则。
+本文定义本人于 2026-11-03 接受的异步补充接口；当时随 0.1.2／schema 6 交付，当前 0.1.9 沿用本契约并采用无读屏身份。完整验收和实际状态见 [ROADMAP](../ROADMAP.md)，证据见[验证记录](validation/async-questions.md)。同步审批／追问的原生首答裁决保持原规则。
 
 ## 能力边界与原生依据
 
@@ -18,7 +18,7 @@
 - `/answer <q-id> <单题文本>`，或多题 `/answer <q-id> {"q1":"答案一","q2":"答案二"}`。JSON 必须完整覆盖所有题键；拒绝重复 JSON 键、空答案、非法类型、单题超 4000 字符及组合超 32000 字符。不根据选项序号代选；自由补充不受选项文本限制。
 - 提示包含原项目、问题、选项、请求 ID、600 秒本地有效期，以及任务可能继续和跨端竞争说明。题目／选项放入确定性选长的代码围栏，作为字面内容展示；总提示超过 7000 字符不截断开放入口。单事件不超过 1 MiB，同一 turn 最多保留 256 个问题；同步与异步的活动记录共享 256 条／16 MiB，超限固定提示原终端处理，不能丢弃未结记录腾空间。
 - 本地有效期同时使用固定墙钟期限与进程内 monotonic 上界，时钟跳变不延长入口。过期只关闭入口，不取消任务、不释放占用，不推断原生问题已过期。
-- 新答案完整复验原 terminal／PID／启动／TTY／可见 thread／runtime／native session／cwd，以及当前代次和准确 turn。通知沿准确已核验订阅保留原目标，不因 focus／attach 切换改投。
+- 新答案完整复验准确 runtime／thread／native session／注册 cwd、加载状态、当前连接代次和准确 turn；宿主来源可选，不复验页脚或要求原 terminal 仍存在。通知沿准确已核验订阅保留原目标，不因 focus／attach 切换改投。
 
 | 状态 | 证据与含义 |
 | --- | --- |
@@ -47,6 +47,6 @@ schema 6 在 RuntimeState 的同一 SQLite 单写入执行器下增加 `async_qu
 
 ## 实施及验证入口
 
-状态持久化放在 `src/wx_clawbot/async_state.py`，协议校验／展示／Execution 协作放在 `src/wx_clawbot/async_questions.py`；不创建第二个消费者、daemon 或通道。基础测试继续 unittest，真实原生测试显式入口为 `tests/integration/async_questions_native.py`，120 秒本地负载为 `tests/integration/async_questions_load.py`；原生入口要求准确 owned case、显式确认和全新报告，不接入用户工作终端。当前代码版本为 0.1.3，沿用 ASK01 的 schema 6 和已核验异步协议。准备至清理的串联入口见[运维操作卡](operations.md#eng01本地检查性能与真实原生交接)。手机发送须另有准确内容与条数授权，API 接受和手机实收分列。
+状态持久化放在 `src/wx_clawbot/async_state.py`，协议校验／展示／Execution 协作放在 `src/wx_clawbot/async_questions.py`；不创建第二个消费者、daemon 或通道。基础测试继续 unittest，真实原生测试显式入口为 `tests/integration/async_questions_native.py`，120 秒本地负载为 `tests/integration/async_questions_load.py`；原生入口要求准确 owned case、显式确认和全新报告，不接入用户工作终端。当前代码版本为 0.1.9，沿用 schema 6；逐能力版本门禁见[协议矩阵](protocol-baseline.md)，其他原生版本不能沿用本页的专项通过结论。准备至清理的串联入口见[运维操作卡](operations.md#eng01本地检查性能与真实原生交接)。手机发送须另有准确内容与条数授权，API 接受和手机实收分列。
 
 示例：单题 `/answer q-<收到的准确 ID> PHONE_ALPHA`；多题 `/answer q-<收到的准确 ID> {"q1":"答案一","q2":"答案二"}`。不要发送尖括号占位符或自行猜 ID。`/status` 查看活动入口，`/status <原任务 ID>` 查看准确状态、题目摘要及原因。已结束问题需要补充时，由本人明确选择目标并发送新的普通任务，旧 `/answer` 不会自动启动它。

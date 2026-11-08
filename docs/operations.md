@@ -1,334 +1,236 @@
 # 前台使用与运维
 
-## TGT02：无状态栏 ID 候选与切换
+本手册描述当前稳定操作路线。默认状态根为用户的 `Library/Application Support/wx-clawbot/`；以下 `/absolute/path/...` 均为占位值，执行前替换为准确对象。前台、用户级托管和真实测试不可并行争用同一本人绑定／消费者。文档提供方法，不代替当次提交、部署、发送、数据修改或删除授权。
 
-TGT02 已完成真实原生验收，随后随 0.1.8 发布部署。当前日常独立非 editable 0.1.8／schema 6 已核对实际 argv／cwd／manifest 和父子来源，首次接入无需状态栏或标题 ID；[发布切换](validation/native-session-release.md)、[功能验收](validation/native-session-no-footer.md)、[身份与旧记录兼容](native-session-identity.md)分别记录证据。早期要求读页脚的旧版本记录保留为历史。
-
-候选从后台列出注册根与已知准确 cwd 内的已加载原生对话，不宣称正在某个窗口显示；无需状态栏或标题 ID。子目录不递归扫描，可先用 `/cd <已注册范围内的绝对目录>` 登记准确 cwd，再刷新 `/sessions`；注意 `/cd` 无受管匹配时按原契约可见新建。原生已加载且准确核验时，宿主不可用不阻塞已有对话派发；可见新建仍依赖 iTerm2。列表不完整、目标卸载或身份变化会明确拒绝，不重新开启 ID 排障，不从存档加载替代对象。
-
-显式真实复测仅限新意图和专用资源；以下相对命令在项目根执行。需要已有注册根信任与可用官方 SDK，不自动保存全局信任、发送微信消息或重启 daemon：
-
-```sh
-.venv/bin/python -I tests/integration/native_session_no_footer.py probe --case-dir .tmp/tgt02-new-round --confirm-dedicated
-.venv/bin/python -I tests/integration/native_session_no_footer_flow.py --case-dir .tmp/tgt02-new-round --confirm-dedicated
-```
-
-验收器用单进程 `--remote` 锁定既有 daemon，`-c tui.status_line=...` 从启动前隐藏 ID；读屏仅作隐藏／原生菜单断言，路由读取屏幕身份入口会主动报错。最多一个自有窗口、两个标签，使用合成 Inbox／Outbox 与隔离 SQLite。失败不重复 probe／flow；先只读核对准确意图和原生终态。若仅卡在退订后的延迟卸载，原工作均已 completed 且 phase 为 desktop_switch_verified，可用相同 flow 命令加 `--finish`；它只做卸载拒绝与自有空闲清理，不重放业务。仍未卸载则停止等待，不强制结束原生对象。
-
-后续发布和切换沿用以下操作卡，本次 0.1.8 已按相同顺序完成：
-
-1. 明确发布版本，更新包版本与受影响文档后重新冻结 wheel／lock／manifest，必要检查通过。本次 0.1.8 制品保存在私有 `.tmp/native-session-release-20261107/artifacts/`，原工程候选另存 `.tmp/native-session-no-footer/artifacts/`；以摘要区分，不原地覆盖旧 release。
-2. 对准确发布／部署对象取得本人授权；按 ENG01 从同一冻结 wheel 安装到新独立目录，先验证非 editable、父子解释器及 manifest，不用开发路径补包。
-3. 正常停止本项目原消费者，核对退出和发送状态，保存私有一致性账本备份、旧运行参数、manifest、任务／unknown／冻结 Outbox 摘要及全局配置摘要。schema 仍为 6，无迁移；不得覆盖备份清空原数据。
-4. 仅修改本项目托管入口至新解释器与 manifest，启动一次。核对唯一消费者、实际 argv／cwd、父子来源、包摘要、native ready 和准确路由；旧 v1 不能复验时保留诊断并提示重新选择，不按标题自动选 A 或 B。核对旧任务及 unknown 未重放、冻结回执未改写。
-5. 完成实际加载及本人日常操作验收后，再由本人选择是否用原 TUI 的 `/statusline` 隐藏 Thread ID／Session ID；该操作会保存 Codex 配置，须明确授权，桥接不会自动执行。隐藏不要求将 ID 移到标题。
-6. 失败时保持停止、保留当前账本和诊断，仅恢复兼容 schema 6 的旧独立制品及原托管参数，不能回灌旧数据库。旧代码不认识 v2 路由快照时保持未恢复并重新选择，不清库或改写 unknown；旧版首次选择仍需显示 ID。
-
-## AUD01：候选诊断与规则验收
-
-AUD01 已完成工程验收，规则责任采用本人明确接受的原生限制方案；日志修复已按后续授权切换到本机独立 0.1.4，见[本机切换](validation/aud01-local-deployment.md)。[交付记录](validation/native-diagnostics-rules.md) 和[机器摘要](validation/native-diagnostics-rules.json)记录准确验证范围。工程验收候选沿用 0.1.3／schema 6，后续 Git 交付版本为 0.1.4／schema 6，见[发布记录](validation/aud01-publication.md)；不同制品须核对各自 wheel／源码摘要，不能只凭版本字符串认定加载一致。
-
-候选托管日志接纳 native_unavailable，保留安全 error_type 及有界 error_types／classification_truncated。单调时钟每 60 秒窗口最多 10 条不同签名的故障明细，同签名只记首次；native ready 或后续窗口出现事件时，以 native_failures_suppressed／suppressed_count 汇总。进程异常退出前尚未汇总的内存计数不保证保留。过滤、容量、权限和轮转保持，不应为诊断放开原始异常输出。
-
-原生失败先核对安全类型、组件、版本和端点；异常组可看有界叶子分类，classification_truncated 表示非完整异常树。限频不代表恢复，需看 native ready 或准确健康状态；未知任务先对账，不重发。
-
-规则实验先由本人正常打开 iTerm2 并处理必要脚本授权；不重启 daemon、退出用户窗口或自动拉起应用。以下在候选检出执行，路径占位值替换为本次准确且尚无 case.json 的项目临时目录：
-
-```sh
-.venv/bin/python tests/integration/rules_native.py plan --case-dir /absolute/path/to/project/.tmp/aud01-owned
-.venv/bin/python tests/integration/rules_native.py prepare --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
-.venv/bin/python tests/integration/rules_native.py run --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
-.venv/bin/python tests/integration/rules_native.py boundaries --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
-.venv/bin/python tests/integration/rules_native.py report --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
-.venv/bin/python tests/integration/rules_native.py cleanup --case-dir /absolute/path/to/project/.tmp/aud01-owned --confirm-dedicated
-```
-
-工具仅接受已核对的 0.166.0，一个自有窗口、一个标签及临时项目。原始输出／身份留私有证据；run／boundaries 均不重放既有执行意图，失败先查准确结果；已有 case 不机械再次 prepare，活动任务或身份不符不自动 cleanup。原生三轮标记及六轮边界已实际完成，结果和限制见交付记录；这不代表已提供规则热更新。
-
-正式验收使用已冻结候选的解释器，并向父进程显式提供该候选的 WX_CLAWBOT_RELEASE_MANIFEST；prepare／run／cleanup 均沿用同一对象。例如替换准确路径后执行：
-
-```sh
-/usr/bin/env WX_CLAWBOT_RELEASE_MANIFEST=/absolute/path/to/candidate/release.json /absolute/path/to/candidate/.venv/bin/python -I tests/integration/rules_native.py prepare --case-dir /absolute/path/to/project/.tmp/aud01-frozen-owned --confirm-dedicated
-```
-
-测试子进程显式继承已验证父进程的 manifest，避免 GUI 会话残留另一个制品标识。明确开发调用无 manifest 时只清除本次测试子进程的残留值，不修改全局环境；这不授予正式制品身份。启动失败先看私有 startup-error，不通过删除 manifest 或放宽校验继续。
-
-真实连接故障回归使用同一候选解释器／manifest，将 action 改为 diagnostics、case-dir 指向全新项目临时目录。它建立独立空测试账本，只关闭自身的原生 WebSocket，并核对故障日志及新代次恢复；不创建终端、不提交任务、不连接微信。已有 runtime.sqlite3／报告会拒绝，不复用生产状态。本轮已真实通过 ConnectionLost 入日志及第二代连接 ready。
-
-早期两个失败启动均经准确端点缺席、无 boot 和完整原生列表核对后归档，未重放；最终冻结候选已完成九轮规则实验并安全清理。以后重测使用新意图；已有意图先 report 并核对准确终端／队列，保留 unknown。规则边界见[规则说明](project-rules.md)，没有通用 reload 命令。
-
-工程完成口径为候选修复及规则契约交付；本人后续明确授权的 0.1.4 本机切换现已完成，实际结果见上述本机记录。以后再次切换仍须准确授权。冻结 wheel、锁及 manifest 后，按下文 ENG01 操作卡安装到新 release 目录；沿用 schema 6，无迁移。正常停止、核对消费者与发送、变更本项目准确运行路径、启动一次并复核父子 manifest／单消费者／健康／旧数据。失败时恢复兼容 schema 6 的原独立制品和托管参数，保留当前账本，不覆盖备份、不重放任务、不重启 Codex／iTerm2。
-
-## iTerm2 冷启动连接
-
-0.1.5 在按需命令尚未建立宿主连接时，先用禁用授权 UI 的传输探测有界等待当前准确进程的 API；最多 5 秒，包含在原 15 秒连接期限内。进程更换、取消及非传输错误立即结束；后台不自动拉起应用，授权和可见会话创建不自动重试，未知操作不重放。准确交付状态、离线结果及待安排的真实冷启动验收见[调查与修复记录](validation/iterm-cold-start-investigation.md)。本机已按授权加载继承本修复并支持 0.167.0 核心协议的独立 0.1.6，准确发布与切换证据见[交付记录](validation/codex-0167-release.md)；仍须通过 manifest 核对实际制品。
+当前进度见 [ROADMAP](../ROADMAP.md)，版本能力见[协议矩阵](protocol-baseline.md)，数据结构见[账本](state-schema.md)。历史候选操作卡在本页末保留入口；旧 schema 的步骤不能直接用于当前库。
 
 ## 安装与准备
 
-在仓库根目录按 [README](../README.md) 安装项目虚拟环境。Python 限定 3.14，依赖使用哈希锁；不需要全局 Python 包。iTerm2 保持打开，设置中启用 Python API；首次连接可能需要允许本项目 Python 脚本。此 API 可操作终端，应只授权信任的脚本。
-
-在私有目录保存 `config.json`，按[配置模板](../config/config.example.json) 填写项目别名和真实绝对目录。默认运行目录为 `~/Library/Application Support/wx-clawbot/`，目录必须为本人所有的 `0700`，凭据、账本和实例记录为 `0600`。不要把真实配置放入仓库。扫码与本人绑定见[微信说明](wechat-protocol.md)；已有本项目本人绑定时直接复用，不读取其他项目凭据。
-
-普通 Shell 中先检查 `codex app-server daemon version`；必须是已经运行的原生 daemon。该命令会显示本机路径，不要把完整输出公开。桥接只读发现并核验既有 daemon，不自行安装、重启或更新它。原生 CLI／daemon 范围及候选／正式版本差别见 [README](../README.md)；历史探索见[原生证据](native-session-evidence.md)。
+1. 准备 Python 3.14、Git、已登录 Codex 的既有 daemon，以及用于可见新建的 iTerm2。开发环境安装见[开发指南](development.md)；日常托管使用下文独立非 editable 制品。
+2. 在本项目私有状态根准备 `config.json`，从[模板](../config/config.example.json)填写别名与真实绝对 root。注册范围不是系统沙箱。私有目录本人所有、0700，敏感文件 0600，不放仓库。
+3. 首次本人扫码和明确绑定按[微信指南](wechat-protocol.md#前台扫码与本人联调)执行；已有本项目绑定直接复用，不重新扫码覆盖，不读取其他项目凭据。诊断 echo 和 serve 不同时使用同一消费者。
+4. 在普通 Shell 只读查看 `codex app-server daemon version`。桥接不启动／升级 daemon，实际 app-server 版本须匹配协议矩阵；该输出可能含本机路径，不直接公开。
+5. 可见新建需要本人在 iTerm2 设置启用 Python API 并允许可信脚本。显式 `doctor --iterm2` 可能触发授权，不自动修改设置。
 
 ## 启动、查询与退出
 
-在新终端进入仓库根目录，替换私有配置占位路径：
+以下为明确的开发前台入口；正式托管解释器须来自独立 release：
 
 ```sh
-.venv/bin/wx-clawbot doctor --config /absolute/path/to/private/config.json --iterm2
+.venv/bin/wx-clawbot doctor --config /absolute/path/to/private/config.json
 .venv/bin/wx-clawbot serve --config /absolute/path/to/private/config.json
 ```
 
-`serve` 自动向 PATH 中的 Codex CLI 查询既有 daemon 的 socket 和原生可执行文件，再核验连接。GUI 包装脚本依赖 `node`，不能代替原生 Mach-O 可执行文件。若当前终端找不到 CLI，先修复该终端自己的 PATH；也可沿用 [README](../README.md) 的显式 `--socket`／`--codex-executable` 参数。`--codex-home` 默认为当前用户的 `.codex`，必须与连接的既有运行时相同。不会更换模型、覆盖配置或新建后台替代会话。
+自定义状态根时所有命令均传同一个 `--state-dir`。默认只读发现既有 daemon；必要时 serve 可显式指定 `--socket /absolute/path/to/native-control.sock --codex-executable /absolute/path/to/native/codex --codex-home /absolute/path/to/codex-home`。原生可执行文件必须匹配既有 daemon，不能用依赖 GUI PATH／node 的包装脚本替代。
 
-出现 `foreground_ready` 表示账本及微信入口已准备，不能据此认定会话可派发或任务执行成功。`capabilities` 另报 host／native；候选的既有对话要求 native ready 并逐次核验，宿主就绪另用于可见新建。stdout 只输出状态及错误分类，不输出消息正文、凭据或认证响应。直接运行 serve 不自动写日志文件，也不保证随启动终端或工具退出后继续存活；长期运行采用下文用户级托管。
-
-另一个普通 Shell 中运行：
+另一个普通 Shell：
 
 ```sh
-.venv/bin/wx-clawbot status
-.venv/bin/wx-clawbot doctor --state-dir "$HOME/Library/Application Support/wx-clawbot"
-.venv/bin/wx-clawbot stop
-.venv/bin/wx-clawbot status
+.venv/bin/wx-clawbot status --state-dir /absolute/path/to/private/state
+.venv/bin/wx-clawbot doctor --state-dir /absolute/path/to/private/state
+.venv/bin/wx-clawbot stop --state-dir /absolute/path/to/private/state
+.venv/bin/wx-clawbot status --state-dir /absolute/path/to/private/state
 ```
 
-自定义运行目录时，以上命令与 `serve` 都传入同一个 `--state-dir`。`status` 只读显示实例、权限、依赖状态、任务／回执计数及最多 100 个待核对回执 ID，不读出任务正文、微信身份或回复上下文。`running` 表示实例记录的进程启动身份及消费者锁同时有效，不能替代 components 中的 host／native 状态；旧进程没有依赖记录时显示 unknown。`consumer_unverified` 表示消费者存在但没有可核验实例，例如旧入口，不等同服务健康。`stopped` 表示消费者锁空闲；任务可能仍在原生终端执行。
+`stop_requested` 只是写入当前代次的退出请求；等待 `status` 为 stopped、消费者锁释放及原 job 不再 running，才启动新实例。HTTP 工作线程需等待有限超时排空。stop 不发送 Codex 中断、不杀终端；任务可能仍在原生运行。前台 Ctrl+C 也可退出，但不能将退出当作所有业务已结束。
 
-`stop` 只写入当前实例代次的退出请求，不发送进程信号、不停止 Codex。返回 `stop_requested` 后等待 `status` 成为 `stopped`；HTTP 工作线程可能仍在等待超时，不要立刻启动第二个消费者。未核验实例拒绝请求；旧入口在原前台按 Ctrl+C。Ctrl+C 也是正式前台入口的正常退出方式。异常退出遗留的旧代次不会停止新实例。
+| 状态 | 能说明什么／不能说明什么 |
+| --- | --- |
+| foreground_ready | 账本与微信入口准备好，不能证明目标可派发 |
+| running／supervision | 准确进程及锁有效；不能替代 host／native／本人收件验证 |
+| consumer_unverified | 有消费者但实例来源不足，不能假报健康 |
+| host ready | iTerm2 连接可用；可见创建仍需准确握手 |
+| native ready | 原生连接可用；每个新任务仍核验目标 |
+| stopped | 桥接消费者空闲；原生任务可能继续 |
 
-重启仍使用同一 `serve` 命令；先轮询微信，依赖后台恢复期间帮助、项目列表和状态可用，新任务未核验不接收。原生连接代次变化后旧审批失效；未知任务只核对原生记录，无法确认时保留 unknown，不重新执行。上次选择只有重新通过完整身份核验及订阅确认才恢复；不能核验时保持未选，旧列表编号失效。候选不依赖弹窗后方的状态栏，可用 `/sessions` 刷新并只读对账；无法核对的任务继续 unknown。
+重启先恢复微信入口，再复验依赖和持久化选择；旧数字列表失效，旧同步／异步待答入口按恢复规则失效。原生换代或缺身份不能自动恢复选择，unknown 不重放。
 
-手动启动的 Codex 必须在指定 daemon 中加载且原生 cwd 属于注册范围。候选以原生 cwd 限定发现，SDK 的进程 cwd 仅辅助增加已知子目录，不要求它与某个当前窗口映射。根目录查询不递归；未枚举子目录须明确登记后刷新。受管可见启动器已有独立子进程 `os.chdir`，不改变桥接自身目录。正式旧 0.1.7 仍有进程 cwd／页脚首次映射约束，不能把候选说明套到旧制品。
+## 日常选择与失败处理
 
-还须核对 TUI 是否确实加入桥接使用的 daemon；CLI 的版本命令与 doctor 协议检查不能证明某个终端属于该运行时。不同原生二进制可能启动独立 TUI，表现为底部有 Session ID，但该 ID 不在目标 daemon 的已加载列表中。此时保持未核验，不复制历史或另起后台任务；优先使用微信 `/cd`、`/new` 的受管可见启动，它使用既有 daemon 报告且已核验的原生可执行文件，再按完整身份与真实握手确认。
+`/projects` → `/sessions [关键词]` → `/focus <本次序号>` → 普通任务。`/sessions` 仅刷新列表，保留输入目标和观察订阅；退出输入目标使用 `/unfocus`，它不取消已接收任务。`/send` 单次派发不改焦点。`/cd` 无受管匹配时可见新建，`/new` 要有当前目录。独立 `/attach`／`/detach` 见[命令契约](command-contract-proposal.md)。
+
+既有对话无需状态栏／标题 ID，也不要求当前窗口显示。发现范围是注册根和已知准确 cwd；子目录不递归，可通过合法 `/cd` 登记，但此命令也可能创建会话，不能当纯查询扫描器。未在目标 daemon 加载的 TUI 不可被桥接控制，不能仅凭底部 ID 或 doctor 协议通过认定归属。
+
+电脑切到 B 不改微信已选 A；A 原生仍可核验就可继续，卸载或断连明确拒绝。不从存档恢复或新建替代会话。输入收到后固定原目标，切换不迁移旧任务。`/status <完整任务 ID>` 查看结果、占用和投递；原生中断不等于杀死全部系统子进程。
 
 ## iTerm2 退出、按需启动与恢复
 
-- iTerm2 未启动时，后台不主动拉起。候选已有准确原生对话仍可操作；原生未就绪时有效 `/sessions`、`/cd`、`/new` 可按需拉起一次，可见创建始终需要宿主。`/new` 仍要求先有当前目录，无效参数先拒绝。帮助、项目列表、状态及普通文字／图片不拉起应用。
-- 宿主断连后，不必重启微信桥接。应用重新运行后自动获取新连接、刷新端点并核验原生身份；同一波命令共用连接／启动流程，额外选择请求返回忙碌，不积压到恢复后集中执行。
-- 会话操作先告知处理中，宿主准备／发现阶段总预算 25 秒，失败清理另有边界；真实可见 Codex 启动保留 120 秒握手预算。进展与明确结果是不同回执，进展不代表创建或派发成功。
-- 认证通过可终止子进程完成，单次 8 秒截止；超时不等于 API 被禁用。电脑端若有系统 Automation 或 iTerm2 授权提示，需要本人处理。处理后再发一个会话命令重试授权；后台暂停明确授权失败的重复认证，不改设置、不绕过授权。请求授权前及授权子进程超时后会进行禁用授权 UI、移除 cookie／key 的有界传输探测：服务无响应则按连接故障退避重连；服务仍可响应时继续等待本人核对授权。该探测不执行 API 操作，也不授予会话派发资格。
-- 应用已打开、API 已连接、原生运行时就绪和会话已核验是不同状态。daemon 缺席时保持微信入口，后台只读发现现有受支持运行时；不会另建后台 Codex 来冒充原终端。
-- iTerm2 的窗口恢复可能只保留滚屏。原进程／native thread 已消失时，普通消息被拒绝；需要本人通过新的 `/cd`、`/new` 请求进入可见会话，未知旧创建不自动重做。
-- 单纯宿主断连不会撤销仍有效的原生任务／观察订阅；候选新输入也可在完整原生复验后提交。原生连接断开才使该连接的旧交互失效；不能以 host ready 或旧订阅存在代替新输入核验。
-- 重连中未知任务不自动重放，原冻结目标不迁移到新窗口。命令列表须重新获取；状态中的 unknown 须结合原生记录核对，不通过清库消除。
+- 后台只重连已运行 iTerm2，不反复拉起退出的应用。合法 `/cd`、`/new` 在需要宿主时可按需拉起；`/sessions`、普通文字、图片、帮助和状态不触发应用启动。已有准确原生对话可在宿主缺席时继续核验并派发。查询在原生未就绪时明确失败，保留原选择与原列表期限，不将空列表冒充完整核验。
+- 宿主连接与原生连接各自管理代次；单纯 host 断连不使准确原生订阅失效。新任务和答案仍按各自身份要求复验。
+- 宿主准备／发现总预算 25 秒，可见启动握手另有 120 秒预算。原生冷启动时在原 15 秒连接期限内，最多等待 5 秒无授权 UI 的传输就绪；换进程／取消／错误即结束，授权与创建不自动重试。
+- 认证子进程单次 8 秒硬截止。系统权限提示需本人处理；超时不是 API 被禁用的证明，不绕授权或反复弹窗。未知创建先核对，不重发“再建一次”。
+- 恢复滚屏不证明原进程或 native thread 继续。关闭窗口后原生可能仍加载，也可能卸载，以准确状态为准。
 
-实施和真实验收范围见 [HOST01 记录](validation/host-lifecycle-recovery.md)。应用整体退出／重启由本人安排，不能因只有一个专用测试窗口就忽略其他窗口受影响的可能性。
+[HOST01](validation/host-lifecycle-recovery.md)和[真实冷启动](validation/iterm-cold-start-live.md)分别保存各版本证据；不要把旧版宿主强依赖用于当前后台选择。
 
 ## 故障定位
 
-错误只报告组件、异常类型和操作建议，不把异常中的响应正文直接输出。
-
-| 组件／状态 | 核对方式 |
+| 组件／症状 | 只读核对与下一步 |
 | --- | --- |
-| config | 检查 JSON 字段、项目目录与可访问性 |
-| state／upgrade_required | 检查 `0700`／`0600`、本人绑定、单消费者及[显式升级计划](state-schema.md)，不删除库重新开始 |
-| agent_discovery／agent | 核对既有 daemon、受支持版本、同一 Codex home、准确原生 thread／session 与 loaded 状态；`doctor` 的 `runtime.verified_schema: false` 须先检查[协议基线](protocol-baseline.md)，不能仅凭 CLI 版本判断或要求候选重新显示 ID；未知任务不重新发送 |
-| host | 打开 iTerm2，核对 Python API 和该脚本的授权，执行 `doctor --iterm2` |
-| channel_receive／channel_send | 核对网络、本人绑定与登录状态；登录过期需要本人扫码，不能读取其他项目凭据或静默替换连接 |
-| receive_disconnected | 网络轮询会有限退避重连，游标保留；不代表已丢消息或应再次提交任务 |
-| maintenance／lifecycle | 核对账本／原生连接或实例记录权限；必要时在原前台 Ctrl+C 后重新诊断 |
+| config | JSON、项目 root 真实解析、目录权限，不把凭据打印出来 |
+| state／upgrade_required | 目录／文件权限、本人绑定、版本和消费者；看 migrate-state 计划，不删库 |
+| agent_discovery／native unavailable | daemon、实际 server 版本、socket 归属与代次、Codex home；verified_schema 为 false 先查矩阵，不只扩白名单 |
+| 会话不在列表／不能输入 | 注册 cwd、loaded、完整身份与能力；不要求重新显示 ID，不猜最近窗口 |
+| host unavailable | iTerm2、API 和脚本权限；仅需可见创建时处理，无理由不重启其他应用 |
+| channel_receive／channel_send | 网络、已确认本人绑定、登录及回复上下文；失效由本人扫码，不迁移他人凭据 |
+| 任务 unknown／占用阻塞 | 看准确任务、原生终态与队列，按 REC01 核验；不重投输入或直接改库清锁 |
+| queued 长期不动 | 原端核对是否暂停、准确队列／turn；不强制启动或重复提交，后续能力见 ROADMAP |
+| 回执未收到 | 先分清执行终态、Outbox、发送尝试和 API accepted；没有本人证据不称已收件 |
 
-不使用 `killall`／宽泛进程名停服务，不清空运行目录来绕过锁或升级错误。现有 hook 告警属于原环境，桥接不修改它来掩盖失败。
+托管日志只保留安全分类。native_unavailable 每 60 秒窗口最多 10 个不同签名明细，同签名合并为 suppressed_count；限频不是恢复证明，须核对 native ready。禁止用原始响应／完整异常正文绕过脱敏。不中断无关服务、不用 killall、不清空运行根。
 
 ## 图片运行与资源边界
 
-图片版本启用前用 migrate-state 查看计划，明确备份和对象，再停止前台执行显式升级；serve 不自动迁移。使用及错误分类见 [图片指南](image-input.md)，附件一致性与回收见 [账本说明](state-schema.md)。启用前后核对实际 schema、原配置、原生身份及未决任务，不清空状态重新开始。
+当前媒体范围、容量、版本分层和附件生命周期见[图片指南](image-input.md)、[协议矩阵](protocol-baseline.md)及[账本](state-schema.md)。准备中只对未尝试原生提交且准确原目标通过核验者继续；已尝试者只读对账。下载或模型拒绝不去图重投，不自动换模型。同消息图文未作为手机能力交付。
 
-图片准备有两个有界工作槽位，取消调用者不会在工作仍存活时提前释放额度。原生接收帧最多 16 MiB，事件同时受 256 条和 32 MiB 限制，WebSocket 接收高水位两个帧；出站 RPC 仍限 1 MiB。队列单项分页、最多核对 100 项，只保留身份，不积压内联图片；启动复核只读第一条握手 turn。超限时停止连接并保留未知状态，不重放。
-
-运行时换代会改变稳定会话编号。候选旧任务可按准确同 native thread／cwd、稳定元数据和唯一 client／turn 只读对账原生终态，不要求旧终端存在；这不改写冻结目标、不恢复旧路由、不订阅或重新派发。身份不符、输入合并、原生仍执行或缺少准确 client 时保持 unknown。图片准备完成但受仓库保护阻塞时，回执说明等待准入原因；本地 received 的图片尚未原生提交，恢复后保持原 client 和目标继续一次处理。
-
-旧桌面任务的原生轮次若出现输入合并或 client 冲突，恢复保留 unknown 并提示核对，不把它误归为某条独立任务，也不阻止整个前台启动。配置移除旧项目不代表释放其未结束任务的仓库保护；缺少可核验仓库身份时保守等待。
+原生帧、事件、分页和渲染均有边界，超限终止连接并保留未知，不能截断身份视图后继续派发。旧任务可严格只读核验结果，不因旧终端不在就清锁或复制历史。
 
 ## 只重试回执
 
-先用 `status` 找到具体事件 ID，再只读查看计划：
+先从 status 取得完整 event ID，默认只读查看：
 
 ```sh
-.venv/bin/wx-clawbot retry-reply '<event-id>'
+.venv/bin/wx-clawbot retry-reply 'EXACT_EVENT_ID' --state-dir /absolute/path/to/private/state
 ```
 
-核对该回执属于预期结果，再停止桥接。已明确拒绝的投递可显式准备下一次：
+确认对象、投递结果及权限并正常停止消费者后，才显式 `--apply`；unknown 可能已送达，必须另外接受重复风险并传 `--confirm-possible-duplicate`。每个事件最多三次尝试，命令只准备该回执，不立即发送、不执行 Agent；下次 Sender 用最新合法本人上下文发送。失败先定位网络／绑定／上下文，不以反复重试碰运气。
+
+## 备份、账本升级与数据恢复
+
+停止并核对唯一消费者，保存原 plist、配置、manifest、版本、任务／占用／unknown 及冻结 Outbox 逻辑摘要。敏感备份保持目录 0700、文件 0600，只在本人私有目录。SQLite 使用 `Connection.backup` 取得一致副本；不要只复制可能仍有 WAL 的主文件。下面只演示人工一致性备份，目标必须全新，不能覆盖已有备份：
 
 ```sh
-.venv/bin/wx-clawbot retry-reply '<event-id>' --apply
+.venv/bin/python - <<'PY'
+from pathlib import Path
+import os, sqlite3
+from contextlib import closing
+source = Path('/absolute/path/to/private/state/runtime.sqlite3').resolve(strict=True)
+backup = Path('/absolute/path/to/private/backups/NEW-runtime.sqlite3')
+fd = os.open(backup, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+os.close(fd)
+with closing(sqlite3.connect(source.as_uri() + '?mode=ro', uri=True)) as src:
+    with closing(sqlite3.connect(backup)) as dst:
+        src.backup(dst)
+        assert dst.execute('PRAGMA integrity_check').fetchone()[0] == 'ok'
+        assert not dst.execute('PRAGMA foreign_key_check').fetchall()
+        print('schema', dst.execute('PRAGMA user_version').fetchone()[0])
+PY
 ```
 
-unknown 可能已经送达手机；只有明确接受可能重复时才额外传入 `--confirm-possible-duplicate`。每个事件最多 3 次投递尝试。命令只准备单条出站记录，不建立 Agent 连接、不恢复／修改其他任务状态、不立即发消息；下次启动桥接后 Sender 使用最新有效本人回复上下文发送。该操作不意味着重新执行任务。发送失败必须先定位网络／登录／上下文，不反复重试以试运气。
+备份前核对消费者已停、私有父目录已存在且权限合规；失败保留证据，不把半成品称为有效备份。核对 application_id、user_version、绑定及所有旧表行数／摘要；不公开身份或正文。独立保存原配置／凭据／launch 登记等恢复材料，仅有 SQLite 副本不是完整配置恢复。
 
-保留期检查、显式清理及独立备份见[账本说明](state-schema.md)。不自动清理真实账本，不触碰 Codex 历史、其他服务或业务项目文件。
+已有旧库先只读：
+
+```sh
+.venv/bin/wx-clawbot migrate-state --state-dir /absolute/path/to/private/state
+```
+
+只有明确迁移授权、消费者停止且对象／备份核对后才加 `--apply`。工具验证绑定、结构、完整性、同消费者锁并备份，再事务迁移到当前 schema；失败回滚、重复当前版本不再迁移。serve 不隐式升级。TGT02 的快照 version 2 不要求 schema 迁移。
+
+恢复须区分：事务未提交保留原库；代码回退选择兼容当前 schema 的独立旧制品；数据恢复另行决定准确备份、丢失的新写入范围及授权。**已有新写入时不能用旧备份覆盖当前库**。先保留当前一致副本和诊断，再在隔离副本验证备份完整性、绑定、schema、行摘要和代码兼容，不把验证副本接到真实通道。旧代码不认识新 schema 就保持停止；数据恢复后仍须重新核验选择，unknown 不重放。不提供绕锁／强制降级 SQL。
+
+保留期维护 `maintain-state` 默认只读；显式删除边界见账本及[安全说明](../SECURITY.md)，不能用清历史消除未知状态。
 
 ## 用户级 launchd 托管、日志与卸载
 
-[用户级模板](../config/launchd.example.plist) 使用独立版本目录的 `.venv/bin/python -I -m wx_clawbot.managed`，显式传入 release manifest、原配置和原运行目录；制品准备及切换见下方 ENG01 操作卡。仅在本人明确授权部署后替换占位绝对路径并保存至本人 `~/Library/LaunchAgents/local.wx-clawbot.plist`，不覆盖其他来源文件。保持 argv 数组，不拼接 Shell，不放入凭据。PATH 须能找到同一 Codex CLI；默认由既有只读发现机制核验运行时，沿用该用户的 Codex home，不固定一次性的 socket。旧 editable 安装是历史入口，不能作为新增生产版本的默认布局。
+[模板](../config/launchd.example.plist)使用独立 release 的 Python、`-I -m wx_clawbot.managed` 和准确 manifest／config／state-dir。argv 保持数组和绝对路径，不能用开发路径补包；只安装／管理本项目 Label。`managed` 在同一进程调用 serve 并记录日志，重启策略属于 launchd。
 
-模板的 `RunAtLoad=true` 使用户登录后启动；`KeepAlive.SuccessfulExit=false` 只在异常退出后重新启动，`ThrottleInterval=30` 限制快速失败循环。`stop` 的正常退出码为 0，主动停止后保持停止，恢复需明确执行 kickstart；下次登录仍按已安装的启动项启动。macOS 注销、睡眠、关机或网络中断时不承诺在线，不修改电源设置，也不自动启动 Codex daemon。非零的持久配置／认证错误会继续限速失败，应先 stop／bootout 后定位，不反复扫码或改库。
-
-托管入口复用原 serve 和账本，单独持有 `managed.lock`，既有消费者锁继续生效。`managed.json` 保存完整进程身份、源码摘要、启动及可观察的退出状态；`status` 的 `supervision` 字段只有在完整进程身份与有效前台相同时才报告 running。记录为 running 而进程已消失时显示 `previous_exit_unobserved`，不把未知退出误报为正常停止或捏造具体原因。
-
-托管日志位于私有运行目录的 `logs/bridge.jsonl`，目录为 `0700`、文件为 `0600`，单文件最多 1 MiB，最多 3 份轮转备份。只保留已知状态、组件和异常类型；任意 stdout、原始 stderr／回溯、消息正文、账号、token、上下文均不入日志。SIGTERM 有明确记录；SIGKILL／断电无法由进程自己记下退出码，下一次启动会标记前次退出未观察到，再结合 launchctl 的退出状态判断。Python 导入或日志初始化前失败也可能没有应用日志，应检查 launchctl。stdout／stderr 指向 `/dev/null`，避免另增无界文件。
-
-先停止并核对旧消费者退出，再校验及注册，避免并行两个入口：
+先正常停止旧消费者并确认 job 不在运行，再核对 plist／准确路径。初次注册用 `launchctl bootstrap`；已有 job 主动停止后用 `launchctl kickstart`；**修改 ProgramArguments 后须 bootout／bootstrap，单独 kickstart 不证明读取新 plist**。
 
 ```sh
-.venv/bin/wx-clawbot stop
-.venv/bin/wx-clawbot status
 plutil -lint "$HOME/Library/LaunchAgents/local.wx-clawbot.plist"
+launchctl print "gui/$(id -u)/local.wx-clawbot"
 launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/local.wx-clawbot.plist"
-.venv/bin/wx-clawbot status
 ```
 
-已注册但主动停止后恢复：`launchctl kickstart "gui/$(id -u)/local.wx-clawbot"`。只读查看托管状态：`launchctl print "gui/$(id -u)/local.wx-clawbot"`；该系统输出可能含本机路径，不直接公开。`running` 与 host／native ready 及微信本人收件分别核验，不能只用 launchctl 的 PID 证明通道健康。
+上面分别是校验、查询、首次注册，不是每次全跑。已注册且停止后的恢复是 `launchctl kickstart "gui/$(id -u)/local.wx-clawbot"`。Label／plist 须确为本人部署的对象，系统输出含私人路径，不直接公开。
 
-卸载／回退时仅对本人部署的 Label 执行 `launchctl bootout "gui/$(id -u)/local.wx-clawbot"`，再确认消费者停止，才能恢复原前台 serve。bootout 本身不删除 plist，下次登录会再次加载；永久撤销登录启动还须按本人明确授权移除或移出该文件。保留账本、凭据和日志，不操作其他 Label、Codex 或 iTerm2。真实安装与验证结论见[进程恢复记录](validation/bridge-supervision.md)。
+模板 RunAtLoad 登录启动，KeepAlive.SuccessfulExit=false 只在异常退出后限速重启，ThrottleInterval=30；正常 stop 退出 0 后保持停止，下次登录仍可启动。不管理 Codex／iTerm2，不修改电源策略。持久配置错误先停止／卸载 job 排障，不反复扫码。
 
-当前前台方式卸载时，先停止并核对桥接已退出；按需要保留私有运行目录以供恢复。删除凭据、账本、项目或虚拟环境均由本人另行明确选择，不自动删除；Codex 和 iTerm2 不需要卸载，也不应停止其会话。
+日志 `<state-dir>/logs/bridge.jsonl`，0700／0600，单文件 1 MiB、三份备份；只保留已知状态、组件、安全异常分类，不保存正文／token／原始回溯。SIGKILL／断电可能只有 previous_exit_unobserved，不能捏造正常退出原因。status 的 supervision、消费者、实际 argv／包来源、host／native 和本人收件分别核对。
 
-
-## 出站排版与冻结回执核对
-
-排版模块的规则、自测和客户端边界见[排版说明](wechat-markdown.md)，实际加载与验收记录见[MD01 证据](validation/wechat-markdown.md)。分开核对接口 accepted、本人实际显示和实际复制；截图中的代码复制按钮不等于字节正确。用户提供的截屏／照片只留本地，公开记录保存摘要；不自动操作、登录或重试微信客户端。
-
-正常重载前确认没有活跃任务和未决关键回执，保存任务／旧 outbox／当前配置摘要，按本页已有 stop 与 kickstart 流程仅恢复既有桥接 Label。核对旧进程正常退出、消费者释放、新进程源码摘要与预期一致以及 host／native 状态，再请本人验收新生成的回执。既有 outbox、摘要和投递尝试不随排版升级重写；未知任务不重放。若全局配置较更早快照发生其他变化，记录并保护重载前的当前值，不回滚用户现状。
-
-本地 stopped／锁释放与 launchd 的旧任务退出可存在短暂先后差异：启动前另用 `launchctl print gui/$(id -u)/local.wx-clawbot` 确认顶层 state 为 not running，再执行既有 kickstart。启动调用成功不等于新进程已加载；须核对新管理进程／源码摘要。若没有新启动记录，先只读核对 launchd 与锁状态，不重复执行停止或使用强制重启参数。
-
-排版缺陷先对照冻结发送原文与本人看到的内容，不无证据归因于任务执行、客户端风控或某个内部渲染阶段。根据明确差异补源形态回归，完整自测后再做少量具体授权的小样；未通过的核心格式保持未验收。
-
-## 上下文观察与定时验收
-
-自然失效时间不作为固定期限承诺。W08 本人已于 2026-11-01 同意将触发时间后置，保留必要故障／恢复验证；[实际证据](validation/w08.md#2026-11-01-上下文收尾)分别记录 API 接受、本人收件、确定性故障和真实自然失效，不能混用。
-
-`tests/integration/w08_context_recheck.py` 是显式即时验收器，提供 prepare／report／observe／recover，必须使用新的项目 `.tmp` 私有目录和具体本人发送授权。prepare 冻结原记录／凭据摘要，30 分钟内 observe 最多一次；未达到七天不启动等待，过时不补发，有意图或结果不重试。recover 仅在真实非账号拒绝后使用本人新入站产生的不同上下文，最多一次。它不启动原生任务，不修改生产账本，不复用旧预约授权；本轮额度已经使用，不能重新执行 observe。
-
-未来若安排跨天预约，须先具备持久化计划、重启后恢复和到期／过期核对，并验证重启／晚醒／发送意图不确定时的至多一次语义；临时 sleep 进程和旧存活回执不能作持续执行保障。不得为了补过时任务自行装服务、修改系统配置或发送。当前不新增跨天预约、托管服务或自动重登。
-
-## PERF01 候选的独立验证与生产切换
-
-[PERF01 交付](validation/performance-optimization.md)提供完整补丁、前后文件摘要及原始测量数据。原候选先隔离验证，后经本人明确授权整合为 `0.1.0`，已在本机备份升级并切换；实际结果见[正式记录](validation/local-release.md)。原始补丁仅用于准确基线的独立重建，不能重复应用到已升级工作区。以下操作卡保留受控切换方法，不授权重复迁移或重启。
-
-先在独立检出核对基线提交及 manifest：已有文件的完整 SHA-256 必须匹配，新增文件须不存在，补丁摘要须正确；再执行 `git apply --unidiff-zero --check`，不得覆盖其他工作。独立检出应用完整补丁后，用项目虚拟环境和原精确依赖锁运行完整回归、编译、`pip check` 及离线 performance 的 baseline／candidate／compare；flow、migration、checks 是单独入口，native 冒烟必须另行冻结本轮专用资源。原始计时、同文摘要、上界和失败退出都要核对。正式入口均随补丁交付，结果只能写入项目 `.tmp`。
-
-大结果子进程以当前 `sys.executable -I -m wx_clawbot.render_worker` 启动。部署解释器必须在隔离模式下也能加载完整候选包；不能只设 `PYTHONPATH`，不能让父进程使用候选而子进程加载旧包。
-
-生产操作卡：
-
-1. 核对将运行的完整版本／解释器／源码摘要、真实目录归属和只读 `migrate-state` 计划。只输出计数和摘要，不公开身份或正文；预检不能用会执行恢复写入的 `RuntimeState.open`。
-2. 核对活动任务和未决关键回执，按授权等待或处理；正常停止唯一桥接消费者，确认锁释放且既有 launchd Label 顶层为 not running。不操作 Codex、iTerm2 或微信客户端，不同时启动前台和托管入口。
-3. 保存私有配置／账本摘要，用候选解释器显式执行原有 `migrate-state --state-dir /absolute/path/to/private/state --apply`。工具必须成功取得同一消费者锁、验证绑定与版本、生成可核对备份，之后在事务内执行 3→4 三索引及 ANALYZE。1／2 按已有链路继续到 4。拒绝、超时或失败时停止，不绕锁或对运行库直接执行 DDL。
-4. 核对版本 4、准确索引、完整性／外键、业务行及冻结正文摘要与备份一致。候选安装／加载目标正确后，仅对既有 Label 启动一次，确认新管理进程／消费者唯一、预期源码、bridge／host／native 健康。启动回执不代替实际加载核对；不自动发微信测试消息或重放 unknown。
-5. 失败时先区分事务未提交、已升级未写入、已产生新写入。未提交应保持原库；其他情况保留原库、备份和私有日志，停止切换。代码回退与数据回退分别决策，恢复数据须有准确授权。不可用只识别 3 的旧代码直接打开 4，更不能用旧备份覆盖已有新任务。
-
-本轮已完成合成 10 万任务＋10 万回执的升级／备份／重复执行，故障回滚与活消费者拒绝由离线测试覆盖。真实部署与迁移必须在后续记录实际结果。
-
-## REC01 候选的准入诊断与受控切换
-
-本节描述 `0.1.1`／schema 5 的正式入口；本机已按本节操作卡完成切换，实际证据见[REC01 记录](validation/admission-recovery.md)。任务结果与占用分别查看；unknown 可以保留而占用已释放，二者不可混淆。默认先自动核验：恢复可确认结果，随后核验剩余占用。正常任务无需本人定期清锁。
-
-微信 `/status <任务ID>` 显示占用状态、阻塞者、核验时间和未解除原因。收到等待回执只代表 received，尚未提交；持续 60 秒最多追加一次提示，不按期限解锁。`/stop <任务ID>` 可以撤销 received。`/sessions` 刷新仍可按严格身份和唯一关联核对结果，每次附带至多 20 条未知历史的分页，不重跑任务。
-
-本地诊断默认只读，不连接原生、不发微信：
-
-```sh
-.venv/bin/wx-clawbot admission-report --task-id <task-id>
-.venv/bin/wx-clawbot admission-release --task-id <task-id>
-```
-
-少数人工处置须先明确准确对象与理由、正常停止本项目消费者并核对锁已释放，再重新生成报告，使用报告中的确认摘要：
-
-```sh
-.venv/bin/wx-clawbot admission-release --task-id <task-id> \
-  --apply --confirm-report <report-digest> --reason '已核对准确原生终态和队列'
-```
-
-工具仍会建立受支持的只读原生连接、复核原 thread／turn／client、完整空队列和报告 revision；有在途／执行／排队／身份歧义、报告变化或无证据时拒绝，不能 force。重复已成功操作幂等；不把 unknown 写成完成，也不执行旧输入。不能用直接 SQL、清库、删除旧项目配置或重建终端替代处置。
-
-本机切换操作卡：
-
-1. 冻结当前源码／包摘要、schema、任务及 outbox 等原业务表逻辑摘要、配置与现有 Label；核对活动任务及当前 received 的冻结目标。升级后该 received 可能按原意图执行，须属于本人已提交的有效请求。
-2. 验收候选完整回归、真实原生、负载、查询、wheel 安装与隔离模式子进程，准备准确变更清单、备份和恢复边界；不边开发边改日常源码。
-3. 按已授权清单正常 stop，等待旧进程退出和同一消费者锁释放；不强杀，不停止 Codex／iTerm2，不安装第二个托管 Label。
-4. 在维护锁规则下，使用冻结候选显式 `migrate-state --apply` 完成 4→5；核验私有备份可读、旧表全行逻辑摘要及冻结内容未变、新结构／索引／完整性／外键正确。旧库不因 serve 自动升级。
-5. 在停止窗口精确同步已验收源码和项目内安装，保持原配置、绑定、托管 argv、全局设置与模型。父包和 `python -I` 子进程均须实际加载完整 `0.1.1`，不能只用 PYTHONPATH 伪装生产加载。
-6. 仅启动原 Label，核对唯一消费者、源码摘要、schema 5、host／native ready；自动恢复按原目标、client、任务意图至多一次推进。核对历史 unknown 状态与占用审计、当前原任务唯一原生终态及冻结投递结果，不额外发送测试消息。
-7. 同步真实交付记录和 ROADMAP，保留备份和所有旧冻结回执；API accepted 与本人实际收件分别报告。
-
-失败恢复：迁移事务失败保留 schema 4 并核对原版可运行；迁移已到 5 时不能直接用只支持 4 的旧程序。优先修复候选加载，保留库和备份；已产生新写入时禁止覆盖旧备份，不自动降级或回放。需要数据恢复时单列具体方案及授权，不把“恢复服务”作为覆盖新数据的理由。
-
-## ASK01：异步答复与 schema 6
-
-`/status <原任务 ID>` 显示 q 请求、状态和本地期限。accepted 只表示原生接收补充；observed 只表示准确输入可见；unknown 不自动重试，conflict 表示已观察到跨端竞争。旧轮次结束后的答案拒绝，不会自动新建任务；必须审批的动作仍走同步请求。详见[使用及边界](async-questions.md)。
-
-旧库须先正常停止本项目唯一消费者，用 `migrate-state` 只读核对，再明确执行 `migrate-state --apply`；支持旧版本到 6，验证私有备份及旧业务／冻结回执。已有新版本写入后不直接覆盖旧备份，也不让 0.1.1 读 schema 6。恢复应保留现状并使用兼容 schema 6 的代码；不能通过清库解决。
-
-本机 ASK01 已按前述 stop／kickstart 路径一次恢复原 Label，未改 plist／凭据／全局配置，不重启 Codex 或 iTerm2。自动原生测试使用专用可核验会话，输出原始 ID／答案只存私有证据；额外微信验收须有具体条数与内容授权。实际加载与手机状态见[本机记录](validation/local-release.md)和 ROADMAP。
+撤销托管只对本项目 `launchctl bootout "gui/$(id -u)/local.wx-clawbot"`，再确认消费者停止。bootout 不删除 plist，永久撤销登录项或删除数据须单独明确范围；不自动删除旧 release、凭据、备份或日志。历史监督测试见[进程恢复记录](validation/bridge-supervision.md)。
 
 ## ENG01：独立运行制品与开发隔离
 
-开发检出与生产版本分别安装。正式布局为 `<state-dir>/releases/<version>-<wheel摘要前12位>/`，内含 `.venv/`、固定 wheel、`requirements.lock` 和 `release.json`；解释器与所有新子进程从该版本环境加载。私有状态根、账本、凭据和原 Label 保持；不把虚拟环境复制到新位置，也不原地覆盖正在运行的版本目录。
+正式目录 `<state-dir>/releases/<version>-<wheel摘要前12位>/` 内含独立 venv、wheel、lock 和 release.json。不能移动复制 venv 或原地更新在用目录。manifest 核对包文件、源码、wheel、lock、依赖、Python 和 schema；源码摘要不是 wheel 摘要。桥接自有渲染／媒体／探测／启动子进程核同一来源；外部 Codex 不冒充本项目包。
 
-manifest 分别记录 wheel SHA-256、锁摘要、项目包文件摘要、源码树摘要、依赖版本、Python 和 schema。源码树摘要与 wheel 压缩文件摘要不是同一对象。托管入口显式 `--release-manifest`，在连接服务前验证；渲染、图片、宿主探测与可见启动子进程继承准确 manifest，并使用隔离导入。开发前台仍支持不带 manifest 的明确启动，这不代表它具备正式制品隔离。
-
-先在开发项目虚拟环境中安装原固定构建后端 `setuptools==80.9.0`，不要全局安装；准备全新且父目录已存在的项目临时输出路径。以下绝对路径均须替换为本次准确对象：
+在开发 venv 准备固定构建后端，然后对全新项目 `.tmp` 路径先看计划，明确 apply 后构建；这些命令不启动服务：
 
 ```sh
 .venv/bin/python -m pip install setuptools==80.9.0
-.venv/bin/python scripts/build_release.py --output /absolute/path/to/project/.tmp/eng01-artifacts
-.venv/bin/python scripts/build_release.py --output /absolute/path/to/project/.tmp/eng01-artifacts --apply
+.venv/bin/python scripts/build_release.py --output /absolute/path/to/project/.tmp/NEW-artifacts
+.venv/bin/python scripts/build_release.py --output /absolute/path/to/project/.tmp/NEW-artifacts --apply
 ```
 
-默认只读计划；apply 构建源码包和 wheel，再按现有哈希锁建立全新环境、非 editable 安装并验证。不连接微信／原生运行时，不启动服务。目录已存在就拒绝，失败目录作为本次证据保留，核对后另用新路径；不能机械覆盖或继续一个未知构建。构建进程默认固定 `SOURCE_DATE_EPOCH` 以稳定 wheel 时间戳，不调整系统时钟。
-
-审核测试通过的 frozen wheel、lock、manifest 及准确摘要后，在私有 releases 父目录准备正式安装，沿用同一个 wheel，不重新构建一份不同制品：
+验收冻结的同一个 wheel 后，将其安装到全新私有 release，不重建另一制品：
 
 ```sh
-.venv/bin/python scripts/build_release.py --artifacts /absolute/path/to/project/.tmp/eng01-artifacts --wheel-sha256 EXACT_WHEEL_SHA256 --output /absolute/path/to/private/state/releases/VERSION-DIGEST
-.venv/bin/python scripts/build_release.py --artifacts /absolute/path/to/project/.tmp/eng01-artifacts --wheel-sha256 EXACT_WHEEL_SHA256 --output /absolute/path/to/private/state/releases/VERSION-DIGEST --apply
+.venv/bin/python scripts/build_release.py --artifacts /absolute/path/to/project/.tmp/NEW-artifacts --wheel-sha256 EXACT_WHEEL_SHA256 --output /absolute/path/to/private/state/releases/VERSION-DIGEST
+.venv/bin/python scripts/build_release.py --artifacts /absolute/path/to/project/.tmp/NEW-artifacts --wheel-sha256 EXACT_WHEEL_SHA256 --output /absolute/path/to/private/state/releases/VERSION-DIGEST --apply
 /absolute/path/to/private/state/releases/VERSION-DIGEST/.venv/bin/python -I -m wx_clawbot.release verify --manifest /absolute/path/to/private/state/releases/VERSION-DIGEST/release.json
 ```
 
-VERSION-DIGEST 必须是 manifest 版本加短 wheel 摘要；父目录权限 0700、记录文件 0600。只准备环境不等于切换运行版本。任何真实写入须在当次授权覆盖的目录执行，不由此命令触碰其他项目或 Label。
+发布／切换顺序：
 
-切换操作卡按以下顺序执行：
+1. 明确版本、代码基线、内容与发布授权，完成必要测试、文档／隐私检查、冻结 wheel／lock／manifest；准备兼容旧制品。源码修改、提交、推送和部署权限分别核对。
+2. 活动任务／交互／sending 及关键回执核对完毕后，正常 stop 唯一消费者，等待退出／锁／原 job 停止，保存一致性备份和冻结摘要。
+3. 仅对本项目 plist 生成准确差异，替换解释器、manifest 和必要 WorkingDirectory；原 config、state-dir、Label、PATH、日志／重启策略保留。schema 不兼容先完成独立授权的显式迁移。
+4. plutil 校验；旧 job 确已停止后 bootout，保存核对后的 plist，bootstrap 同一 domain／Label 一次。不停止 Codex、iTerm2 或微信。
+5. 核实际 argv／cwd、非 editable 包及父子 manifest、唯一消费者、schema、原任务／占用／unknown／冻结正文、路由和依赖；API accepted 与本人实收分列。不自动发测试消息。
+6. 失败保持停止、保留当前库与诊断；仅恢复兼容当前 schema 的独立旧制品及原参数，不恢复指向已变化开发检出的旧 plist，不覆盖旧数据或重放任务。实际结果写验证记录和 ROADMAP。
 
-1. 核对原 Label／进程、consumer、schema、完整活动占用、待答交互和发送状态。没有关键执行或 sending 后，用原 `stop` 正常退出并确认消费者锁释放；不强停正在发送／执行的任务，不杀 Codex／iTerm2。
-2. 在停止状态保存私有账本一致性备份、原 plist／配置摘要、已冻结回执行及 unknown 证据；校验新包支持当前 schema。ENG01 保持 schema 6，无隐式迁移。已升级 schema 的恢复也不能覆盖回旧备份。
-3. 根据原 plist 生成准确差异，只替换本项目的解释器、隔离导入参数、manifest 及必要 WorkingDirectory；配置、状态根、PATH、Label、KeepAlive、节流、日志策略保持。先 `plutil -lint`，审核原件备份与差异，不复制模板覆盖用户其他设置。
-4. 原消费者已正常退出后，仅 `launchctl bootout` 本项目 service target，替换经过核对的本项目 plist，再 `launchctl bootstrap` 原 gui domain。修改 ProgramArguments 后必须重新载入 job，单独 kickstart 不能证明已读取新 plist。
-5. 独立核对实际进程 argv、消费者锁、supervision、包及父子摘要、schema、旧行保护与 component 状态。host 未运行与 bridge 失败分开；没有授权不拉起原应用，不将 API accepted 写成手机实收。
-6. 新启动失败时保持停止，保留当前账本与故障证据；只恢复兼容当前 schema 的已核验代码及原配置。不能用回滚代码为由恢复旧数据、清 unknown 或重放任务。未完成的切换保留未完成状态。
-
-旧版本目录只在确认不再加载、无相关子进程且保留策略／删除授权明确后清理；不自动删除旧版本、私有备份或整个 `.tmp`。
+历史版本不认识 manifest 参数时须使用其准确 argv 并独立核来源；旧版本首次发现和快照兼容要求以该版本证据为准，不能称回退后同样无需 ID。
 
 ## ENG01：本地检查、性能与真实原生交接
 
-基础入口 `.venv/bin/python scripts/check.py` 不安装依赖、不访问微信、不产生原生模型任务、不维护生产数据；结果保存在本项目 `.tmp/check/`。它执行非零且无跳过的 unittest、编译、pip check、Git 差异及文档一致性检查。没有对应 Git 检出时单独标记 diff 不适用，不把它写成已核验差异。失败步骤返回非零并保留摘要和日志。
+离线入口 `.venv/bin/python scripts/check.py`、按风险回归、合成负载与冻结制品检查见[测试指南](testing.md)。真实原生 prepare／run／cleanup 显式执行，要求本轮专用资源／授权，失败先 report、不删除 case 或重跑意图。当前 0.167.0 未开放异步专项入口，不能机械照搬旧 0.166.0 全阶段工具。
 
-性能入口 `tests/integration/engineering_performance.py measure --output <本项目.tmp内的新JSON>` 使用合成原生分页、私有合成 SQLite 和实际渲染；`load` 默认至少 120 秒，路径为入站校验／游标与 Inbox、controller、Outbox、Sender 和假发送端，统计完整本地处理时延，零真实微信。输出保留原始样本与准确源码摘要，基线／候选交替执行，不能在并发跑其他 CPU 压测时比较。原生／外部网络耗时不属于该基准 SLA；门槛和矩阵见 [ENG01 清单](../goals/20261103-2356-engineering-hardening.md)。
+日常服务与测试使用独立账本／假发送端。原生中断后可能队列暂停，先核对再由本人决定原端继续或选择新对话，不重发未知任务。模型等待和授权等待不应占部署停服窗口。
 
-`compare` 要求明确的 `--baseline-python` 与 `--candidate-python`，候选 frozen 环境另传 `--release-manifest`；先丢弃一组预热，再完整交替执行七组。两侧父／隔离子进程源码摘要必须相同。微基准另在各进程内预热，历史查询保留 100 次、小渲染保留 7 次样本；冷启动另列，失败不参与提速百分比，不删慢样本。
+## TGT02：无状态栏 ID 候选与切换
 
-冻结制品可用 `tests/integration/engineering_release.py --release <准确版本目录> --output <本项目.tmp内的新目录>` 核对开发路径干扰、渲染子进程、错误 manifest 拒绝、单消费者、SIGTERM 和兼容恢复后的合成账本行保持。此入口只在自己新建的合成状态根执行；它不操作 launchd 或实际生产数据，不能替代后续真实服务切换验证。
+此标题保留历史链接。当前首次接入无需页脚／标题 ID，发布与本机证据见[0.1.8 记录](validation/native-session-release.md)，身份与旧快照见[身份契约](native-session-identity.md)。显示偏好由本人决定，程序不自动改全局配置。原操作卡完整历史见[整理前固定提交](https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/operations.md)，当前切换使用上文 ENG01。
 
-真实原生验收与基础检查分开，先确认本轮专用资源及测试任务范围；以下需要受支持运行时和专用宿主，不得放入默认检查或 CI：
+## AUD01：候选诊断与规则验收
+
+保留原入口。故障分类已进入当前实现，排障见故障定位；规则实验与原生限制见[规则专题](project-rules.md)和[历史证据](validation/native-diagnostics-rules.md)。当次临时全局／模型／发送授权不能继承。
+
+## iTerm2 冷启动连接
+
+当前恢复流程见本页 iTerm2 章节；根因、首次修复及后续 0.167.0 真实复测分别见[调查](validation/iterm-cold-start-investigation.md)、[复测](validation/iterm-cold-start-live.md)。不再把“待安排冷启动”当成当前核心未验收。
+
+默认普通 Shell 的数量问题是后续独立修复，候选通过 macOS AppKit 拉起应用，初始事件为 noop，仅给新进程传入 `-OpenNewWindowAtStartup NO`，再由 SDK 创建自有终端；参数退出即失效，不写持久偏好、不覆盖窗口恢复及后续 Dock 打开窗口选项。首轮仅 AppleScript launch 的失败、当前真实验证与部署状态见[本轮记录](validation/iterm-single-window.md)。不得关闭来源不明的普通 Shell 达到数量要求。真实复测先由本人保存并退出应用，显式验收入口使用独立非 editable manifest、两个临时项目及合成账本，不要求先切换日常服务或发微信消息。
+
+## REC01 候选的准入诊断与受控切换
+
+标题保留，命令为当前正式入口；原 schema 4→5 的部署过程仅见[历史证据](validation/admission-recovery.md)。默认只读：
 
 ```sh
-.venv/bin/python tests/integration/engineering_native.py prepare --case-dir /absolute/path/to/project/.tmp/eng01-native --confirm-dedicated
-.venv/bin/python tests/integration/engineering_native.py report --case-dir /absolute/path/to/project/.tmp/eng01-native
-.venv/bin/python tests/integration/engineering_native.py run --case-dir /absolute/path/to/project/.tmp/eng01-native --confirm-dedicated
-.venv/bin/python tests/integration/engineering_native.py cleanup --case-dir /absolute/path/to/project/.tmp/eng01-native --confirm-dedicated
+.venv/bin/wx-clawbot admission-report --task-id 'EXACT_TASK_ID' --state-dir /absolute/path/to/private/state
+.venv/bin/wx-clawbot admission-release --task-id 'EXACT_TASK_ID' --state-dir /absolute/path/to/private/state
 ```
 
-prepare 登记一窗口、至多两个自有标签，调用正式 `admission_native.py` 准备流程；run 先准确核验映射，依次调用 `performance_native.py` 的同步交互／结果、`async_questions_native.py` 的异步补充、`admission_native.py` 的结果／占用恢复，最后在独立合成身份下调用控制小样验证排队取消／运行中断，分别保存原始证据。所有交付发送使用假通道；测试的准确原生输入与答案只在所登记自有终端执行。临时 Plan 设置只用于自有线程并恢复，不能修改全局设置。四个阶段都通过后才允许 cleanup，逐一核验进程／原 thread／idle／空队列再关闭；用户终端保持。
+自动核验先恢复可确认结果，再处理占用。持续等待 60 秒最多追加一次提示，不因超时解锁。少数人工处置须明确对象／理由、正常停消费者、重新取得报告摘要，然后：
 
-工作流在每次外部动作前先记录意图；非 ready 状态拒绝再次 run，cleanup 也不能越过未知结果。失败时使用 report 和子步骤日志只读定位，先核对准确原生 client／turn 与任务是否仍执行；不要删除 case、重跑旧步骤或把 phase 改成 verified。需要补充动作时形成新意图和明确处置方案，不自动重放。原始 ID、路径、问题与答案均留私有证据，公开报告只保留脱敏结果。
+```sh
+.venv/bin/wx-clawbot admission-release --task-id 'EXACT_TASK_ID' --state-dir /absolute/path/to/private/state --apply --confirm-report 'EXACT_REPORT_DIGEST' --reason '已核对准确原生终态和队列'
+```
 
-原生中断后可能由客户端保留队列暂停状态：本轮实测一个已确认加入的输入在 idle thread 上保持 queued，尚无任何 turn；桥接没有将其冒充运行，也未强制启动或重发。真实工作流将中断关卡放在最后；遇到日常相同现象，先核对准确队列／原终端状态，再由本人决定原端继续或选择新会话，不重发未知任务。自动恢复暂停队列需要独立确认启动语义，不作为 ENG01 的隐式功能改造。
+apply 仍会连接受支持原生对象、核准确 thread／turn／client、完整提交／队列、revision 和审计；歧义或证据不足拒绝，无 force。释放不改 unknown，不执行输入，不发微信。禁止直接 SQL、清库、删项目配置或重建终端来清锁。
 
-临时模型验收仅用于明确授权的专用线程，不是生产桥接能力。原生模型／工具环境须实际产生结构化 async 问题；已终态且未产生该通知会明确失败，不把普通文字问题转换成授权，也不自动切模型。有具体授权时，prepare 和 run 均显式追加 `--async-test-model gpt-6.1-sol --confirm-temporary-model`；该选择随准备记录冻结，run 不接受临时换成另一模型。底层 `engineering_async_model.py` 保存原模型／完整受保护设置，严格核验身份／idle／空队列后只改测试线程，结束后精确恢复；任务或设置不确定时保留证据，不重试输入／答案。独立使用该入口的 run／report／cleanup 仍须准确 owned case 和全新报告目录。未取得具体授权不能把确认参数当成授权来源。
+## PERF01 候选的独立验证与生产切换
 
-日常桥接与测试使用不同账本和假发送端，真实原生自测不默认要求停日常服务。先完成能力和资源预检，再把必要的正常停止、备份和 bootstrap 单独放进最终切换窗口；不能把模型等待或授权等待留在停服窗口。本轮原生阶段过早停服的实际时长已在交付记录单列，未当作程序启动时间。
+原 schema 3→4 补丁、测量与失败路径见[PERF01](validation/performance-optimization.md)，当时部署见[分版本记录](validation/local-release.md)。补丁仅适用准确旧基线，不重复套入当前代码。当前制品及切换使用上文 ENG01，迁移使用账本现行入口。
 
-回退到旧代码时，不能盲目恢复指向 editable 开发目录的旧 plist：开发源码已经提升后，该路径不再代表旧版本。应使用事先核验、兼容当前 schema 的独立旧版本解释器和目录。ENG01 准备的旧 0.1.2 不认识 `--release-manifest`，其恢复 argv 使用准确旧版本的 `.venv/bin/python -I -m wx_clawbot.managed --config <原配置> --state-dir <原状态根>`，WorkingDirectory 为旧版本目录；其他原 Label 设置保持，先正常停并核对锁，再 bootout／bootstrap。它没有新版本运行时 manifest 保护，必须单独复核非 editable、旧源码摘要和依赖；保留现有账本，不把代码回退变成旧数据覆盖。旧版本目录、备份和安装说明仅在明确保留策略／删除授权后清理。
+## ASK01：异步答复与 schema 6
+
+`/status <原任务 ID>` 区分 q 请求的 pending、accepted、observed、unknown、conflict；答案不产生新业务任务。门禁、格式和恢复以[异步契约](async-questions.md)及矩阵为准，不能套用同步暂停／首答语义。旧 schema 显式升级，已写入新数据不能回灌旧备份。
+
+## 出站排版与冻结回执核对
+
+规则见[排版专题](wechat-markdown.md)。核对原生正文、冻结发送正文、客户端显示和实际复制，不能凭复制按钮或 API accepted 判定字节正确。旧 Outbox 与尝试不重写；真人证据仅在专门安排中采集，不自动操作微信 UI。
+
+## 上下文观察与定时验收
+
+自然失效时间已获准后置，无固定 TTL 承诺；[W08 证据](validation/w08.md#2026-11-01-上下文收尾)保留接受与未触发记录。旧即时观察额度已用，不能重发。未来跨天预约须先验证持久计划、重启和到期／过期的至多一次语义，另有具体发送授权；当前不提供跨天调度产品功能。

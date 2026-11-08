@@ -1,0 +1,77 @@
+{
+  "status": "verified_before_publication",
+  "version": "0.1.9",
+  "schema": 6,
+  "route_snapshot_version": 2,
+  "git_published": false,
+  "local_deployed": false,
+  "source_sha256": "ebc003f60509152906f31af84ae4a6c1a44f4acbdd396743fc08e5158bd8fa47",
+  "wheel_sha256": "52fdeee15c281f3bed9a04bdd5a2f547171686e5213b00cfec79af1b3dad2a7c",
+  "frozen_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 41.48172470799909
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.08108725000056438
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.2054532920010388
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.024135458003001986
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "privacy_audit": {
+    "status": "passed",
+    "public_files": 306,
+    "private_values_compared": 3118,
+    "private_matches": 0,
+    "reachable_objects": {
+      "blob": 918,
+      "tree": 396,
+      "commit": 57,
+      "tag": 7
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.9-py3-none-any.whl",
+        "sha256": "52fdeee15c281f3bed9a04bdd5a2f547171686e5213b00cfec79af1b3dad2a7c"
+      },
+      {
+        "name": "wx_clawbot-0.1.9.tar.gz",
+        "sha256": "7cf53fca9f1f230973315a493746ee721498a039ada8322016d32a97d3e383d0"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "previous_release_changed_package_files": [
+      "__init__.py"
+    ],
+    "validated_fix_files_unchanged": true,
+    "production_configuration_preserved": true,
+    "deployment_phase": false,
+    "production_version": "0.1.8",
+    "production_schema": 6,
+    "host_native_ready": true
+  },
+  "validated_candidate_difference": [
+    "__init__.py"
+  ]
+}

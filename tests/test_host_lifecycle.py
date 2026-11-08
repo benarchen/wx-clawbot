@@ -66,6 +66,25 @@ class HostLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.backend.wait_ready.assert_not_awaited()
         self.backend.launch.assert_not_awaited()
 
+    async def test_explicit_request_for_running_application_never_launches_or_reopens_it(self):
+        await self.host.ensure(launch=True, explicit=True)
+        self.backend.launch.assert_not_awaited()
+        self.backend.wait_ready.assert_awaited_once_with("application-one")
+        self.backend.connect.assert_awaited_once()
+
+    async def test_failed_launch_does_not_authenticate_or_retry_application_creation(self):
+        self.backend.identity.return_value = None
+        for error in (HostUnavailable("launch"), TimeoutError(), OSError()):
+            with self.subTest(error=type(error).__name__):
+                self.backend.launch.reset_mock()
+                self.backend.launch.side_effect = error
+                with self.assertRaises(HostUnavailable) as caught:
+                    await self.host.ensure(launch=True, explicit=True)
+                self.assertEqual(caught.exception.phase, "launch")
+                self.backend.launch.assert_awaited_once()
+        self.backend.wait_ready.assert_not_awaited()
+        self.backend.connect.assert_not_awaited()
+
     async def test_concurrent_explicit_requests_launch_and_connect_only_once(self):
         self.backend.identity.return_value = None
         async def launched():
@@ -180,6 +199,54 @@ class HostLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
 
 class AuthenticationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_launch_suppresses_only_startup_window_with_volatile_arguments_and_noop_event(self):
+        with patch("wx_clawbot.hosts.lifecycle.run_process", new=AsyncMock(return_value=(0, b""))) as run:
+            await ItermBackend().launch()
+        run.assert_awaited_once()
+        arguments = run.await_args.args[0]
+        self.assertEqual(arguments[:4], ["/usr/bin/osascript", "-l", "JavaScript", "-e"])
+        script = arguments[4]
+        self.assertIn('config.arguments = $(["-OpenNewWindowAtStartup", "NO"])', script)
+        self.assertIn('0x61736372, 0x6e6f6f70, $(), -1, 0', script)
+        self.assertIn('config.activates = false', script)
+        self.assertIn('openApplicationAtURLConfigurationCompletionHandler', script)
+        for forbidden in ('OpenUntitledFile', 'OpenNoWindowsAtStartup', 'OpenArrangementAtStartup',
+                          'setObjectForKey', 'setBoolForKey', 'create window', 'close', 'quit'):
+            self.assertNotIn(forbidden, script)
+
+    async def test_nonzero_launch_is_not_retried_with_open_or_window_creation(self):
+        with patch("wx_clawbot.hosts.lifecycle.run_process", new=AsyncMock(return_value=(1, b""))) as run:
+            with self.assertRaises(HostUnavailable) as caught:
+                await ItermBackend().launch()
+        self.assertEqual(caught.exception.phase, "launch")
+        run.assert_awaited_once()
+
+    async def test_cancelled_launch_stops_without_a_second_attempt(self):
+        entered, finished = asyncio.Event(), asyncio.Event()
+        async def pending(*_):
+            entered.set()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                finished.set()
+        with patch("wx_clawbot.hosts.lifecycle.run_process", new=AsyncMock(side_effect=pending)) as run:
+            job = asyncio.create_task(ItermBackend().launch())
+            try:
+                await asyncio.wait_for(entered.wait(), .2)
+                job.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await job
+                self.assertTrue(finished.is_set())
+                run.assert_awaited_once()
+            finally:
+                job.cancel()
+                await asyncio.gather(job, return_exceptions=True)
+
+    async def test_not_running_guidance_keeps_sessions_query_only(self):
+        text = str(HostUnavailable("not_running"))
+        self.assertIn("/cd 或 /new 按需启动", text)
+        self.assertIn("/sessions 仅查询，不启动应用", text)
+
     async def test_cold_start_delayed_transport_completes_same_concurrent_requests(self):
         backend = ItermBackend()
         backend.identity = AsyncMock(return_value=None)

@@ -1,0 +1,73 @@
+{
+  "phase": "verified",
+  "source_sha256": "0ee94920f638653a2bd57e6d0d8061b94e87c00cbb051dd2f5776e7887df7bc2",
+  "validator_sha256": "39f1893573ef33f9cb975fe5ad0786e2b5bd3bd4fb360c3d1062de2a44374009",
+  "cold_start": true,
+  "calls": {
+    "launch": 1,
+    "wait_ready": 1,
+    "connect": 1,
+    "create_terminal": 2
+  },
+  "wechat_sends": 0,
+  "production_ledger_direct_writes": 0,
+  "native_version": "0.167.0",
+  "seconds": 26.344,
+  "one_owned_window": true,
+  "owned_terminals": 2,
+  "default_shells": 0,
+  "configuration_preserved": true,
+  "persistent_startup_preferences_preserved": true,
+  "owned_terminals_absent_after_cleanup": true,
+  "configuration_preserved_after_cleanup": true,
+  "schema": 6,
+  "application_baseline": "0.1.8",
+  "iterm2_version": "3.7.7",
+  "synthetic_owner_commands": 4,
+  "completed_native_startup_handshakes": 2,
+  "managed_reuse_commands": 2,
+  "owned_terminals_cleaned": 2,
+  "frozen_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 41.44098645899794
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.07756929199967999
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.18539079200127162
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.020193874999677064
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "phone_acceptance": false,
+  "deployment_performed": false,
+  "first_candidate_cold_start": "failed_extra_shell_preserved",
+  "verified_at_beijing": "2026-11-08 13:50",
+  "postflight": {
+    "application_running": true,
+    "window_count": 0,
+    "terminal_count": 0,
+    "persistent_startup_preferences_unchanged": true,
+    "frozen_lifecycle_matches_source": true
+  }
+}

@@ -110,6 +110,118 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         await self.command("/sessions")
         self.assertIsNotNone(self.controller.routes.list)
 
+    async def test_sessions_preserves_focused_and_managed_selection_and_all_leases_without_side_effects(self):
+        await self.select()
+        await self.command("/attach 1")
+        await self.command("original task")
+        for mode in ("focused", "managed"):
+            self.controller.routes.mode = mode
+            before = self.controller._snapshot(self.controller.routes)
+            await self.state.save_routes(before)
+            leases = {key: roles.copy() for key, roles in self.controller.subscriptions.roles.items()}
+            tasks = await self.state.tasks()
+            prior_list = self.controller.routes.list
+            self.controller.host = SimpleNamespace(ensure=AsyncMock(), verified=Mock())
+            self.controller.before_change = AsyncMock(return_value=True)
+            self.agent.observe_loaded.reset_mock()
+            self.agent.unsubscribe.reset_mock()
+            with patch.object(self.state, "save_routes", new=AsyncMock()) as save, \
+                    patch.object(self.engine, "reconcile", new=AsyncMock()) as reconcile, \
+                    patch.object(self.controller, "_refresh", new=AsyncMock()) as refresh:
+                await self.command("/ss two")
+            self.assertIsNot(self.controller.routes.list, prior_list)
+            self.assertEqual(self.controller._snapshot(self.controller.routes), before)
+            self.assertEqual(await self.state.load_routes(), before)
+            self.assertEqual(self.controller.subscriptions.roles, leases)
+            self.assertEqual(await self.state.tasks(), tasks)
+            for operation in (save, reconcile, refresh, self.controller.before_change,
+                              self.agent.observe_loaded, self.agent.unsubscribe,
+                              self.controller.host.ensure, self.controller.starter.start):
+                operation.assert_not_awaited()
+            self.controller.host.verified.assert_not_called()
+        self.catalog.discover.assert_awaited_with("two")
+
+    async def test_empty_filtered_list_preserves_target_and_explicit_unfocus_only_releases_route(self):
+        await self.select()
+        await self.command("/attach 2")
+        await self.command("task retained")
+        target = self.controller.routes.target
+        self.catalog.discover.return_value = ()
+        await self.command("/sessions no-match")
+        self.assertEqual(self.controller.routes.target, target)
+        self.assertEqual(self.controller.routes.list.targets, ())
+        self.agent.unsubscribe.reset_mock()
+        await self.command("/uf")
+        self.assertIsNone(self.controller.routes.target)
+        self.assertEqual(self.controller.routes.observer, target)
+        self.assertFalse(self.controller.subscriptions.has(target, "route"))
+        self.assertTrue(self.controller.subscriptions.has(target, "observer"))
+        task = (await self.state.tasks())[0]
+        self.assertTrue(self.controller.subscriptions.has(target, "task-" + task["id"]))
+        self.agent.unsubscribe.assert_not_awaited()
+
+    async def test_query_failure_preserves_original_list_deadline_target_and_durable_state(self):
+        from wx_clawbot.catalog import DiscoveryUnavailable
+        await self.select()
+        before = await self.state.load_routes()
+        old = self.controller.routes.list
+        for failure in (DiscoveryUnavailable("Incomplete native listing"), TimeoutError()):
+            self.catalog.discover.side_effect = failure
+            await self.command("/sessions")
+            self.assertIs(self.controller.routes.list, old)
+            self.assertEqual(self.controller.routes.target, self.sessions[1].target)
+            self.assertEqual(await self.state.load_routes(), before)
+        self.agent.unsubscribe.assert_not_awaited()
+
+    async def test_native_generation_change_during_query_cannot_publish_list(self):
+        await self.select()
+        old = self.controller.routes.list
+        async def changed(*_):
+            self.controller.native_generation += 1
+            return tuple(self.sessions)
+        self.catalog.discover.side_effect = changed
+        await self.command("/sessions")
+        self.assertIs(self.controller.routes.list, old)
+        self.assertEqual(self.controller.routes.target, self.sessions[1].target)
+        self.agent.unsubscribe.assert_not_awaited()
+
+    async def test_query_does_not_block_or_retarget_an_ordinary_message(self):
+        await self.select()
+        entered, release = asyncio.Event(), asyncio.Event()
+        async def slow(*_):
+            entered.set()
+            await release.wait()
+            return tuple(reversed(self.sessions))
+        self.catalog.discover.side_effect = slow
+        work = asyncio.create_task(self.command("/sessions"))
+        try:
+            await asyncio.wait_for(entered.wait(), .5)
+            self.assertEqual(self.controller.selection_pending, 0)
+            with patch.object(self.engine, "submit", new=AsyncMock()) as submit:
+                await self.command("message while querying")
+            self.assertEqual(submit.await_args.args[1].target, self.sessions[1].target)
+        finally:
+            release.set()
+            await work
+        self.assertEqual(self.controller.routes.select(1), self.sessions[1].target)
+
+    async def test_retired_query_does_not_publish_list_or_release_selection(self):
+        await self.select()
+        old = self.controller.routes.list
+        entered = asyncio.Event()
+        async def slow(*_):
+            entered.set()
+            await asyncio.Event().wait()
+        self.catalog.discover.side_effect = slow
+        work = asyncio.create_task(self.command("/sessions"))
+        await asyncio.wait_for(entered.wait(), .5)
+        await self.controller.retire()
+        await work
+        self.assertIs(self.controller.routes.list, old)
+        self.assertEqual(self.controller.routes.target, self.sessions[1].target)
+        self.assertFalse(self.controller.changes.locked())
+        self.agent.unsubscribe.assert_not_awaited()
+
     async def test_failed_rollback_requests_native_recovery_without_blocking_status(self):
         from wx_clawbot.hosts.lifecycle import HostUnavailable
         await self.select()
@@ -730,7 +842,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((recovered["state"], recovered["queue_id"]), ("queued", "recovered-queue"))
         self.assertEqual(self.queue.add.await_count, 1)
 
-    async def test_explicit_refresh_reconciles_previously_unbound_external_terminal_state_without_replay(self):
+    async def test_query_leaves_unknown_task_for_independent_reconciliation_without_replay(self):
         task = await self.desktop_start(observe=True)
         await self.state.task_update(task["id"], "unknown")
         self.engine.observed_turns.clear()  # No recovered observation history is replayed.
@@ -743,11 +855,14 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.agent.rpc.request.return_value = {"data":[{"id":"desktop-turn", "status":"interrupted", "items":[
             {"type":"userMessage", "clientId":"desktop-native-client"}]}], "nextCursor":None}
         await self.command("/sessions")
+        self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "unknown")
+        self.agent.rpc.request.assert_not_awaited()
+        await self.engine.reconcile()
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "interrupted")
         self.queue.add.assert_not_awaited()
         self.agent.rpc.respond.assert_not_awaited()
         self.assertTrue(all(call.args[0]=="thread/turns/list" for call in self.agent.rpc.request.await_args_list))
-        self.assertIsNone(self.controller.routes.target)
+        self.assertEqual(self.controller.routes.target, self.sessions[1].target)
         self.assertEqual(self.controller.routes.observer,self.sessions[1].target)
 
     async def test_explicit_refresh_preserves_unknown_when_binding_is_still_unverified(self):

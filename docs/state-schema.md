@@ -2,7 +2,29 @@
 
 本文件说明程序自有私有账本，状态以 [ROADMAP](../ROADMAP.md) 为准。真实业务项目数据库与 Codex 历史不属于升级对象。
 
-当前代码 `0.1.3` 使用版本 6，延续 ASK01 已备份并显式升级的账本结构；具体本机加载状态见[部署证据](validation/local-release.md)。以下旧版本章节保留结构演进和数据边界；升级链支持 1／2／3／4／5→6，新增结构见本页 ASK01 节。
+当前代码 `0.1.9` 使用 schema 6，延续 ASK01 已备份并显式升级的结构；具体本机加载状态见[部署证据](validation/local-release.md)。路由 JSON 快照 version 2 是独立格式，不是 SQLite schema 版本，见[身份契约](native-session-identity.md)。升级链支持 1／2／3／4／5→6；下方带旧版本的章节保存历史演进，不能当作当前部署版本或重复执行操作卡。
+
+## 当前结构总览
+
+DDL 与结构校验以 [schema.py](../src/wx_clawbot/schema.py) 及 [runtime_state.py](../src/wx_clawbot/runtime_state.py) 为实现源；不在文档复制完整 SQL。当前 13 个业务表如下，SQLite 内部统计对象不算业务表。Project 来自配置，会话目录来自原生发现，没有 projects／sessions 表。
+
+| 表 | 主标识／关系 | 职责与关键保护 |
+| --- | --- | --- |
+| channel | 固定 id=1，bot／owner | 本人绑定与接收游标，开库必须匹配凭据 |
+| inbox | 稳定 message_id | 接收序号、正文／有序内容、摘要、phase；游标同事务，清理后保留去重墓碑 |
+| reply_context | 固定 id=1 | 当前本人回复上下文，旧／重复入站不覆盖较新值 |
+| tasks | task id，source_message_id／client_id 唯一 | 冻结 target、输入、原 thread／queue／turn、执行状态；external 无微信入站来源 |
+| outbox | event id，逻辑关联 task | 冻结文本、优先级、投递状态、服务端回执；不能推导手机实收 |
+| routes | 固定 id=1，外键 channel | 选择 JSON 快照；当前 version 2，旧选择无法复验只留诊断 |
+| interactions | public_id，generation＋native_key 唯一 | 同步请求参数／目标／期限／状态，原 ID 类型不混淆 |
+| delivery_attempts | outbox_id＋number，外键 outbox | 每次 HTTP 意图、上下文、client、结果；同回执最多一个 sending |
+| attachments | id，message_id＋item_index 唯一，关联 Inbox／task | 私有媒体参数、文件与摘要、准备状态；完成／明确失败清除下载秘密 |
+| task_occupancy | task_id 外键 | waiting／holding／released、revision、证据与核验时间 |
+| occupancy_audit | id，task_id＋revision 唯一 | 追加占用变更，不把释放等同任务完成 |
+| admission_waits | task_id 外键 | 阻塞者、原因、首次／最后核验和升级提示状态 |
+| async_questions | public_id，source＋thread＋turn＋item 唯一 | 异步题目／答案／摘要／revision／期限；answer_client 唯一，关联 task |
+
+逻辑关联不一定都有 SQL 外键，例如 tasks.source_message_id 和 outbox.task_id 不应画成强制外键。恢复状态和容量见后文，异步详情见[专题](async-questions.md)。
 
 `<state-dir>/runtime.sqlite3` 的 application_id 固定为 wx-clawbot runtime，user_version 管理结构版本；本人 bot／owner 绑定必须匹配。默认先检查计划：
 
@@ -67,7 +89,7 @@ migrate-state 默认只读。升级 1 或 2 时，先停止前台并取得原消
 .venv/bin/wx-clawbot maintain-state --state-dir /absolute/path/to/private/state
 ```
 
-默认只读列出符合条件的数量。操作员明确决定清理、停止前台并核对范围后，才添加 `--apply`：已结正文／上下文 7 天，已结任务、回执及交互摘要 30 天；unknown、未结束任务和未送达关键结果保留。入站稳定 ID 与摘要作为防重墓碑保留，摘要清理后旧消息仍不能重新执行。该操作只改程序账本，事务失败回滚；不触及 Codex 历史、项目文件或私有备份，也不宣称对 SQLite 旧页进行了物理安全擦除。日志仅向前台输出关联 ID 和状态，不创建正文日志文件；外部重定向文件由运行者管理。
+默认只读列出符合条件的数量。操作员明确决定清理、停止前台并核对范围后，才添加 `--apply`：已结正文／上下文 7 天，已结任务、回执及交互摘要 30 天；unknown、未结束任务和未送达关键结果保留。入站稳定 ID 与摘要作为防重墓碑保留，摘要清理后旧消息仍不能重新执行。该操作只改程序账本，事务失败回滚；不触及 Codex 历史、项目文件或私有备份，也不宣称对 SQLite 旧页进行了物理安全擦除。前台输出安全状态与分类，不创建正文日志文件；managed 另保存受限、有界、轮转的诊断日志，不放开原始响应或私人正文，布局见[运维](operations.md)。
 
 ## 验证范围
 
@@ -75,7 +97,7 @@ migrate-state 默认只读。升级 1 或 2 时，先停止前台并取得原消
 
 ## PERF01 候选版本 3 到 4
 
-[PERF01](validation/performance-optimization.md)实现版本 4，现已整合到本机 `0.1.0`，真实库与运行源码均已升级。版本 4 仅新增以下索引，不改变业务列、冻结正文、状态或唯一性：
+[PERF01](validation/performance-optimization.md)实现版本 4，当时整合到 `0.1.0` 并完成本机升级；当前版本见 ROADMAP。版本 4 仅新增以下索引，不改变业务列、冻结正文、状态或唯一性：
 
 | 索引 | 定义／作用 |
 | --- | --- |
@@ -89,7 +111,7 @@ migrate-state 默认只读。升级 1 或 2 时，先停止前台并取得原消
 
 ## REC01 候选版本 4 到 5
 
-`0.1.1` 将任务结果与仓库占用分离，已在本机加载，实际结果见 ROADMAP 和[REC01 记录](validation/admission-recovery.md)；上述版本 4 说明保留首版历史。新增 task_occupancy、occupancy_audit、admission_waits，字段及证据语义见同一记录。
+`0.1.1` 当时将任务结果与仓库占用分离并完成本机加载，实际结果见 ROADMAP 和[REC01 记录](validation/admission-recovery.md)；上述版本 4 说明保留首版历史。新增 task_occupancy、occupancy_audit、admission_waits，字段及证据语义见同一记录。
 
 占用有 waiting／holding／released 三态。旧 received／prepared 初始化 waiting，其他旧非终态已提交记录保守 holding；终态旧任务不增加占用。新意图及占用、派发状态变更、终态及释放与审计保持各自原子事务。占用释放不改写 tasks 的 unknown、输入、原目标或 client／queue／thread／turn。
 

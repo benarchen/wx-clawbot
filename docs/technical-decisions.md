@@ -1,129 +1,113 @@
-# wx-clawbot 技术选型与决策记录
+# wx-clawbot 技术选型与架构决策记录（ADR）
 
-本文保存设计与验收要求；实际进度与验证状态以仓库 ROADMAP.md 为准。
-
-本文承接已确认的 D01 至 D06；不重新讨论是否需要该产品。产品行为见 [产品设计](product-design.md) ，系统分层见 [架构设计](architecture-design.md) 。接口与验证见 [开发契约](development-contracts.md) ，执行顺序见 [施工清单](../goals/implementation-plan.md) 。
+本文解释当前选择的理由、替代、后果和重新评估条件。采用 [ADR 实践](https://adr.github.io/)组织，2026-11-08 从既有设计与施工证据整理；“记录日期”不是补造的历史审批日期。原始设计输入、未验证问题和参考来源仍可从 [DOC01 基线](validation/documentation-restructure.md)的固定提交及带日期证据追溯。当前进度只见 [ROADMAP](../ROADMAP.md)。
 
 ## 1. 选型结论
 
-开发基线采用 Python 单进程服务：微信文本通道、命令路由和可靠性账本在本机运行；iTerm2 SDK 管理终端；Codex 原生接口控制同一会话；SQLite 保存必要运行状态。无需为该设计部署 OpenClaw Gateway，也不要求购买新的模型 API。
-
-这是本项目的技术方案，不代表博主采用了相同实现。优先实现同一原终端、同一 Codex 会话上的远程操作；不以复制历史后新开后台会话替代用户需求。
-
-| 决策 | 选择 | 原因与限制 |
+| 旧编号 | 当前选择 | ADR |
 | --- | --- | --- |
-| T01 主语言 | Python 3.14，开发基线为本机 3.14.5 | 可直接使用 iTerm2 官方 Python SDK，并复用标准库；减少 Go 主程序加 Python 适配进程的边界 |
-| T02 进程模型 | 一个 asyncio 服务，有限后台工作线程 | 收消息、处理控制命令和观察 Agent 并行；数据库、HTTPS 阻塞操作不阻塞主事件循环 |
-| T03 终端宿主 | iTerm2 官方 Python SDK | 负责发现、校验、创建终端；Agent 语义由 Codex 适配器提供 |
-| T04 Codex 通信 | 连接现有共享 daemon 的本机 Unix WebSocket | 原终端和桥接器连接同一运行时；既有会话是否满足此条件必须验证 |
-| T05 会话排队 | 微信与桌面专用 `codex queue` 入口共用 daemon 队列 | 本人于 2026-10-25 确认；原 TUI 本地队列不纳入统一入口，客户端改造后置；SQLite 只记录意图和关联，见桌面排队契约 |
-| T06 微信接入 | 基于腾讯公开客户端协议实现最小文本适配器 | 不安装整个 OpenClaw；仅承接登录、接收、发送和必需的连接状态处理 |
-| T07 状态 | 标准库 sqlite3；配置 JSON | 消息、路由、任务和 Outbox 支持事务；不引入 ORM、Redis 或外部数据库服务 |
-| T08 HTTP | 首先使用标准库 HTTPS 客户端与独立、有限工作线程 | 接收长轮询和发送分别占用资源；若原型无法满足取消、连接或延迟要求，再有依据地更换客户端 |
-| T09 工程 | 项目内 .venv、pyproject.toml、精确依赖锁、unittest | 与用户全局 Python、Codex 配置隔离；锁定实际验证成功的依赖组合 |
-| T10 常驻 | 用户级 launchd；先前台运行验收 | 常驻属于后续部署阶段；不立即注册系统服务 |
+| T01／T02 | Python 3.14、asyncio 单桥接进程、有界线程／临时子进程 | ADR-01 |
+| T03／T04 | iTerm2 官方 SDK 管宿主，既有 daemon Unix WebSocket 管准确对话 | ADR-02 |
+| T05 | 微信与桌面专用入口共用原生队列 | ADR-03 |
+| T06／T08 | 腾讯固定协议参考、独立标准库 HTTPS 适配器 | ADR-04 |
+| T07 | JSON 配置、SQLite 单执行器与 Outbox，执行／占用／投递分开 | ADR-05 |
+| T09／T10 | 项目 venv／精确锁、独立制品、用户级 launchd | ADR-08 |
 
-以上为开发侧选型。T04、T05、T06 必须通过原型关卡才能作为已支持能力发布；失败时先核对接口与实现，不悄悄改变 D01 至 D06。
+首版只适配 Codex；抽象服务现有需求，不建设通用 Agent 框架或完整 Gateway。依赖及授权保持[第三方声明](../THIRD_PARTY_NOTICES.md)，项目自有作品 MIT 不等于完整组合产品可闭源发行。
 
-## 2. 为什么调整草稿中的 Go
+## ADR-01：以 Python 单进程集成 I/O
 
-Go 并非不能实现；博主的 Go 方案也不构成我们必须使用 Go 的理由。本项目首版只有一个用户、少量会话，主要等待微信网络和 Agent 事件，尚无证据表明语言吞吐是瓶颈。
+- 记录日期／状态：2026-11-08 整理，沿用；来源为初始设计和 [ENG01](validation/engineering-hardening.md)。
+- 背景：单用户、少量本机会话，主要等待微信网络和原生事件，iTerm2 有官方 Python SDK。
+- 备选：Go 主程序加 Python 宿主进程；更多微服务；当前 Python 集成。
+- 决策：asyncio 组合通道、控制与原生生命周期，阻塞数据库／HTTPS 用有界工作线程，CPU 大结果和媒体用临时进程。
+- 理由与后果：减少跨语言和服务边界；需要显式限制队列、共享 CPU 槽位并等待取消资源回收。没有仅凭语言选择宣称性能提升。
+- 重评条件：有复现数据证明 CPU、内存或延迟瓶颈无法在现有边界内解决，再比较替代；不按假设负载重写。
 
-本机已有 Python，iTerm2 提供官方 Python SDK，Python 标准库又能处理 SQLite、异步子进程和测试。采用 Python 可以少维护一个宿主适配进程。语言选择以集成成本为依据，没有声称获得未经测量的性能提升。标准能力依据：[sqlite3](https://docs.python.org/3.14/library/sqlite3.html) 、[异步子进程](https://docs.python.org/3.14/library/asyncio-subprocess.html) 。
+## ADR-02：控制同一既有原生对象，分离宿主来源
 
-## 3. 设计输入时的静态快照
+- 记录日期／状态：2026-11-08 整理，当前有效；[W02](validation/w02.md)、[TGT01](validation/wechat-independent-target.md)、[TGT02](validation/native-session-no-footer.md)保存演进。
+- 背景：用户要求继续准确原对话；终端显示、运行时加载和原生 thread 是不同对象。
+- 备选：终端模拟输入／读屏；复制历史另起会话；原生协议及可见新建握手。
+- 决策：既有对象按准确 runtime／thread／native session／cwd 与 loaded 核验；SDK 元数据只辅助 cwd 和真实来源。可见新建须自有 boot 与唯一 completed 原生握手。
+- 取舍与后果：不依赖状态栏、标题或桌面焦点；发现只覆盖注册根和已知 cwd，不递归私人历史。不可接入就明确失败，不恢复 notLoaded 冒充持续接入。桥接连接退出不结束用户原生对话。
+- 2026-11-08 启动入口修复：本人确认从应用启动方式入手，沿用 SDK 创建与原生握手；首轮 AppleScript launch 真实失败后，候选采用 AppKit noop 首事件及退出即失效的 OpenNewWindowAtStartup 参数。只抑制默认启动新窗，不覆盖恢复及后续 Dock 行为、不写持久偏好、不接管或关闭普通 Shell。失败、候选／真实验收和本机部署分开，见[冷启动记录](validation/iterm-single-window.md)。
+- 替代关系：早期进程＋页脚 ID 的首次发现方案已被 TGT02 替代；旧版本证据仍保留，不能把当前规则倒写为当时已通过。
+- 重评条件：原生协议改变身份／加载语义或运行时无正式接口时重新验证；不通过去掉验证条件维持表面可用。
 
-以下为最初文档准备时的历史输入，不是当前安装与进度声明。实施基线见 [协议记录](protocol-baseline.md)，原终端现场证据见 [W02 验收](validation/w02.md)，当前状态只见 ROADMAP；不据此自动升级。
+## ADR-03：采用专用桌面排队入口
 
-| 项目 | 本机结果 | 解释 |
-| --- | --- | --- |
-| Codex CLI | 0.163.0 | 通过版本、help 和本机生成的 schema 核对接口名称 |
-| Python | 3.14.5 | 作为首个开发与测试解释器 |
-| SQLite | 3.53.2 | 本机 Python sqlite3 报告的库版本 |
-| iTerm2 | 3.7.6 | 来自已安装应用的信息文件 |
-| Go | 当前 PATH 未找到 | 不能据此断言电脑完全未安装 Go |
-| iterm2、websockets、protobuf | 默认 Python 未发现可导入模块 | 尚未安装项目依赖或验证兼容性 |
-| 新项目目录 | 已存在，当前为空 | 尚未初始化工程、Git 或部署 |
+- 记录日期／状态：2026-11-08 整理，沿用 2026-10-25 本人确认；来源为[桌面排队契约](desktop-queue-contract.md)与 [W03](validation/w03.md)。
+- 背景：旧原生 TUI 忙碌 Tab 本地队列与 daemon 队列不同，真实输入合并反例不能满足独立任务交付。
+- 备选：改造 Codex TUI；桥接模拟按键；桌面 `codex queue` 共用 daemon 队列。
+- 决策：忙碌桌面任务走普通 Shell 的专用 queue 命令，微信走相同原生队列；TUI Enter／Tab 维持原生语义。
+- 后果：原生独立 turn 可核对，避免维护修改版 CLI；桌面需额外入口，不能声称所有 TUI 输入自动纳管。中断后原生可能暂停队列，未知状态不重发。
+- 重评条件：用户明确要求改变桌面入口且目标版本真实证明统一语义，再制定迁移／回退；不自动替换客户端。
 
-已生成稳定与实验版 Codex JSON schema。已核对 thread/read、thread/resume、turn/start、turn/interrupt 等接口；实验版 schema 还包含 thread/queue/add 等队列接口及 clientUserMessageId 字段。字段存在不证明去重承诺、审批竞争和终端广播行为成立。
+## ADR-04：最小微信协议适配与独立身份
 
-本轮没有连接用户实际 Codex 会话、启动或停止 daemon、启用 iTerm2 API、执行模型任务或发送微信消息。
+- 记录日期／状态：2026-11-08 整理，沿用；来源为 [W01](protocol-baseline.md)、[W04](validation/w04.md)、[IMG01](validation/image-input.md)。
+- 背景：只需本人登录、消息、结果及必要媒体；不需要完整外部 Gateway。
+- 备选：安装完整平台／复用其他服务凭据；固定参考实现最小独立适配。
+- 决策：按[腾讯固定 commit 清单](wechat-reference.json)逐字段核对，标准库 HTTPS 有界线程，本人绑定及独立私有数据。
+- 后果：维护接口兼容、CDN 与未知投递的责任在本项目；client_id 不是已证明的服务端幂等保证，不宣称官方 Python SDK 或服务端授权。
+- 重评条件：固定协议不再满足实际服务、独立客户端标识或安全约束变化时先核来源与实测，不能猜 headers 或读取其他项目凭据。
 
-## 4. Codex：优先接入共享运行时
+## ADR-05：持久化意图与分离结果、占用、投递
 
-官方资料描述了共享本地 app-server、远程连接及队列命令；本机帮助也提供 app-server proxy --sock。首选方案是由桥接器连接同一原生 Unix WebSocket，读写 JSON 消息，让原终端继续拥有自己的界面。参考：[开发命令](https://learn.chatgpt.com/docs/developer-commands) 、[App Server](https://learn.chatgpt.com/docs/app-server) 。
+- 记录日期／状态：2026-11-08 整理，当前有效；初始 SQLite／Outbox 方案经 [W06](validation/w06.md)、[REC01](validation/admission-recovery.md)扩展。
+- 背景：本地数据库与 RPC／HTTP 没有跨系统事务；未知结果不能推导未执行，未知结果也不一定永久占仓库。
+- 备选：内存队列、每次超时重试、单一 success 状态；SQLite 原子事务及独立状态。
+- 决策：同一有界执行器，接收／游标／去重原子；外部调用前写意图，结果和冻结 Outbox 原子；占用另有 revision／审计。
+- 后果：保留 unknown，只读核对；准确终态及完整提交／队列证据可释放占用，但不伪造结果完成或授予路由资格。发消息失败只处理回执。
+- 重评条件：多用户／多机或实际负载超出单机 SQLite，再独立设计；当前不引入 ORM、Redis、外部数据库或第二执行调度器。
 
-必须区分以下情况：
+## ADR-06：微信独立选择与独立观察
 
-| 现场情况 | 处理 |
-| --- | --- |
-| 已有 iTerm2 Codex 使用可连接的共享运行时 | 验证同一 thread、事件和审批后接入 |
-| 已有会话使用独立运行时，例如 --no-daemon | 显示检测结果，调查可用正式入口；不能自动重启、复制会话或声称已接管 |
-| 微信要求新会话 | 在 iTerm2 创建可见终端，并让它连接已验证的运行时；通过启动握手登记准确 thread |
-| 一个目录存在多个终端或多个 thread | 用稳定身份建立关联；仅凭 cwd、标题或最近时间不能自动选定 |
+- 记录日期／状态：2026-11-08 整理，沿用 2026-10-25 独立观察及 2026-11-07 独立选择确认；来源为[命令契约](command-contract-proposal.md)。
+- 背景：手机用户需要明确任务目标，桌面变化不应被动改变它；观察别处任务也不等于切输入目标。
+- 备选：自动跟随前台窗口；attach 作为 focus 别名／排他接管；选择与观察分别维护。
+- 决策：focus／managed 控制后续输入，send 仅本次；attach 独立订阅、detach 只退订。任务在接收时冻结目标。2026-11-08 本人要求 sessions 改为纯查询：不退出输入目标、不释放订阅、不触发任务对账、不启动 iTerm2；显式 unfocus 才退出输入目标。原“列表查询顺便退出”行为被替代，历史验收不回写。
+- 后果：需分别显示两个角色并事务性切换订阅与路由；关闭窗口后核验原生可用性，不保证必然继续或失效。早期强制跟随桌面的推断不再适用。
+- 重评条件：用户提出新的显式跟随模式时单独确定行为与竞态，不据桌面变化隐式迁移任务。
 
-只管理桥接器拥有的代理连接，不把断开连接解释为关闭用户 Codex。若需要本项目拥有的运行时，其创建、归属和退出策略必须在原型中明确；不自动替换用户既有共享运行时。
+## ADR-07：接受原生规则限制并按能力开放协议
 
-双端审批是核心验证项：原生 resolved 通知只能说明存在完成事件，不能单独证明两个客户端都收到同一请求、都能答复、且先答生效。必须真实验证这三件事。
+- 记录日期／状态：2026-11-08 整理，当前有效；[AUD01](validation/native-diagnostics-rules.md)和[规则契约](project-rules.md#已确认的原生限制契约)保存本人确认。
+- 背景：同原会话可输入和连接恢复不证明新 AGENTS 已重新加载；协议字段存在也不证明动态功能可用。
+- 备选：桥接注入规则／文件摘要阻断并声称已刷新；仅核身份与 cwd 并明确原生限制。
+- 决策：不承诺热更新、规则变化检测和自动阻断；规则变化后本人明确新建可见会话并复验。版本逐能力核对，不能只扩大白名单。
+- 后果：保留已知限制，原生同步、图片、结构化异步及客户端显示分别验证；无全局配置自动写权限。旧 W02／W05 单次配置授权不变成常驻许可。
+- 重评条件：用户需要桥接主动检测／阻断或原生版本改变加载与协议语义，先定义覆盖和证据，不把摘要或模型复述当原生证明。
 
-## 5. iTerm2 SDK 与依赖审查
+## ADR-08：冻结独立制品与用户级托管
 
-SDK 提供终端对象、创建 tab 和发送文本接口。发送文本是模拟输入，不能据此推断 Agent 接受、执行成功或进入审批状态；正式任务优先经 Codex 协议提交。参考：[SDK](https://iterm2.com/python-api/) 、[创建终端](https://iterm2.com/python-api/window.html) 、[Session 接口](https://iterm2.com/python-api/session.html) 。
+- 记录日期／状态：2026-11-08 整理，沿用 [ENG01](validation/engineering-hardening.md)；发布演进见[本机记录](validation/local-release.md)。
+- 背景：editable 路径随开发变化，不能证明生产仍运行已验收代码；临时子进程也须相同包来源。
+- 备选：开发检出原地运行／覆盖 venv；独立非 editable wheel 和 manifest。
+- 决策：每版本独立 release，核 wheel、lock、源码及包文件摘要；父进程和桥接自有子进程核对同一 manifest。managed 同进程调用 serve，launchd 管理本项目单实例。
+- 后果：开发与运行分离，多占少量磁盘；正常停止、备份、替换准确 plist、重载 job 后核实际加载。代码回退不覆盖已有新数据，不让旧代码读不兼容 schema。
+- 重评条件：分发平台／安装形态变化时重新审查制品来源、数据兼容、许可证及恢复方法，不能只改版本号。
 
-| 依赖 | 调研结果 | 进入运行链前的门槛 |
-| --- | --- | --- |
-| iterm2 | PyPI 2.30，2026-10-12 发布；官方仓库与发布者入口可对应；声明 GPLv2+ | 在项目 .venv 验证 Python 3.14 与本机 iTerm2；固定版本与哈希，记录许可证 |
-| protobuf、websockets | 官方 SDK 的传递依赖 | 锁定解析后的实际版本，完成导入、连接、断线测试；不能直接把调研时最新版本当作已测试组合 |
-| 腾讯参考客户端 | 仓库 package.json 为 2.4.10，声明 MIT；插件依赖 OpenClaw | 仅作为协议和字段参考；移植代码时保留应有声明，不称其为官方 Python SDK |
-| fastclaw-ai/weclaw | 本轮查到最新 release 为 v0.7.1；上游与截图中的 50 层修改不是同一份代码 | 只作参考，不直接引入整个 fork；未确认博主仓库身份 |
+## ADR-09：异步问题采用原轮次补充
 
-依赖依据：[iterm2 发布页](https://pypi.org/project/iterm2/) 、[SDK setup.py](https://raw.githubusercontent.com/gnachman/iTerm2/master/api/library/python/iterm2/setup.py) 、[腾讯 package.json](https://raw.githubusercontent.com/Tencent/openclaw-weixin/main/package.json) 、[weclaw releases](https://github.com/fastclaw-ai/weclaw/releases) 。
+- 记录日期／状态：2026-11-08 整理，沿用 2026-11-03 本人确认；[ASK01](validation/async-questions.md)记录真实反例与验收。
+- 背景：结构化异步 agentMessage 问题不暂停任务，原生 turn/steer 可同时接受两个相反补充，没有问题级 resolved／首答独占。
+- 备选：伪造同步卡／承诺跨端首答；后台另开任务；接受真实补充模式。
+- 决策：准确原 turn 单次持久化补充，accepted／observed／unknown／conflict 分别记录，外部竞争明确提示；仅对实证版本开放。
+- 后果：微信本入口最多提交一次，不保证模型采用或跨端互斥；需要阻塞与授权继续用同步原请求。精确预登记辅助输入才能关联业务结果。
+- 重评条件：匹配版本提供问题级原语或用户改变交互要求，再验证并记录替代；不能将目前补充契约推广成审批。
 
-近期发布信息已核对；维护者长期活跃度和 issue 响应质量尚未完成充分核验，部分 GitHub 请求遇到限流。W01 应补齐，不能写成“依赖已全面审计”。许可证记录用于后续分发决策，本轮不直接替整个项目选定 MIT 或作法律兼容性结论。
+## 历史来源与维护
 
-## 6. 微信文本通道的证据与范围
+原技术决策的静态现场快照、Go 对比、依赖调研、目录和原开工问题保存在 [整理前固定版本](https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/technical-decisions.md)，逐节去向见 DOC01 报告；它们不是当前未部署声明。依赖当时的维护抽样不是今天的完整安全审计，当前锁与来源见[协议基线](protocol-baseline.md)。
 
-腾讯仓库公开了客户端协议参考与请求实现，可核对二维码登录、getupdates、sendmessage、headers、context_token、游标和错误处理。该文档自身也区分客户端行为与服务端保证，因此不能把可选字段推导为服务端允许缺省，也不能把 client_id 当作已证明的服务端幂等键。依据：[协议参考](https://raw.githubusercontent.com/Tencent/openclaw-weixin/main/docs/protocol.md) 、[请求实现](https://raw.githubusercontent.com/Tencent/openclaw-weixin/main/src/api/api.ts) 、[登录实现](https://raw.githubusercontent.com/Tencent/openclaw-weixin/main/src/auth/login-qr.ts) 、[文本发送](https://raw.githubusercontent.com/Tencent/openclaw-weixin/main/src/messaging/send.ts) 。
-
-首版只实现满足产品闭环的文本能力：登录、本人身份绑定、长轮询、结果与交互消息发送、失效检测。媒体上传、群聊、多账号和任意外部通知 API 不进入首版。
-
-二维码展示先复用服务端返回的有效展示入口；如果实际返回值不能直接扫码，再在 W04 选择必要的展示库，不能仅打印未知格式的字符串就称登录体验完成。不会读取旧 OpenClaw 凭据来自动迁移账号。
-
-本轮保存了公开源码的内容哈希，但未得到固定 commit 的完整验证快照。实施时应冻结一致的上游 commit、版本、许可证和关键文件哈希；不要把 main URL 当作不可变依赖。
-
-## 7. 本机目录与生命周期
-
-源码：`<project-root>/`。
-
-2026-10-24 设计输入中的私有状态目录为 `~/Library/Application Support/wx-clawbot/`，当时仅确定路径；这一历史描述不代表当前未部署。当前已使用的 config.json、credentials.json、runtime.sqlite3、日志及托管布局见[运维说明](operations.md)，实际部署见[交付记录](validation/local-release.md)。目录权限 0700，敏感文件 0600；源码只保存脱敏模板。
-
-Socket 优先沿用被核验的原生运行时地址，不猜测固定路径。项目自有 socket 若需要，必须检查 Unix 路径长度并使用私有短路径。launchd 的程序路径使用绝对路径，不能依赖交互式 Shell 的 PATH；停止桥接服务不默认关闭用户终端。
-
-## 8. 设计输入时的未决项与开工条件（历史）
-
-| 项目 | 当前状态 | 关闭方式 |
-| --- | --- | --- |
-| 原终端到 native thread 的可靠映射 | 接口方向明确，现场未验证 | V01、V02 |
-| 两端审批及追问共享、先答生效 | 未验证，不降级为单端审批 | V03 |
-| 原生队列与桌面输入协调 | 实验接口已存在，行为未验证 | V04 |
-| 微信文本协议可用性、稳定去重键、回复上下文有效性 | 已核对参考源码，未真实绑定 | V06 |
-| /attach 与 /detach | 本人已确认独立观察订阅 | focus 控制输入目标，attach 观察桌面任务，detach 只退订；按命令契约真实验证，不模拟成功 |
-| 数值默认值 | 仍为设计建议 | 小负载与故障测试后校准 |
-
-以上表格保留设计输入时的验证问题；当前完成状态只见 ROADMAP。完整功能开发须经过 V01 至 V04，不能用伪造事件或另建会话跳过核心体验关卡。
-
-本机新 TUI 使用已核对的原生可执行文件、既有 CODEX_HOME 和本机共享 daemon 模式；桥接器用原生 Unix WebSocket 连接同一运行时。`--remote` 即使指向本机 Unix socket 也采用远端目录信任判定，不能假定与本机仓库根信任继承相同。一般 `-c` 参数会使已核对的客户端放弃共享 daemon，不能通过临时关闭更新检查规避启动界面；专用测试使用非空初始握手输入，并先核对就绪及共享运行时身份。相关实际证据和边界见 W02／W03 验收。
-
-实施核对：`app-server proxy` 仅透传原始字节，不能直接写 JSONL。Unix 控制 socket 使用 WebSocket；桥接直连该 socket，不新建运行时。见 [官方固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/stdio-to-uds/src/lib.rs)。
-
-可恢复错误状态：额度失败可使原 thread 显示 `systemError`，同时仍在原终端和运行时内存中。不能只按 idle／active 白名单将其当作未加载。对 systemError 额外要求原生 `thread/loaded/list` 包含准确 thread ID，且 `canAcceptDirectInput` 为 true；继续核验原进程、页脚 ID、运行时、sessionId 与 cwd。缺少任一证据即拒绝，不恢复存档副本。依据为固定 CLI schema、实际失败现场及[官方状态／已加载列表说明](https://learn.chatgpt.com/docs/app-server)。原失败任务保持 failed，只有用户新的请求进入原生队列。
+新增或替代决策须保留编号、记录日期、状态、背景、备选、依据、后果和重评条件；明确替代哪一条，不倒改旧验收。常规实现细节直接放技术专题，避免为每个函数建立 ADR。
 
 ## REC01：按证据释放占用
 
-执行结果与仓库占用采用独立持久化状态；输入合并使独立结果不可确认时，原生准确终态和空队列仍可能证明占用结束。该证明只释放占用，不授权路由、不恢复旧线程，也不声称每条历史输入各自完成。以 revision／连接代次和事务拒绝陈旧证据；不能仅凭空队列、idle、时间或窗口退出释放。
-
-活动查询走独立占用部分索引，已释放未知记录分页保留；不把它们计入活动上限，也不清理未知证据。原生历史查询在找到全部准确目标轮次后停止，不为占用判定扫描无关旧历史。操作与数据边界见[REC01 记录](validation/admission-recovery.md)。
+对应 ADR-05；不能仅凭 idle、空队列、超时或窗口消失释放。合并输入结果未知与占用终结分别处理，历史只读核验不授予新派发权限。
 
 ## ASK01 已确认施工契约
 
-ASK01 已确认采用 0.166.0 的结构化 agentMessage.questions 与准确 turn/steer；RPC ACK 只证明原生接受，输入精确可见另记 observed；拒绝伪造 resolved 和问题级互斥。依据及候选决策见[异步答复契约](async-questions.md)。
+对应 ADR-09；异步 ACK、精确输入可见和模型采用是不同事实，禁止伪造 resolved 或首答独占。

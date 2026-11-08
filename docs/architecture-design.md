@@ -1,273 +1,280 @@
-# 微信本地 Agent 工作台：架构设计
+# wx-clawbot 当前架构
 
-本文保存设计与验收要求；实际进度与验证状态以仓库 ROADMAP.md 为准。
+本文描述应用 0.1.9 的实际结构；状态见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
 
-项目名：wx-clawbot；用户已创建目录 `<project-root>/`。本文是面向用户需求的新设计，不是博主源码的还原或实现完成声明。
-
-配套产品文档：[产品设计](product-design.md) 。原始参考：[四张截图整理稿](reference/architecture-from-screenshots.md) ，以及随后补充的会话指令截图。
-
-工程入口：[技术选型](technical-decisions.md) 、[开发契约与接口验证](development-contracts.md) 、[施工清单](../goals/implementation-plan.md) 。本文负责系统边界；具体版本、接口与关卡以这些文档为准。未通过关卡的能力不得表述为已实现。
+图中实线是有标签的数据／调用关系，虚线是管理、来源或非运行依赖。模块图的节点是逻辑模块；部署图才表示进程边界。Mermaid 为唯一图形维护源，渲染检查见 [DOC01 报告](validation/documentation-restructure.md)。旧设计输入和反例保留固定提交及历史记录，不视为当前路径。
 
 ## 1. 需求与证据边界
 
-### 已确认需求
+系统服务本人微信和本机多个注册项目，只实现 Codex。核心质量约束为准确原生身份、接收时冻结目标、未知不重放、执行与送达分离。外部原生运行时、模型和微信服务不受桥接控制；目录登记不提供操作系统沙箱。项目与其他桥接服务独立，不读取其他项目代码、凭据或服务。
 
-- 使用微信操作本机多个项目，guixu 只是其中一个，业务项目继续保存在原目录。
-- 首版只适配 Codex；结构上允许未来接入其他 Agent，不在首版实现多 Agent 协作。
-- 桥接服务不自动修改现有 Codex 全局配置；初始化的具体例外授权以项目 AGENTS.md 为准。
-- 博主方案符合用户需求，本文围绕实现该交互体验补齐工程契约。
-
-### 2026-10-24 问答确认的六项使用决策
-
-| 编号 | 已确认内容 |
-| --- | --- |
-| D01 | 首版接入 iTerm2 中已有的 Codex 会话；One 不作为首版宿主 |
-| D02 | 原终端继续运行，微信作为远程入口，两端使用同一个会话 |
-| D03 | 既能切换已有会话，也能通过微信选择本机项目、在 iTerm2 启动新的 Codex 会话 |
-| D04 | 会话忙碌时，微信与桌面专用入口共用 daemon 队列；停止、查询和交互答复立即处理；原 TUI 按键保持原生语义 |
-| D05 | 审批和追问在微信与电脑两端同步展示，只接受首次有效答复，并同步已处理状态 |
-| D06 | 首批真实验收项目为 guixu 与新建的 wx-clawbot；先通过临时项目测试，再按具体任务授权验收 |
-
-本项目与 openclaw-local 完全独立；禁止读取、参考、复用或修改其代码、配置、凭据和服务，不安排关联迁移或退役。
-
-### 新截图直接给出的命令
-
-| 命令 | 别名 | 截图原意 |
-| --- | --- | --- |
-| `/sessions [关键词]` | `/ss [关键词]` | 退出聚焦并刷新或筛选会话 |
-| `/send <序号> <指令>` | `/s <序号> <指令>` | 让原终端单次执行 |
-| `/focus <序号>` | `/f <序号>` | 持续聚焦原终端 |
-| `/unfocus` | `/uf` | 退出聚焦 |
-| `/attach <序号>` | `/a <序号>` | 接管会话 |
-| `/detach` | `/ua` | 退出接管 |
-
-上述表格是截图证据；下文的状态机、排队、审批、恢复、目录规则和接管契约属于本方案的设计建议。截图没有定义 attach 的底层实现、进程归属和桌面端可否同时输入，不把这些细节写成博主实现事实。
+原生身份、宿主来源与显示界面分开。既有对话使用项目限定的原生元数据、完整 loaded 集合及订阅确认；iTerm2 用于可见新建和可选 cwd／来源证据。后台对话不被宣称对应某个当前显示窗口。版本与证据层级以[协议矩阵](protocol-baseline.md)为准。
 
 ## 2. 设计决策与未决边界
 
-1. 按项目、Agent 会话、终端端点、任务四层建模。切项目不等于切终端，切目录不等于迁移旧会话上下文。
-2. 区分两种会话来源：已在 iTerm2 运行的 Codex，以及由微信请求在 iTerm2 新启动的 Codex。后者称受管会话，表示创建和生命周期归属，不意味着独立后台会话；两类都需支持电脑与微信操作同一上下文。
-3. `/focus` 保留原终端执行归属。本人已确认 `/attach` 是独立观察订阅，不改变 focus，不引入排他控制或后台迁移；第 7 节定义边界。
-4. 原终端接入是首版核心，宿主明确为 iTerm2。需验证发现、定向输入、状态观察、两端审批和新会话启动；不能以另开后台 thread 替代原会话功能。
-5. 首版只实现 CodexAdapter；未来扩展通过显式能力声明，不把所有 Agent 都包装成 ACP。
-6. 核心采用 Python 与 asyncio，使用 iTerm2 官方 Python SDK 管理宿主；微信层按腾讯公开客户端协议实现最小文本适配器。具体依赖经过原型测试后锁定，不复制截图的 50 层补丁，也不部署完整 OpenClaw Gateway。
-7. 运行状态使用标准库 sqlite3，普通配置采用 JSON。SQLite 用于消息、任务和待发送记录的一致更新；JSON 适合低频配置。这是独立桥接项目的状态存储，不向 guixu 引入数据库。
-8. Codex 优先连接原终端所在共享运行时，原生队列负责实际调度，桥接账本负责关联与恢复。接口选择须通过 V01 至 V04；不并行建设一套与原生队列竞争的执行调度。
+| 策略 | 当前选择与后果 | 依据 |
+| --- | --- | --- |
+| 同一原生对话 | 连接既有 daemon，不复制历史／恢复存档；微信选择不随桌面改变 | [身份契约](native-session-identity.md) |
+| 最小本机服务 | Python asyncio、标准库 HTTPS／SQLite、官方 iTerm2 SDK | [ADR](technical-decisions.md) |
+| 原生执行权威 | daemon 队列调度；本地仅持久化意图、准入和关联 | [桌面排队](desktop-queue-contract.md) |
+| 可靠交付 | SQLite 原子事务配合 Outbox，跨系统 RPC／HTTP 不确定性保留 unknown | [账本](state-schema.md) |
+| 独立选择和观察 | focus／managed 输入与 attach 观察分别保存 | [命令契约](command-contract-proposal.md) |
+| 运行隔离 | 非 editable 独立 release，父子 manifest 一致 | [运维](operations.md#eng01独立运行制品与开发隔离) |
+
+已知限制由专题和 ROADMAP 维护：外部客户端写入不能被桥接锁住，原生规则不保证逐轮刷新，异步不保证首答独占，暂停队列不自动恢复；不以添加复杂框架回避这些限制。
 
 ## 3. 系统结构
 
+### F01：系统上下文与信任边界
+
+[查看独立 SVG](diagrams/architecture-F01.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
+
+范围：本人手机、外部微信服务及同一用户的本机。公网服务与原生 daemon／TUI 均为外部依赖；桥接只管理自身资源。
+
 ```mermaid
-flowchart TD
-    W[微信本人消息] --> T[微信通道：收发与连接状态]
-    T --> R[身份校验、命令解析与路由]
-    R --> P[项目注册表与会话目录]
-    R --> Q[任务调度、交互与控制权]
-    Q --> A[AgentAdapter：首版 Codex]
-    A --> D[原终端所在的 Codex 共享运行时]
-    D <--> C[由项目创建的 iTerm2 Codex 终端]
-    D <--> E[已有 iTerm2 Codex 终端]
-    Q --> H[SessionHost：iTerm2 接入]
-    H --> C
-    H --> E
-    D --> V[规范化事件与回执]
-    V --> O[待发送记录、分段与发送调度]
-    O --> T
-    T --> W
-    P --> S[本机私有状态存储]
-    Q --> S
-    O --> S
-    L[launchd 服务管理] --> R
+flowchart TB
+  user["本人"] -->|"手机输入／接收回执"| wx["微信客户端"]
+  wx <-->|"公网消息"| cloud["微信 HTTPS 服务"]
+  subgraph local["本人本机与操作系统权限边界"]
+    bridge["wx-clawbot 桥接"]
+    native["既有 Codex daemon"]
+    iterm["iTerm2 与原生 TUI"]
+    project["注册项目文件"]
+    private["桥接私有配置／凭据／账本"]
+    bridge <-->|"Unix WebSocket 原生协议"| native
+    bridge -->|"官方 SDK：按需连接／可见创建"| iterm
+    iterm <-->|"原生客户端连接"| native
+    native -->|"工具与项目规则／原生权限"| project
+    bridge <-->|"本人绑定／意图／结果"| private
+  end
+  cloud <-->|"HTTPS 轮询与文本发送"| bridge
+  native <-->|"既有认证与模型请求"| model["模型服务"]
+  user -.->|"桌面操作"| iterm
 ```
 
-当前职责：`channels/` 管通信与本人绑定；`commands` 管确定性命令；`config`／`routing` 管注册目录和冻结目标；`catalog`／`sessions`／`subscriptions` 管准确会话与订阅；`controller` 管命令与选择事务；`execution`、`admission` 系列及 `results` 管准入、恢复与结果；`agents/codex` 管协议；`hosts` 管原终端；`delivery` 管回执；`runtime_state`、`occupancy`、`async_state` 与 `schema` 管同一账本；`service`／`runtime_lifecycle`／`managed` 管生命周期，`release` 核对独立运行制品。它们同进程协作，不拆成微服务。
+桥接不提供模型额度，不复制 Codex 历史；任务正文和图片可能经原生路径到模型服务。目录注册与用户绑定限制路由范围，不能代替原生权限或系统隔离。
 
-图中共享运行时是首选技术路径，尚未代表现场已有会话均满足条件。独立运行时会话必须单独识别并验证接入；不能自动重启或迁移。实际 Python 目录结构见开发契约。
+### F02：运行进程与部署
 
-业务项目不承载桥接程序、会话账本或凭据。通过原项目目录读写业务文件，遵守对应项目规则。
+[查看独立 SVG](diagrams/architecture-F02.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-IMG01 在现有消息到任务的路径增加私有附件准备：本人图片元数据持久化并固定路由后，有界下载、解密及解码，再向原 daemon 队列提交有序文字／图片。准备与执行沿用同一任务身份和收件顺序；附件存储不进入业务目录。通道不选择 thread，附件准备不创建另一 Agent，会话身份与控制路径保持现有职责。此为获准施工的设计，实施及动态证据见 [IMG01 清单](../goals/20261028-1135-image-input.md) 和 ROADMAP。
+范围：正式运行。开发检出不进入生产导入路径；launchd 只托管本项目，Codex daemon／iTerm2 的生命周期由用户及其原生机制管理。
+
+```mermaid
+flowchart TB
+  launchd["用户级 launchd：本项目 Label"] -->|"托管／异常限速重启"| serve["managed 入口调用 serve：同一桥接进程"]
+  release["独立 release：wheel／lock／manifest／venv"] -.->|"冻结代码与解释器"| serve
+  subgraph inside["serve 内部；不是独立服务"]
+    loops["微信收发／命令／原生事件／恢复协程"]
+    dbworker["SQLite 单写入工作线程"]
+    httpworkers["有界 HTTPS 工作线程"]
+  end
+  serve --> loops
+  loops --> dbworker
+  loops --> httpworkers
+  serve -->|"有界 CPU／超时回收"| helpers["临时渲染／图片／宿主探测子进程"]
+  dbworker <-->|"WAL／事务"| ledger["私有 runtime.sqlite3"]
+  serve <-->|"启动登记／实例／附件"| state["私有状态目录"]
+  serve -->|"managed 脱敏容量轮转"| logs["私有 logs"]
+  loops <-->|"原生协议"| daemon["既有 Codex daemon：独立进程"]
+  loops -->|"SDK 创建；launcher exec"| tui["iTerm2 内可见 Codex TUI：独立进程"]
+  tui <-->|"同一原生运行时"| daemon
+  dev["开发检出与开发 venv"] -.->|"离线构建与验收"| release
+```
+
+`managed.py` 在同一进程调用 CLI 的 serve 入口并管理日志，不另建服务进程或微信消费者；`ForegroundInstance`／消费者锁核对实例。直接前台 serve 不经过 managed 日志入口。SQLite 工作线程和 HTTPS 工作线程不等于额外常驻服务。可见 launcher 的进程回执证明创建来源，后续 `exec` 运行原生 TUI；不托管或自动重启该 TUI。
+
+### F03：模块协作
+
+[查看独立 SVG](diagrams/architecture-F03.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
+
+范围：serve 内部的逻辑职责。图简化辅助调用，准确入口在下表；所有持久化状态共用同一账本执行器。
+
+```mermaid
+flowchart TB
+  life["service／runtime_lifecycle"] -->|"组合与代次管理"| ctrl["commands／routing／controller"]
+  channel["channels：本人绑定与 HTTPS"] -->|"规范化 Inbox"| ctrl
+  ctrl -->|"准确发现／选择"| cat["catalog／sessions／subscriptions"]
+  cat <-->|"元数据／loaded／订阅"| adapter["agents：Codex 协议与原生队列"]
+  ctrl -->|"可见启动"| host["hosts／launcher"]
+  ctrl -->|"冻结 Dispatch"| exec["execution／admission 系列"]
+  exec -->|"核验后提交／中断"| adapter
+  adapter -->|"单一事件消费"| exec
+  exec -->|"终态与历史核对"| result["results／output／render_worker"]
+  exec -->|"准确请求与补充"| interact["interactions／async_questions"]
+  result -->|"冻结结果"| store["runtime_state／occupancy／async_state／schema"]
+  ctrl -->|"选择／任务事务"| store
+  interact -->|"单次答复意图"| store
+  exec -->|"占用／任务状态"| store
+  store -->|"Outbox 领取与投递状态"| sender["delivery：串行 Sender"]
+  sender -->|"冻结文本与最新合法上下文"| channel
+```
+
+| 职责 | 实现入口 | 不跨越的边界 |
+| --- | --- | --- |
+| 通道／媒体 | `channels/wechat.py`、`messages.py`、`media.py` | 不选择 thread，不执行项目工作 |
+| 固定命令／目录／路由 | `commands.py`、`config.py`、`routing.py`、`controller.py` | 不用模型猜目标，不向普通 Shell 注入任务 |
+| 发现／身份／订阅 | `catalog.py`、`sessions.py`、`subscriptions.py` | 不读页脚，不 resume notLoaded，不伪造宿主 |
+| 可见宿主 | `hosts/lifecycle.py`、`hosts/visible.py`、`launcher.py` | 自有启动意图至多一次，不清理用户资源 |
+| 原生适配 | `agents/codex.py`、`rpc.py`、`queue.py` | 校验实际 server 版本／socket，不另建运行时 |
+| 执行／准入／恢复 | `execution.py`、`admission.py`、`admission_recovery.py`、`admission_ops.py` | 原生队列权威，unknown 不重放，结果不等同占用 |
+| 交互 | `interactions.py`、`async_questions.py` | 同步裁决与异步补充分开，不擅自授权 |
+| 结果／展示／发送 | `results.py`、`output.py`、`render_worker.py`、`delivery.py` | 事务外渲染、入账后冻结，重投不执行任务 |
+| 账本／维护 | `runtime_state.py`、`occupancy.py`、`async_state.py`、`schema.py`、`retention.py` | 单执行器，显式迁移／维护，不覆盖新数据 |
+| 生命周期／制品 | `service.py`、`runtime_lifecycle.py`、`runtime_discovery.py`、`managed.py`、`release.py` | host 与 native 代次分开，正式父子来源一致 |
 
 ## 4. 核心数据模型
 
-| 对象 | 关键字段 | 不变量 |
-| --- | --- | --- |
-| Project | project_id、alias、canonical_root、enabled | 注册路径真实解析；别名唯一；不是权限沙箱；规则由原生机制加载 |
-| Session | session_id、project_id、agent_kind、native_thread_id、cwd、origin、host_ref、capabilities | 一个会话固定归属一个项目；Agent 原生 ID 不用列表序号代替 |
-| TerminalEndpoint | host_kind、endpoint_id、process_identity、session_id、capabilities | 窗口标题不作为唯一身份；进程与端点重用后需重新核验 |
-| Route | owner、mode、selected_session_id、observed_session_id、revision | 执行模式为 unbound／managed／focused，观察订阅独立保存；每个微信绑定各自保存 |
-| SessionList | list_id、owner、created_at、expires_at、index_to_session_id | 序号只属于该次列表快照；刷新后旧映射不能误命中新会话 |
-| Task | task_id、source_message_id、project_id、session_id、route_revision、turn_id、state | 接收时固定路由；执行中切换焦点不改投递目标 |
-| Interaction | request_id、task_id、kind、options、expires_at、state、runtime_generation、resolved_by | 两端共用请求身份与首次有效答复状态；进程重启后的旧请求不可继续授权 |
-| Outbox | event_id、task_id、recipient、sequence、content、delivery_state | 执行状态与送达状态独立；重发结果不重跑任务 |
+这里是概念关系，不是逐字段 DDL。Project 来自配置，CatalogSession 来自发现，Routes 是内存状态及 JSON 快照；不意味着存在 projects／sessions 表。当前 13 表和实际对象／接口分别见[账本](state-schema.md)及[开发契约](development-contracts.md)。
 
-Codex 保留原生会话历史；桥接账本只保存必要映射、待执行输入和用于恢复送达的结果，不复制整套原生历史。已完成任务正文与回执建议保留 7 天，终态摘要建议保留 30 天；这些是待确认默认值，程序仅清理自己管理的账本内容，不删除业务文件或 Codex 原生历史。
+| 概念 | 标识与不变量 |
+| --- | --- |
+| Project／cwd | 真实解析的注册根与目录，别名唯一，重叠范围选择最深注册根 |
+| 原生绑定 | runtime socket 设备／inode、完整 thread、native session、规范 cwd；可选真实宿主来源 |
+| Route／列表 | 输入与观察分别选择；数字序号只在当前列表有效，任务接收时冻结完整目标 |
+| Task／占用 | client／queue／turn 关联执行；waiting／holding／released 独立审计 |
+| Interaction | 同步请求绑定原代次，异步问题绑定准确 turn／item；新输入须复验 |
+| Outbox／尝试 | 最终结果和投递分离，冻结正文；HTTP 意图与结果持久化，未知不自动重试 |
 
 ## 5. 项目、目录与上下文
 
-- 本机注册明确允许接入的项目根目录；首版不自动导入所有仓库或全部私人会话。项目新增、移除配置不等于移动或删除项目。
-- `/cd <项目别名或目录>` 选择注册范围内的执行目录。相对路径基于当前选中目录解析；无当前目录时要求项目别名或绝对路径。
-- 路径存在、可访问、解析符号链接后仍在许可范围内才生效；失败保持原路由。重叠项目采用最深明确注册根，注册时提示重叠。
-- `/cd` 默认进入 managed 模式，优先复用该项目和目录最近使用的受管会话，没有则创建。多个候选无法唯一确定时列出候选。
-- 跨项目或改变会话目录时使用另一会话；不把旧 thread 原地改到新项目。回到原项目可恢复其会话。
-- `/cd` 不向原终端 Shell 注入拼接字符串，也不改变服务进程全局 cwd；需要新会话时通过核验后的 iTerm2 启动接口传递目标目录及参数。执行目标变化不自动取消独立观察订阅。
-- 项目规则由 Codex 原生机制发现和加载；桥接在新派发前核验准确会话与 cwd，不承诺逐轮项目规则刷新、变化检测或自动阻断。规则变更后由本人明确新建可见会话并复验来源，旧队列不自动迁移、取消或重放。
+项目文件留在原目录。`/cd` 对 realpath、权限和范围校验，失败保留原选择；合法目录没有受管会话时可见新建，不把旧 thread 原地改到另一项目。已有对象发现限定注册根和已知准确 cwd，不递归磁盘或抓取全部私人历史。
 
-本人已根据 AUD01 的匹配源码及九轮真实原会话反例，明确接受[原生限制契约](project-rules.md#已确认的原生限制契约)，替换早期逐轮核验／刷新的设计承诺。文件摘要、来源路径或模型复述不能单独证明当前规则已加载。
+微信选择不随桌面变化；新输入必须复验准确原生对象。关闭窗口可能使原生仍加载，也可能卸载，不能提前承诺。只读历史核验可以恢复准确结果，却不授予新路由资格。[身份契约](native-session-identity.md)集中维护预算、稳定编号和旧快照兼容。
 
-- guixu 的索引、去重、入库和测试只是其项目规则，不硬编码为所有项目都必须执行的流程。
+规则由 Codex 原生机制加载；桥接核验身份和 cwd，不保证热更新、规则变化检测或自动阻断。[规则责任](project-rules.md)给出用户已接受的限制。各业务项目自身规范不硬编码到桥接。
 
 ## 6. 命令与路由契约
 
-命令使用固定语法解析，别名等价。未知 slash 命令返回帮助，不当 Shell 执行；自然语言任务交给选中的 Agent。项目别名与会话序号属于不同命名空间。
+固定语法、独立观察、显式目标、旧快照失效及全部命令由[命令契约](command-contract-proposal.md)维护。接收时冻结目标与 revision，后续切换不改投。切换先取得原生订阅确认再提交路由快照；落库／订阅失败不能报成功。
 
-微信选择独立于桌面当前显示。TGT02 将必需身份固定为原生运行时代次、准确 thread／native session 与注册 cwd；宿主来源可选，只用于可见新建的来源核验、诊断和清理，不给后台对话伪造 endpoint。首次已有接入直接按准确原生列表选择，新建接入使用私有启动回执及唯一原生握手；不再以屏幕显示作为身份来源。目录刷新保留仍有效的原绑定，桌面变化不改写 Route 或 Task；实际原生失效时拒绝并提示。[身份与兼容契约](native-session-identity.md)与[独立选择契约](command-contract-proposal.md#微信独立选择原生会话)定义目标行为，当前实现状态见 ROADMAP。
+### F04：既有对话执行与结果时序
 
-| 命令 | 本方案行为 |
-| --- | --- |
-| `/projects` | 列出已注册项目及可用状态 |
-| `/cd <目标>` | 按第 5 节选择目录及受管会话；成功回显项目、路径、会话与模式 |
-| `/sessions [关键词]`、`/ss` | 退出 focused 模式，再刷新／筛选可访问会话；关键词匹配项目别名、目录或会话标题 |
-| `/send <序号> <指令>`、`/s` | 向列表中的原终端会话单次派发，不改变持久焦点；目标不支持原终端发送时明确拒绝，不新建另一会话冒充成功 |
-| `/focus <序号>`、`/f` | 聚焦支持原终端输入和结果观察的会话；之后普通消息持续发给它，原终端继续运行 |
-| `/unfocus`、`/uf` | focused → unbound；不终止任务；不恢复更早焦点，避免消息误投 |
-| `/attach <序号>`、`/a` | 独立订阅该会话后续桌面主动任务的进展、结果及交互；不改变执行目标，原生订阅确认后才成功 |
-| `/detach`、`/ua` | 只取消观察订阅，保留执行目标、既有任务和原终端；已接收任务结果与必要交互仍按原关联投递 |
-| `/new [标题]` | 在当前项目与目录通过 iTerm2 创建受管 Codex 会话，注册并选中；启动失败不留下伪可用会话，不改变其他会话内容 |
-| `/status [任务ID]` | 显示当前模式、项目、会话，以及运行／排队／等待交互／送达状态 |
-| `/stop [任务ID]` | 有唯一当前活动任务时可省略 ID，否则列出候选；排队任务直接取消，活动任务发送取消请求；只收到终态证据后报告停止 |
-| `/approve <请求ID>`、`/deny <请求ID>` | 仅处理展示给本人的、未过期的具体请求；approve 默认一次性许可，不暗中扩大为永久许可 |
-| `/answer <请求ID> <回答>` | 回答明确关联的追问；多题单选与自由文本按原生问题 ID 和选项校验，同题复选后置 |
-| `/help` | 返回命令、别名和当前可用能力 |
+[查看独立 SVG](diagrams/architecture-F04.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-列表有效期建议 10 分钟，超时要求刷新；无论有效期如何，提交时都复验原生会话与端点身份。序号只映射稳定 session_id；消息按同一账号的接收序列处理，解析时冻结当前列表及 route revision，避免异步处理产生串会话。
+范围：已绑定本人、明确目标的正常任务；示意事务边界，外部调用不位于 SQLite 事务中。
 
-没有选中目标时，普通消息提示先选项目或会话，不自动猜测项目。有待审批时，裸“可以”只提示使用带请求 ID 的命令，不擅自匹配其他任务。
+```mermaid
+sequenceDiagram
+  participant W as 微信服务
+  participant C as 通道与 Controller
+  participant S as 私有账本
+  participant E as Execution 与准入
+  participant N as 既有原生 daemon
+  participant D as Sender
+  W->>C: 入站批次
+  C->>S: 同事务：游标、稳定 ID 去重、Inbox
+  C->>C: 冻结准确目标与路由 revision
+  C->>E: 原任务意图
+  E->>N: 发现／完整身份／loaded 核验
+  alt 身份不足或发现不完整
+    E->>S: 记录拒绝及解释回执
+  else 核验可用
+    E->>S: received 与等待占用
+    E->>N: 当前活动与仓库准入核验
+    Note over E,S: 冲突时保留未提交等待，可本地撤销
+    E->>N: 准入通过：订阅确认并再次复验
+    E->>S: 准入通过：holding 与 dispatching 意图
+    E->>N: queue/add：稳定 client 与准确 thread
+    alt ACK 明确
+      N-->>E: queue ID；仅表示入队
+      E->>S: 记录 queued 关联
+    else 提交结果不确定
+      E->>S: unknown；只读对账，不重新提交
+    end
+    N-->>E: 事件及准确 turn 终态
+    E->>N: 必要历史／完整队列核验
+    E->>E: 结果关联与事务外展示渲染
+    E->>S: 原子入账：任务结果、适用占用变更、冻结 Outbox
+  end
+  D->>S: 原子领取并记录 sending 尝试
+  D->>W: 用合法上下文发送冻结正文
+  W-->>D: accepted／rejected／不确定
+  D->>S: 同事务保存尝试及 Outbox 结果
+  Note over W,D: accepted 不等于手机实收；重投不重新执行
+```
 
 ## 7. 原终端与接管的实现边界
 
-SessionHost 是宿主连接接口，独立于 AgentAdapter。首版 iTerm2 宿主负责发现、启动和校验端点；提交、结构化输出、忙碌状态、交互答复和中断由 CodexAdapter 提供，两者通过可靠身份映射组合成用户会话。attach 是观察订阅，不新增排他控制权获取／释放。
+原路径保留此标题供旧读者查找；现行 attach 是独立观察，没有排他接管。既有对象不要求宿主证明当前显示；可见创建才要求真实进程来源。桥接不争写 TUI 输入区，桌面忙碌任务使用[专用队列入口](desktop-queue-contract.md)。
 
-原终端路径优先使用宿主或原进程已有的正式接口。仅当宿主没有结构化入口时才评估终端输入输出适配；必须能确认当前运行的是目标 Codex、端点仍有效、输入不会落入普通 Shell。仅“发送了一段文本”不能算任务成功。
+### F05：可见新建与准确握手
 
-聚焦模式允许桌面端继续使用原终端，但忙碌时微信任务排队；宿主必须能检测真实占用，无法检测时不自动注入。结果来源须关联具体任务，不能把终端屏幕残留当成此次结果。
+[查看独立 SVG](diagrams/architecture-F05.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-旧草稿提出过排他接管，这是未确认假设，不作为当前验收要求。用户选择原终端持续运行且两端均可处理交互；不能据此加入强停终端、后台迁移或桌面长期只读要求。
+范围：合法 `/cd` 需要创建，或有当前目录的 `/new`。iTerm2 授权、窗口出现、原生握手和选择提交是四个不同事实。
 
-`/attach` 与 `/detach` 已按本人选择采用独立观察订阅，细则见[命令契约](command-contract-proposal.md)。每个微信绑定最多一个观察目标，替换订阅时明确回显；订阅失败保留原状态，不用本地标记冒充真实订阅。
-
-本轮已经明确 iTerm2，不再将宿主选择交回用户。剩余为技术验证：同一原生会话识别、原终端输入与输出、桌面端主动答复感知，以及两端几乎同时答复时的竞争处理。
+```mermaid
+sequenceDiagram
+  participant C as Controller
+  participant L as 私有 LaunchRegistry
+  participant H as HostLifecycle 与 iTerm2
+  participant P as 自有 launcher 与 TUI
+  participant N as 既有原生 daemon
+  participant S as 路由账本
+  C->>L: 持久化 launch ID、目录、可信 argv
+  C->>H: 有界按需连接；同一意图创建一次
+  H->>P: 启动固定 launcher
+  H-->>C: 自有窗口／标签／terminal 回执
+  P->>L: boot：PID／启动时间／TTY
+  P->>N: exec 原生 TUI，发送随机启动标记
+  N-->>P: 原对话完成启动轮次
+  C->>H: 核对唯一存活进程与 boot 来源
+  C->>N: 精确 cwd 候选、唯一标记、loaded 与身份
+  C->>N: 核对非派生对话、准确输入和 completed 回复
+  alt 来源与唯一握手全部成立
+    C->>L: ready：真实宿主与原生身份
+    C->>N: 确认所选准确对话订阅
+    C->>S: 提交选择快照
+    C-->>C: 才返回可用目标
+  else 超时、歧义或缺少完成证据
+    C->>L: 保留 starting／handshaking／unknown 供核对
+    C-->>C: 明确未就绪，不重复创建、不猜 thread
+  end
+```
 
 ## 8. Codex 适配与未来扩展
 
-内部接口只围绕已经存在的需求：`capabilities`、`listSessions`、`openSession`、`resumeSession`、`startTask`、`observeEvents`、`respondInteraction`、`cancelTask`、`closeOwnedRuntime`。会话跨 Agent 迁移和多 Agent 自动编排不进入首版。
-
-规范化事件包括 accepted、progress、interaction_required、completed、failed、interrupted、disconnected。所有事件携带 project_id、session_id、task_id；原协议字段保留在适配器内部。能力不足返回明确 unsupported，不能返回伪成功。
-
-CodexAdapter 通过本机 Unix WebSocket 连接既有共享运行时，核对线程、任务、事件、审批和中断接口。本项目必须操作 iTerm2 中真实会话；具体连接仍需原型验证，不能因接口存在就认定另启 app-server 能控制已有 TUI。新会话也须在 iTerm2 可见可用。仅回收本服务拥有的代理连接，不自动关闭用户终端；断开连接与结束原会话分开处理。
-
-本项目与 openclaw-local 完全独立；禁止读取、参考、复用或修改其代码、配置、凭据和服务，不安排关联迁移或退役。
-
-未来添加 Agent 时，仅新增适配器、能力映射和契约测试；增加新的终端宿主时，仅新增 SessionHost 实现。不同 Agent 不共享原生 thread ID，不承诺跨模型自动迁移历史。
+`AgentAdapter` 是当前小型 Protocol，实际方法见[开发契约](development-contracts.md)。Codex 特有的队列、交互和历史方法保留在具体实现，不宣称所有能力已统一为可插拔框架。未知版本和缺少能力明确拒绝；不安装第二真实 Agent，不承诺跨 Agent 历史互通。
 
 ## 9. 调度、执行状态与交互
 
-首版建议最多两个项目任务同时运行，同一会话严格串行；等待审批占用该会话控制权。项目规则要求单写入者时，调度器对该项目串行，不凭模型说“只读”就开放并发。
+原生队列负责执行，桥接准入负责防止本服务在同项目／Git common directory 的冲突。received 等待尚未提交；提交前记录 dispatching，ACK 不明保留 unknown。任务、占用、同步交互、异步问题和投递有不同状态机，不能合为一个 running／success；准确状态表见[开发契约](development-contracts.md)与[账本](state-schema.md)。
 
-项目占用按真实目录与 Git 公共仓库标识判断，嵌套路径及同仓库 worktree 按更严格范围处理。桥接锁只覆盖本服务管理的任务；对外部编辑器或其他 Agent，必须有宿主协作或人工交接，不能宣称全机文件锁。
-
-按 D04，普通新任务在目标忙碌时排队；建议每会话最多 10 条，超出返回队列已满，不丢弃旧任务。停止、状态查询及审批／追问答复绕过普通任务队列。切换焦点不迁移既有队列。优先以原生队列协调桌面与微信，桥接器不向 TUI 输入区争写文本；原生队列接口为实验能力，关联、顺序与恢复必须通过 V04。
-
-首版经本人确认采用 [桌面专用排队入口](desktop-queue-contract.md)：电脑在普通 Shell 使用 `codex queue`，桥接使用相同 daemon／thread 的队列接口。原 TUI 持续显示执行与交互，空闲可继续对话；其忙碌时 Enter／Tab 不属于统一队列入口。客户端适配后置，保留旧按键反例供后续决策。
-
-```text
-prepared → received → dispatching → queued → running → completed / failed
-                                             ↕ waiting_interaction
-running / waiting_interaction → stopping → interrupted
-prepared / dispatching / queued / running / waiting_interaction / stopping → unknown（断连后无法确认）
-received → cancelled（本地撤销，尚未原生提交）
-queued → cancelled（尚未执行）
-```
-
-dispatching 在发送给 Agent 之前持久化。若提交成功与 queue／turn ID 落盘之间崩溃，标记 unknown 并核对原生记录，不盲目重放。queued 表示已被原生队列接收；桥接账本不再次派发。任务 completed 只表示 Agent 轮次结束，回执另列验证结果，不能推断所有测试或 Git 推送成功。
-
-审批与追问按 request_id、task_id、运行代次和发送者绑定；微信答复授权 10 分钟过期，过期后拒绝微信迟到答复，不自动批准、拒绝或取消原生请求，仍可在原终端处理。断线和重启使旧微信交互授权失效。若原生任务不能确认结束，则保留未知结果及占用，按准入核验流程处理，不因交互期限解锁。
-
-按 D05，交互在微信和电脑同步展示，首次有效答复完成原子状态转换并提交一次，另一端更新已处理。电脑原生答复可能绕过桥接账本，因此需要原生请求完成事件或共享裁决入口，不能仅凭本地数据库锁宣称双端互斥。提交结果不确定时核对原生状态，不将另一答复作为自动重试；覆盖同意与拒绝同时到达、超时边界和断线后迟到答复。
-
-项目授权规则继续生效：明确指令覆盖的行为不重复提出业务确认，底层执行权限请求仍通过正式审批接口处理。规则提示与沙箱各自生效，不能以字符串拦截充当完整命令安全边界。
+同步请求以原生 resolved 裁决，十分钟只限制微信迟到回答；异步使用原 turn 的 steer，可能同时接收外部答案。通知沿已核验订阅关联，新任务与异步答案仍完整复验身份，不因弹窗遮住状态栏重新发现。
 
 ## 10. 消息与执行可靠性
 
-接收入库、去重键和消息游标在同一本机事务中提交后，才将任务交给调度器。微信账号、会话与稳定消息 ID 组成去重键；实际通道提供什么字段需在适配前核验，字段缺失不得伪称具备可靠去重。
+Inbox、去重与游标原子接收；任务意图先持久化再调用外部协议；最终结果与冻结 Outbox 原子入账；每次发送前记录尝试。RPC／HTTP 和 SQLite 不具备跨系统事务，unknown 是保留真实不确定性，不是重试信号。
 
-结果写入 Outbox 与任务终态关联；内容分段带项目、任务、段号。发送成功只依据通道可提供的回执等级，不把服务端受理等同手机已读。超时不确定时保留 delivery_unknown；若重试造成重复消息，任务 ID 和段号便于识别，但绝不重新执行任务。
-
-审批、失败、最终结果优先于高频进展，过时进展在事务内淘汰；配额数值以真实通道能力为准，不照搬截图“每入站 10 条”。最终结果按结构分段并保留容量限制和超限提示，关键错误单独保护，完整原始内容仍在原终端；状态入口查询执行和投递情况，不提供完整结果下载接口。准确容量及保留期见[账本说明](state-schema.md)。
-
-Markdown 格式化只作用于展示；命令、代码、路径、URL 和引用保持原义。中文排版在渲染层确定性处理。无外部通知 HTTP API 也能完成首版任务回执，首版不为它新增公网入口。
-
-新出站的解析、兼容和结构分段在数据库事务前完成，账本冻结确定的展示片段；任务终态与最终片段仍原子入账。发送器不再渲染已冻结内容，历史重试沿用原正文。具体支持方式与边界见[排版说明](wechat-markdown.md)，不改路由、原生排队或审批裁决。
+发送串行且按优先级、分段前序约束推进；关键回执优先，旧进展淘汰。展示仅处理新结果，不改变任务输入、原生历史或旧冻结回执。媒体下载和解码在有界子进程，不能阻塞控制路径或跨任务共用正文缓存。
 
 ## 11. 本机部署与数据边界
 
-源码目录为 `<project-root>/`。默认私有运行目录为 `~/Library/Application Support/wx-clawbot/`，保存本项目配置、凭据、诊断 state.sqlite3、运行 runtime.sqlite3 和启动登记；源码仓库只保留脱敏模板、代码、测试与文档。运行目录由显式登录或前台运行创建，结构与保留期操作见[账本说明](state-schema.md)；不自动注册常驻服务。
+开发检出与独立 release 分离。私有状态默认位于用户的 `Library/Application Support/wx-clawbot/`，保存配置、凭据、账本、launch 登记、附件与受限日志；代码仓库只保留模板和脱敏证据。桥接仅托管本项目 Label，不管理 Codex／iTerm2，不自动安装登录项。
 
-launchd 负责单实例常驻与有限退避重启；本机管理 CLI 提供 serve、stop、status、doctor，既有托管入口由明确的 launchctl kickstart 恢复，没有 start 子命令。应用自身检查消息循环及 Agent 连接健康，不增加第二套进程托管。
-
-HOST01 将实际前台实现拆成持久的微信收发与可恢复的依赖生命周期。`HostLifecycle` 统一提供 iTerm2 当前连接与代次，管理被动重连、显式按需拉起、认证子进程硬截止及 SDK 资源回收；目录和可见启动器共享这一入口。`BridgeRuntime` 负责既有原生连接的只读发现／重连和恢复协调，原生事件仍由唯一 Execution 消费。宿主缺席不关闭微信，原生缺席时只提供可解释的降级能力；配置／绑定／账本错误仍明确失败。完整身份核验、冻结目标和未知任务不重放的约束不变，实际验收见 [HOST01 记录](validation/host-lifecycle-recovery.md)。
-
-微信只允许已绑定本人账号，入站与出站都核验身份。密钥、真实身份、消息和任务正文留在私有运行目录，不进入 Git；凭据文件使用受限权限。桥接复用现有模型访问路径，不等于模型离线，任务上下文仍可能发送到模型服务。
-
-本项目与 openclaw-local 完全独立；禁止读取、参考、复用或修改其代码、配置、凭据和服务，不安排关联迁移或退役。
-
-停服务先停止接收新任务并报告活动任务，按授权决定等待或取消；不自动杀死非本服务拥有的终端。电脑睡眠、断网时显示不可达，恢复后核对游标和原生任务状态，不承诺离线继续运行。
+通道在 host／native 缺席时继续提供帮助、项目和状态，依赖恢复另行复验。正常停止保留原生任务；重启不重放 unknown、不沿用旧数字列表。发布、备份、schema 兼容及代码回退／数据恢复分离见[运维](operations.md)。
 
 ## 12. 性能、可观测性与测试
 
-下列是设计目标，不是测量结果：正常负载下，消息到达本机后，控制命令本地处理 p95 小于 1 秒；Agent 执行不阻塞命令解析；默认最多两个活动执行单元，队列、结果和日志均有上限。通道传输、模型耗时和审批等待分别统计，不混为本机性能。
+事件循环处理 I/O 与控制，阻塞 SQLite／HTTPS 在有界工作线程。`ResultWork` 同 thread 保序、跨 thread 有界推进；大结果使用临时进程，取消等待实际回收。当前渲染阈值与容量以实现及[排版专题](wechat-markdown.md)为准；PERF01 当时的阈值只适用于其测量基线。
 
-日志关联 message_id、project_id、session_id、task_id、request_id 和运行代次；默认记录状态、错误分类及耗时，不输出凭据或完整项目正文。doctor 只读检查进程、通道、Codex 版本／协议、宿主能力、目录、权限和待恢复任务。
+native 事件只有一个 Execution 消费者；明确无用的文本增量可丢弃，关键事件、请求、终态和 resolved 保留上界保护。发送唤醒是优化提示，持久状态仍由账本决定。诊断只输出安全分类及必要关联，不放开原始异常正文来排障。
 
-验证分三层：命令、路由与状态单元测试；Codex／iTerm2 契约与故障注入测试；本人微信＋真实 Codex＋至少两个临时项目的端到端验收。随后以 guixu 和 wx-clawbot 完成按任务授权的真实项目验收；选择验收项目不等于授权任意修改。沙箱 fixture 测试不能代替真实终端、手机收发或权限隔离测试。
-
-核心验收矩阵以产品文档为权威入口。实现前先验证原终端身份、输入、输出与控制权，避免核心交互到最后才发现缺适配。
-
-### PERF01 事件与结果处理
-
-[PERF01 交付](validation/performance-optimization.md)保存原开发候选源码／测试补丁；下述实现已整合到 `0.1.0`，本机加载及整合验证见[正式记录](validation/local-release.md)。
-
-原生 reader 仅丢弃明确不用且不带 request ID 的四类文本增量。关键事件仍有原队列上界，未知请求、response、终态和 resolved 保留。`Execution.run` 在同一个 TaskGroup 内管理事件消费和 `ResultWork`；后者最多两个活动结果、活动及等待身份合计 128 份，只保存 thread／turn 键，同 thread 保序、跨 thread 可推进，活动键去重。每个工作实例只属于当前连接代次；退出取消并等待实际子工作，异常传到 supervisor，再按既有未知状态对账，不重新提交。
-
-渲染在 SQLite 事务外。至少 32768 字符使用最多两个临时 Python 子进程；8192 至 32767 字符的线程渲染也占用同一 state 的两个 CPU 槽位，更小的控制回执不等待这些槽位。进程创建与管道生命周期在工作线程自己的事件循环内执行，避免同步创建阻塞主控制循环；取消通知该工作，等待实际回收后释放槽位。子进程 20 秒截止，输入／输出各限 8 MiB，返回的源切片、前后缀和段数均校验。线程无法强杀时等待它结束。子进程不读取认证或原生状态，不执行正文；独立运行制品下先校验继承的 release manifest。前缀仍在父进程附加；没有跨任务正文缓存或常驻进程池。
-
-SDK 的 `async_get_app` 会刷新全列表，因此 catalog 只在单次 discover 内取得一个独立 `discovery_view`。视图固定宿主连接，换代即拒绝；每个目标仍重读 PID／启动代次／TTY、前后 footer 和原生身份，屏幕读取仍限注册目录。视图不存入长期目录；下一轮 discover、独立 require 重新刷新，不能用枚举快照取得派发资格。
-
-订阅本地引用只等待本 thread 的进行中退订，不被其他 thread 的慢退订 RPC 挡住。发送唤醒由相关写入成功提交触发，caller 取消但数据库实际提交时仍通知；发送器在查询前清标记，查空后等待标记或 5 秒兜底。通知不是持久状态，HTTP 保持串行和未知不重试。schema 4 的索引及显式升级边界见[账本说明](state-schema.md#perf01-候选版本-3-到-4)。
+质量场景：桌面切换保持原目标；换代撤销旧资格；提交边界崩溃保留未知；结果投递失败不重跑；超限明确拒绝；依赖缺席不拖垮微信控制。对应单元／契约、真实原生和手机验收见[测试指南](testing.md)。本地 p95 基准不等于模型或公网 SLA。
 
 ## 13. 实施顺序与交付边界
 
-1. 以 D01 至 D06 和技术文档为输入，维护工程规范、依赖锁与已确认的独立观察订阅契约，不重复询问已确认使用方式。
-2. 验证已有 iTerm2 Codex 会话的单次执行／聚焦、微信启动新会话、排队、两端审批首次答复及取消的最小技术链路。
-3. 实现多项目注册、会话目录、命令及路由快照；补齐原生历史恢复，按已确认契约验证原生项目规则加载的范围与限制。
-4. 实现任务串行、去重、Outbox、故障恢复和诊断；完成产品验收。
-5. 按实际完成状态编写 README 与 ROADMAP，再决定部署替换和版本发布。
-
-本文只定义设计；交付与部署状态见 [ROADMAP](../ROADMAP.md)。
+原 W00 至 W08 施工顺序保留在[初始计划](../goals/implementation-plan.md)，后续按独立 Goal 演进。当前架构页不保留待实现叙事；下一步以 ROADMAP 为准。文档整改不升级产品、不运行真实测试或部署。
 
 ## 14. 来源与待确认项
 
-- 用户两轮明确需求与五张截图：需求和参考交互的一手输入。
-- [Codex App Server 官方文档](https://learn.chatgpt.com/docs/app-server) ：本轮核对其本地通信、线程、任务、审批与中断接口；方法和字段须再以实施时本机版本生成的 schema 校验。接口存在不证明外部终端已提供同等控制能力。
-- 已定技术方向与本机检查结果见技术决策；原终端映射、共享运行时双端交互、原生队列和微信文本闭环的实际验证状态以 ROADMAP 为准。attach 已确认独立观察订阅，数值默认值在施工关卡中校准；改变已确认用户体验时再确认。
-
-实施核对：`app-server proxy` 仅透传原始字节，不能直接写 JSONL。Unix 控制 socket 使用 WebSocket；桥接直连该 socket，不新建运行时。见 [官方固定源码](https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/stdio-to-uds/src/lib.rs)。
+实现入口以本页模块表、源码及现有测试为依据；需求来自 PRD、AGENTS 和已确认契约，外部 schema 来源见协议基线。无法保证的外部行为保留限制，不能用通用官方文档替代本机匹配版本证据。[ADR](technical-decisions.md)记录关键取舍和重新评估条件。
 
 ## REC01：结果与占用分离契约
 
-本节为 REC01 的施工约束，部署状态以 ROADMAP 为准。任务结果 unknown 与仓库 holding／released 分开持久化；准确原生终态、完整提交／排队核验和版本化审计共同决定释放。合并输入可证明占用结束，但不能证明各本地任务独立完成。旧线程历史只读核验不产生会话路由、订阅或提交权限，查询不到、idle、窗口消失和超时均不足以解锁。
-
-释放和新准入由同一协调器及 SQLite 事务序列化，证据绑定连接代次与 revision；迟到活动使占用重新进入冲突保护，不能重放旧任务。活动容量不计已释放历史，历史分页与保留期仍保护 unknown。桥接无法锁住独立桌面客户端，已知遗留子进程风险须明确阻塞。
+结果 unknown 不等于永久 holding。释放依赖准确终态、完整提交／队列、原生代次及审计；窗口消失、超时或空队列不能单独释放。只读历史核验不授予新路由；合并输入可使结果继续未知而占用按严格证据结束。详见[准入与账本](state-schema.md)。
 
 ## ASK01 已确认施工契约
 
-ASK01 采用同一 SQLite 单写入器、准确订阅事件和原轮次 steer，不增加消费者或业务任务；模块及严格辅助关联见[异步答复契约](async-questions.md)。
+异步补充沿同一账本、准确订阅和原 turn steer 实现，无第二消费者；跨端可同时接受。严格辅助输入关联、证据状态及恢复规则见[异步契约](async-questions.md)。

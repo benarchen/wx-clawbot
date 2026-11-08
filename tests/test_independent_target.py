@@ -104,6 +104,33 @@ class IndependentTargetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.state.tasks())[0]['thread_id'], 'thread-a')
         self.queues['thread-a'].add.assert_awaited_once()
 
+    async def test_pure_query_without_host_keeps_selected_native_subscription_and_routes_to_a(self):
+        from wx_clawbot.hosts.lifecycle import HostUnavailable
+        self.desktop_switch()
+        self.directory.discover.side_effect = HostUnavailable('not_running')
+        await self.command('/sessions thread-b')
+        self.assertEqual(len(self.controller.routes.list.targets), 1)
+        self.assertEqual(self.controller.routes.target, self.a)
+        self.assertTrue(self.controller.subscriptions.has(self.a, 'route'))
+        self.agent.unsubscribe.assert_not_awaited()
+        await self.command('Still send to explicitly selected A')
+        self.assertEqual((await self.state.tasks())[0]['thread_id'], 'thread-a')
+        self.queues['thread-a'].add.assert_awaited_once()
+        self.queues['thread-b'].add.assert_not_awaited()
+
+    async def test_query_omitting_unloaded_target_keeps_selection_but_does_not_grant_dispatch(self):
+        self.desktop_switch()
+        self.threads['thread-a']['status'] = {'type': 'notLoaded'}
+        self.agent.loaded_threads.return_value = frozenset({'thread-b'})
+        await self.command('/sessions')
+        self.assertEqual(len(self.controller.routes.list.targets), 1)
+        self.assertEqual(self.controller.routes.target, self.a)
+        await self.command('Must not silently switch to listed B')
+        self.assertEqual(await self.state.tasks(), [])
+        self.queues['thread-a'].add.assert_not_awaited()
+        self.queues['thread-b'].add.assert_not_awaited()
+        self.agent.unsubscribe.assert_not_awaited()
+
     async def test_cd_reuses_managed_a_after_desktop_switch_without_creating_replacement(self):
         self.desktop_switch()
         await self.command('/cd fixture')
