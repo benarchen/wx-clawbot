@@ -1,6 +1,6 @@
 # 开发指南
 
-PRJ01 项目注册管理目前为候选能力，开发入口为 `config.py`、`project_registry.py`、`project_control.py` 及 runtime／controller 接入；测试、配置协议与锁顺序见[专题](project-management.md)。勿把新的管理 CLI 对旧日常 0.1.10 的调用失败改成绕过实例写文件。
+PRJ01 项目注册管理自 0.1.11 提供，开发入口为 `config.py`、`project_registry.py`、`project_control.py` 及 runtime／controller 接入；测试、配置协议与锁顺序见[专题](project-management.md)。勿把新的管理 CLI 对旧日常 0.1.10 的调用失败改成绕过实例写文件。
 
 面向接手当前 MVP 的开发者。先读 [AGENTS](../AGENTS.md)、[ROADMAP](../ROADMAP.md)、[README](../README.md)，再读[架构](architecture-design.md)、[开发契约](development-contracts.md)及本次改动的专题。规范和权限只在 AGENTS 维护，本页不追加提交或发布授权。
 

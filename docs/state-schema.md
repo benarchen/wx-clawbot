@@ -6,7 +6,7 @@
 
 ## 当前结构总览
 
-PRJ01 候选不增加项目 SQLite 表，不升级 schema 6；项目清单仍在私有配置，路由快照 version 2 仅增加可选 registry_revision，结合配置中的取消修订阻止旧选择在重新注册后复活。当前候选／验收状态及新旧配置回退见[项目管理](project-management.md)，这不是旧日常制品已支持新格式的声明。
+PRJ01 自 0.1.11 提供，不增加项目 SQLite 表，不升级 schema 6；项目清单仍在私有配置，路由快照 version 2 仅增加可选 registry_revision，结合配置中的取消修订阻止旧选择在重新注册后复活。当前交付状态及新旧配置回退见[项目管理](project-management.md)，这不是旧日常制品已支持新格式的声明。
 
 DDL 与结构校验以 [schema.py](../src/wx_clawbot/schema.py) 及 [runtime_state.py](../src/wx_clawbot/runtime_state.py) 为实现源；不在文档复制完整 SQL。当前 13 个业务表如下，SQLite 内部统计对象不算业务表。Project 来自配置，会话目录来自原生发现，没有 projects／sessions 表。
 

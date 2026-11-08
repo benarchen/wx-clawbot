@@ -1,6 +1,6 @@
 # ASK01 异步补充答复契约
 
-本文定义本人于 2026-11-03 接受的异步补充接口；当时随 0.1.2／schema 6 交付，当前 0.1.10 沿用本契约并采用无读屏身份。完整验收和实际状态见 [ROADMAP](../ROADMAP.md)，证据见[验证记录](validation/async-questions.md)。同步审批／追问的原生首答裁决保持原规则。
+本文定义本人于 2026-11-03 接受的异步补充接口；当时随 0.1.2／schema 6 交付，当前 0.1.11 沿用本契约并采用无读屏身份。完整验收和实际状态见 [ROADMAP](../ROADMAP.md)，证据见[验证记录](validation/async-questions.md)。同步审批／追问的原生首答裁决保持原规则。
 
 ## 能力边界与原生依据
 
@@ -47,6 +47,6 @@ schema 6 在 RuntimeState 的同一 SQLite 单写入执行器下增加 `async_qu
 
 ## 实施及验证入口
 
-状态持久化放在 `src/wx_clawbot/async_state.py`，协议校验／展示／Execution 协作放在 `src/wx_clawbot/async_questions.py`；不创建第二个消费者、daemon 或通道。基础测试继续 unittest，真实原生测试显式入口为 `tests/integration/async_questions_native.py`，120 秒本地负载为 `tests/integration/async_questions_load.py`；原生入口要求准确 owned case、显式确认和全新报告，不接入用户工作终端。当前代码版本为 0.1.10，沿用 schema 6；逐能力版本门禁见[协议矩阵](protocol-baseline.md)，其他原生版本不能沿用本页的专项通过结论。准备至清理的串联入口见[运维操作卡](operations.md#eng01本地检查性能与真实原生交接)。手机发送须另有准确内容与条数授权，API 接受和手机实收分列。
+状态持久化放在 `src/wx_clawbot/async_state.py`，协议校验／展示／Execution 协作放在 `src/wx_clawbot/async_questions.py`；不创建第二个消费者、daemon 或通道。基础测试继续 unittest，真实原生测试显式入口为 `tests/integration/async_questions_native.py`，120 秒本地负载为 `tests/integration/async_questions_load.py`；原生入口要求准确 owned case、显式确认和全新报告，不接入用户工作终端。当前代码版本为 0.1.11，沿用 schema 6；逐能力版本门禁见[协议矩阵](protocol-baseline.md)，其他原生版本不能沿用本页的专项通过结论。准备至清理的串联入口见[运维操作卡](operations.md#eng01本地检查性能与真实原生交接)。手机发送须另有准确内容与条数授权，API 接受和手机实收分列。
 
 示例：单题 `/answer q-<收到的准确 ID> PHONE_ALPHA`；多题 `/answer q-<收到的准确 ID> {"q1":"答案一","q2":"答案二"}`。不要发送尖括号占位符或自行猜 ID。`/status` 查看活动入口，`/status <原任务 ID>` 查看准确状态、题目摘要及原因。已结束问题需要补充时，由本人明确选择目标并发送新的普通任务，旧 `/answer` 不会自动启动它。

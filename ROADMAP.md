@@ -4,9 +4,7 @@
 
 ## 当前阶段
 
-PRJ01 已验收，现已获授权整合为 0.1.11 并提交／合并／打 tag／推送及正式部署。冻结发布包 835 项及预装／预检通过，正进行 Git 发布，尚未切换，本机仍为下述旧 0.1.10；本轮状态见[发布记录](docs/validation/project-management-release.md)。
-
-MVP 已按确认范围交付。最近一次已记录的日常部署为独立非 editable 0.1.10／schema 6，路由快照 version 2；dev／main 和 annotated v0.1.10 已公开同步，实际加载与旧数据保护通过。[发布／切换证据](docs/validation/help-release.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
+MVP 已按确认范围交付。最近一次已记录的日常部署为独立非 editable 0.1.11／schema 6，路由快照 version 2；dev／main 和 annotated v0.1.11 已公开同步，实际加载与旧数据保护通过。[发布／切换证据](docs/validation/project-management-release.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
 
 微信独立选择且首次接入无需状态栏／标题 ID：后台按注册根及已知准确 cwd 发现，准确原生身份／loaded／订阅复验；可见新建保留自有 boot 与唯一完成握手。桌面切换不改投，关闭窗口后以原生可用性为准，unknown 不重放。[当前身份契约](docs/native-session-identity.md)、[TGT02 验收](docs/validation/native-session-no-footer.md)。
 
@@ -21,7 +19,7 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 ## 交付状态与运行说明
 
 - W00 至 W08、IMG01 单图、HOST01、MD01 Android 必要范围、PERF01，以及 REC01、ASK01、ENG01、AUD01、冷启动与 TGT01／TGT02 已按各自确认范围交付；不扩写为所有客户端、原生版本和交互全部通过。
-- 当前 0.1.10 的冻结制品、实际 argv／cwd／manifest、父子来源、唯一消费者及旧数据保护见[发布记录](docs/validation/help-release.md)，771 项检查通过。仅版本和 HELP 常量变化，原生 ready，iTerm2 保持退出；0.1.9 的 771 项及 0.1.8 的 756 项属于各自历史阶段，DOC01 文档整改阶段未重跑功能测试，不混为同一阶段。
+- 当前 0.1.11 的冻结制品、实际 argv／cwd／manifest、父子来源、唯一消费者及旧数据保护见[发布记录](docs/validation/project-management-release.md)，835 项检查通过。双端项目管理与旧 /projects 兼容已加载；原注册配置和 659 旧回执／两条 unknown 保持，未初始化业务总目录。原生 ready，iTerm2 保持退出；0.1.10 及更旧记录仅属于各自历史阶段。
 - 长期分版本发布与本机证据见[本机交付索引](docs/validation/local-release.md)和各带日期记录；旧候选／已部署历史不再堆入当前阶段。初始工作包验收入口如下，后置范围仍见待办。
 - 自有 MIT 及第三方原许可已公开同步；组合发行边界见[第三方声明](THIRD_PARTY_NOTICES.md)。历史 unknown 保留，准确占用释放不等于执行结果改成完成。
 
@@ -62,6 +60,8 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 ## 最近完成
 
+- 2026-11-09 07:49 0.1.11 发布部署完成：41 文件功能提交 7df84ed、main 快进、固定 annotated v0.1.11 与双分支／标签原子推送和独立核验完成；同一已验独立制品本机加载，项目管理 IPC 可用，原配置／任务／回执保持。[记录](docs/validation/project-management-release.md)。
+
 - 2026-11-08 23:48 PRJ01 交付齐备：一层初始化、双端 project 子命令与旧入口、即时生效、取消保护／零项目；835 项、专用原生及本人 12 条手机闭环通过。正常重启取消项不复活，测试终端准确清理，原日常版本／配置恢复且新增任务／回执保持。原生 Goal 已实际 complete，未提交或正式发布。[清单](goals/20261108-2048-project-management.md)、[报告](docs/validation/project-management.md)。
 
 - 2026-11-08 22:10 PRJ01 补齐独立进程落盘后退出／启动锁与真实 socket 回执丢失证据，修复提前断开导致关闭回调 BrokenPipe，强化回调异常判失败及资源上限验证。仅隔离测试，手机仍后置，未切换／发布；[报告](docs/validation/project-management.md)。
@@ -100,9 +100,9 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 - 2026-11-07 11:12 TGT01 的 0.1.7 发布部署完成：提交 `219912c`、main 快进、annotated v0.1.7 及双分支／标签原子推送、独立远端核验通过；同一冻结制品实际加载、单消费者及 host／native ready，原路由／587 旧回执／两条 unknown／配置保护通过，正常退出与 13 表备份完成，7.692 秒请求停止至验收。[发布交付](docs/validation/wechat-independent-release.md)。
 
-- 2026-11-07 10:50 TGT01 微信独立选择候选交付：规范、首次关联／后续复验分离、旧绑定目录保留、受管恢复、失效提示及回归完成；0.167.0 原 A 上下文续接与 B 不串投、显式切换和关闭拒绝真实通过，723 项及必要检查通过。首次发现保留页脚依赖；未提交或部署。[清单](goals/20261107-1027-wechat-independent-target.md)、[交付](docs/validation/wechat-independent-target.md)。
-
 ## 最近验证
+
+- 2026-11-09 07:49 0.1.11 实际切换：正常退出 0，13 表备份完整性／外键、实际 argv／cwd／父子 manifest 与唯一消费者通过；659 旧回执／两条 unknown／原未聚焦状态及配置保持，8.439 秒健康恢复。原生 ready、宿主退出，无迁移／重放或额外测试消息。[摘要](docs/validation/project-management-release.json)。
 
 - 2026-11-09 07:45 0.1.11 发布准备：同一冻结 wheel 835 项／46.367 秒及必需检查通过，较已验 PRJ01 仅版本元数据差异；预装、当前 0.167.0 协议／空闲／父子来源与公开审计通过。日常仍旧 0.1.10，尚未 Git 发布或切换。[记录](docs/validation/project-management-release.md)。
 
@@ -141,5 +141,3 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 - 2026-11-08 02:16 DOC01：16 条 CLI／构建 help、五图实际解析／SVG／PNG 渲染与视觉检查、源码事实／13 表／原章节去向、三类读者纸面走查、现有 documents、扩展链接／锚点／JSON／历史正文／示例语法／公开内容模式及 diff 检查通过。未重跑旧 756 项或真实原生／微信／部署验收，专项未测边界保持。[机器摘要](docs/validation/documentation-restructure.json)。
 
 - 2026-11-08 01:36 DOC01 清单核对：G00 至 G10／T01 至 T26／A01 至 A14／D01 至 D08／B01 至 B12／F01 至 F05 编号连续，目标、边界、PRD／图形专项、历史保全及跨文档验收齐备。四份一手结构资料已打开核对；文档 JSON／链接／锚点、记录数量及差异格式通过，仅校验清单，没有执行整改、自测矩阵或运行时操作。[清单](goals/20261108-0130-project-documentation-restructure.md)。
-
-- 2026-11-07 17:37 0.1.8 冻结独立制品 756 项／40.883 秒及编译／依赖／文档通过，56 个非版本包文件与无 ID 原生验收候选相同。实际 argv／cwd／manifest／父子来源／单消费者、schema 6、13 表备份及旧数据核验通过；路由快照 v1→v2，未重定向或通知。公开文件／两份制品／完整可达历史隐私审计零匹配，配置／凭据／全局设置与原生进程保持。[摘要](docs/validation/native-session-release.json)。

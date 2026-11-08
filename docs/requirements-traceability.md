@@ -1,10 +1,10 @@
 # 需求、实现、测试与证据追溯
 
-适用应用 0.1.10。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
+适用应用 0.1.11。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
 
 ## 核心产品需求
 
-PRJ01 是 P02／P03 的已验收候选扩展，离线、专用原生与本人手机闭环已完成，尚未正式发布：一层初始化与双端注册→[项目管理契约](project-management.md)→`config.py`／`project_registry.py`／`project_control.py`／运行生命周期→[文件与配置测试](../tests/test_project_registry.py)／[真实本地 IPC 与竞争测试](../tests/test_project_runtime.py)→[专用原生及阶段证据](validation/project-management.md)。原 P／V 编号不改，不能把原 W05 的通过用于宣称新项目管理已全部验收。
+PRJ01 是 P02／P03 的已验收扩展，离线、专用原生与本人手机闭环已完成，随 0.1.11 发布：一层初始化与双端注册→[项目管理契约](project-management.md)→`config.py`／`project_registry.py`／`project_control.py`／运行生命周期→[文件与配置测试](../tests/test_project_registry.py)／[真实本地 IPC 与竞争测试](../tests/test_project_runtime.py)→[专用原生及阶段证据](validation/project-management.md)。原 P／V 编号不改，不能把原 W05 的通过用于宣称新项目管理已全部验收。
 
 测试列中的方法均来自现有源码，可在对应文件搜索；列举代表性失败路径，其他回归按测试指南选择。所有证据按其当时版本和前置解读，TGT02 的无读屏语义取代旧身份要求，但不倒改旧实测。
 

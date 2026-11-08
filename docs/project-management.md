@@ -1,6 +1,6 @@
 # 项目管理：PRJ01 契约与实现设计
 
-状态：2026-11-08，工程候选已完成 835 项离线检查、专用真实原生、本人手机闭环和真实忙碌保护验收；测试终端已清理，原日常制品与注册配置已恢复，新增任务／回执保留。未正式发布或部署；日常仍为原 0.1.10，下面命令在已验收 PRJ01 源码／候选中可用，实际证据见[验证记录](validation/project-management.md)，进度见 [ROADMAP](../ROADMAP.md)。范围与验收编号以[施工清单](../goals/20261108-2048-project-management.md)为准。
+状态：本能力已随 0.1.11 公开发布并本机加载；835 项离线、专用原生、本人手机及真实忙碌保护验收通过，原项目注册配置保持。发布与实际加载见[0.1.11 交付](validation/project-management-release.md)，工程与手机证据见[验证记录](validation/project-management.md)，进度见 [ROADMAP](../ROADMAP.md)。范围与验收编号以[施工清单](../goals/20261108-2048-project-management.md)为准。
 
 ## 命令与产品边界
 
@@ -14,7 +14,7 @@ remove 在该项目有输入目标、观察、已接收／预留任务、选择�
 
 ## 配置与写入协议
 
-旧格式示例保留在[原模板](../config/config.example.json)，新格式示例见[注册模板](../config/project-registry.example.json)。推荐让 init 生成新配置及请求记录，不手工填修订。旧日常 0.1.10 不能使用新模板；制品版本和源码摘要须分别核对。
+旧格式示例保留在[原模板](../config/config.example.json)，新格式示例见[注册模板](../config/project-registry.example.json)。推荐让 init 生成新配置及请求记录，不手工填修订。旧版 0.1.10 不能使用新模板；制品版本和源码摘要须分别核对。
 
 单份配置为注册权威来源。兼容旧 `{"projects":[...]}`，新格式采用 `version:1`、`workspace_root`、`revision`、`projects` 和最近 `operations`；不迁移 SQLite。旧格式启动不自动写；不存在的配置只有显式 init apply 可以创建。新格式容许零项目及失效目录，失效通过 list／check 呈现，派发仍严格核验真实路径。别名和真实目录唯一，拒绝重复 JSON 键与未知字段。
 
@@ -36,9 +36,9 @@ remove 在该项目有输入目标、观察、已接收／预留任务、选择�
 
 预览、参数校验、冲突、备份及写入失败均不能声称已生效；提交后回执丢失与提交前失败分列。IPC／启动／并发写入用真实隔离进程与本地 socket 验证，派发竞争及崩溃窗口注入失败验证；详见 T01 至 T34、A01 至 A15。真实原生和手机范围分别验收，未完成时不声明 Goal 完成或日常可用。
 
-## 候选使用与故障核对
+## 使用与故障核对
 
-本机使用候选对应的准确解释器／CLI；以下路径均为占位，实际执行不省略 config 与 state-dir，避免操作另一实例：
+本机使用 0.1.11 或后续兼容制品对应的准确解释器／CLI；以下路径均为占位，实际执行不省略 config 与 state-dir，避免操作另一实例：
 
 ```sh
 wx-clawbot project init --root /absolute/path/to/projects --config /absolute/path/to/private/config.json --state-dir /absolute/path/to/private

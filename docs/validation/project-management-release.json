@@ -1,11 +1,11 @@
 {
-  "status": "verified_ready_to_publish",
+  "status": "published_and_deployed",
   "version": "0.1.11",
   "schema": 6,
   "route_snapshot_version": 2,
   "authorized": true,
-  "git_published": false,
-  "local_deployed": false,
+  "git_published": true,
+  "local_deployed": true,
   "updated_at_beijing": "2026-11-09 07:45",
   "source_sha256": "67e51343fbdba40a3272fefc3a3fb8cd4d23e93f2ce341fbf65fbf013c94be6e",
   "wheel_sha256": "63444d5897a96adb7ef52413086c69fbf83f5d3f73542c10be37ba4a8bf4b29b",
@@ -60,10 +60,10 @@
     "private_values_compared": 3240,
     "private_matches": 0,
     "reachable_objects": {
-      "blob": 999,
-      "tree": 417,
-      "commit": 61,
-      "tag": 9
+      "blob": 1040,
+      "tree": 427,
+      "commit": 62,
+      "tag": 10
     },
     "archives": [
       {
@@ -90,8 +90,8 @@
     ],
     "unrelated_package_files_unchanged": true,
     "production_configuration_preserved": true,
-    "deployment_phase": false,
-    "production_version": "0.1.10",
+    "deployment_phase": true,
+    "production_version": "0.1.11",
     "production_schema": 6,
     "host_native_ready": false
   },
@@ -113,5 +113,58 @@
     "cause": "sandbox PyPI DNS restriction",
     "same_wheel_completed_with_normal_permissions": true
   },
-  "actual_business_workspace_initialized": false
+  "actual_business_workspace_initialized": false,
+  "completed_at_beijing": "2026-11-09 07:49",
+  "git": {
+    "status": "passed",
+    "commit": "7df84edaa9f12bfabe8d284807f8faa7c8c15a73",
+    "tag": "v0.1.11",
+    "tag_object": "d316709f9249cc1239d6d3377c0339cb49ca09bd",
+    "remote_heads_and_peeled_tag_verified": true,
+    "github_api_commit_independent_verification": true,
+    "repository_visibility": "public",
+    "default_branch": "main"
+  },
+  "deployment": {
+    "status": "passed",
+    "version": "0.1.11",
+    "schema": 6,
+    "source_sha256": "67e51343fbdba40a3272fefc3a3fb8cd4d23e93f2ce341fbf65fbf013c94be6e",
+    "wheel_sha256": "63444d5897a96adb7ef52413086c69fbf83f5d3f73542c10be37ba4a8bf4b29b",
+    "normal_stop": true,
+    "normal_old_exit_code": 0,
+    "downtime_seconds": 8.439,
+    "single_verified_consumer": true,
+    "actual_argv_and_cwd_verified": true,
+    "host_ready": false,
+    "host_state": "not_running",
+    "host_state_preserved": true,
+    "native_ready": true,
+    "manifest_and_managed_source_match": true,
+    "changed_plist_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "configuration_credentials_global_config_preserved": true,
+    "original_native_processes_preserved": true,
+    "identical_business_tables_except_route_revision": 10,
+    "route_roles_and_target_preserved": true,
+    "route_snapshot_upgraded": false,
+    "route_native_identity_verified": true,
+    "route_snapshot_version": 2,
+    "original_route_choices_restored": 0,
+    "route_recovery_notifications": 0,
+    "old_outbox_rows_preserved": 659,
+    "no_route_redirection": true,
+    "frozen_outbox_rows": 659,
+    "unknown_results_preserved": 2,
+    "backup_integrity_and_foreign_keys": "passed",
+    "new_process_start_events": 1,
+    "schema_migration": false,
+    "database_restore": false,
+    "test_wechat_sends": 0,
+    "native_submissions": 0
+  },
+  "live_project_management_ipc": "passed_readonly_original_two_projects",
+  "current_registry_format": "legacy_preserved"
 }

@@ -58,7 +58,7 @@ flowchart TB
 
 [查看独立 SVG](diagrams/architecture-F02.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-范围：运行结构；其中 PRJ01 项目管理 IPC 已完成候选验收，尚未正式部署，状态见 ROADMAP。开发检出不进入生产导入路径；launchd 只托管本项目，Codex daemon／iTerm2 的生命周期由用户及其原生机制管理。
+范围：运行结构；其中 PRJ01 项目管理 IPC 自 0.1.11 提供，状态见 ROADMAP。开发检出不进入生产导入路径；launchd 只托管本项目，Codex daemon／iTerm2 的生命周期由用户及其原生机制管理。
 
 ```mermaid
 flowchart TB
@@ -122,7 +122,7 @@ flowchart TB
 | --- | --- | --- |
 | 通道／媒体 | `channels/wechat.py`、`messages.py`、`media.py` | 不选择 thread，不执行项目工作 |
 | 固定命令／目录／路由 | `commands.py`、`config.py`、`routing.py`、`controller.py` | 不用模型猜目标，不向普通 Shell 注入任务 |
-| PRJ01 注册管理候选 | `project_registry.py`、`project_control.py` | 单份配置、准确实例、同 UID IPC；不执行 Shell，不创建业务目录，不绕过任务／占用保护 |
+| PRJ01 注册管理 | `project_registry.py`、`project_control.py` | 单份配置、准确实例、同 UID IPC；不执行 Shell，不创建业务目录，不绕过任务／占用保护 |
 | 发现／身份／订阅 | `catalog.py`、`sessions.py`、`subscriptions.py` | 不读页脚，不 resume notLoaded，不伪造宿主 |
 | 可见宿主 | `hosts/lifecycle.py`、`hosts/visible.py`、`launcher.py` | 自有启动意图至多一次，不清理用户资源 |
 | 原生适配 | `agents/codex.py`、`rpc.py`、`queue.py` | 校验实际 server 版本／socket，不另建运行时 |
@@ -147,7 +147,7 @@ flowchart TB
 
 ## 5. 项目、目录与上下文
 
-PRJ01 已验收候选将“项目总目录的一层初始化扫描”与“已注册项目的准确会话发现”分开；list／check 不扫描注册候选或触发任务对账。双端变更持久化后安装同一运行快照，取消注册保留文件／历史但撤销旧选择资格；零项目及故障窗口见[项目管理设计](project-management.md)，不等于 Codex 规则热更新。
+PRJ01 将“项目总目录的一层初始化扫描”与“已注册项目的准确会话发现”分开；list／check 不扫描注册候选或触发任务对账。双端变更持久化后安装同一运行快照，取消注册保留文件／历史但撤销旧选择资格；零项目及故障窗口见[项目管理设计](project-management.md)，不等于 Codex 规则热更新。
 
 项目文件留在原目录。`/cd` 对 realpath、权限和范围校验，失败保留原选择；合法目录没有受管会话时可见新建，不把旧 thread 原地改到另一项目。已有对象发现限定注册根和已知准确 cwd，不递归磁盘或抓取全部私人历史。
 

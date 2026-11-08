@@ -225,12 +225,11 @@
     "A14": "passed_current_candidate_scope",
     "A15": "passed_goal_complete"
   },
-  "git_committed": false,
-  "git_pushed": false,
-  "production_deployed": false,
+  "git_committed": true,
+  "git_pushed": true,
+  "production_deployed": true,
   "actual_business_workspace_initialized": false,
   "limitations": [
-    "No formal release or deployment; daily original 0.1.10 restored",
     "Actual business workspace has not been initialized",
     "New configuration requires explicit conversion for old 0.1.10 rollback",
     "Multiple workspace roots, rename, move-root, arbitrary external add and force are outside scope"
@@ -358,5 +357,13 @@
     "unknown_results_preserved": 2,
     "input_target_unbound": true,
     "host_state": "ready"
-  }
+  },
+  "publication": {
+    "version": "0.1.11",
+    "commit": "7df84edaa9f12bfabe8d284807f8faa7c8c15a73",
+    "tag": "v0.1.11",
+    "record": "project-management-release.json",
+    "release_only_version_differs_from_accepted_candidate": true
+  },
+  "accepted_candidate_version_applicability": "Historical engineering and phone-accepted artifact; release 0.1.11 differs only in version metadata"
 }

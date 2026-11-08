@@ -7,7 +7,7 @@
 | 读者／任务 | 推荐顺序 |
 | --- | --- |
 | 使用者：首次任务 | [快速开始](../README.md) → [准备与启动](operations.md#安装与准备) → [微信登录与本人绑定](wechat-protocol.md) → [命令契约](command-contract-proposal.md) |
-| PRJ01：项目管理候选 | [初始化与双端管理](project-management.md) → [施工与验收](../goals/20261108-2048-project-management.md)；当前状态见 ROADMAP，不等于日常版本已支持 |
+| PRJ01：0.1.11 项目管理 | [初始化与双端管理](project-management.md) → [施工与验收](../goals/20261108-2048-project-management.md)；实际版本及交付状态见 ROADMAP |
 | 产品：范围和验收 | [PRD](product-design.md) → [需求追溯](requirements-traceability.md) → [兼容矩阵](protocol-baseline.md) |
 | 开发者：接手和改动 | [项目规范](../AGENTS.md) → [开发指南](development.md) → [架构](architecture-design.md) → [开发契约](development-contracts.md) → [测试指南](testing.md) |
 | 维护者：发布与恢复 | [运维手册](operations.md) → [账本](state-schema.md) → [安全边界](../SECURITY.md) → 对应版本验证记录 |
