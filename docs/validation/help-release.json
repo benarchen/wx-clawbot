@@ -1,10 +1,10 @@
 {
-  "status": "verified_before_publication",
+  "status": "published_and_deployed",
   "version": "0.1.10",
   "schema": 6,
   "route_snapshot_version": 2,
-  "git_published": false,
-  "local_deployed": false,
+  "git_published": true,
+  "local_deployed": true,
   "source_sha256": "866eb0acb8555faee7b183fea26f614b8dd02d421d469f71da0b6fddb5d6cb31",
   "wheel_sha256": "816caf15b0f926635af1c7865e451c3c3f0ea9175e1461d8cb926c20fd827b4f",
   "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
@@ -104,5 +104,53 @@
     "errors": 17,
     "cause": "Unix socket binding denied",
     "successful_rerun_same_artifact": true
-  }
+  },
+  "git": {
+    "status": "passed",
+    "commit": "03b92599c8d265b54df942281c391e1acd809060",
+    "tag": "v0.1.10",
+    "tag_object": "e95082787ca3d2dd6de84cd2c4b3238c9f9d1a5f",
+    "github_api_independent_verification": true
+  },
+  "deployment": {
+    "status": "passed",
+    "version": "0.1.10",
+    "schema": 6,
+    "source_sha256": "866eb0acb8555faee7b183fea26f614b8dd02d421d469f71da0b6fddb5d6cb31",
+    "wheel_sha256": "816caf15b0f926635af1c7865e451c3c3f0ea9175e1461d8cb926c20fd827b4f",
+    "normal_stop": true,
+    "normal_old_exit_code": 0,
+    "downtime_seconds": 13.707,
+    "single_verified_consumer": true,
+    "actual_argv_and_cwd_verified": true,
+    "host_ready": false,
+    "host_state": "not_running",
+    "host_state_preserved": true,
+    "native_ready": true,
+    "manifest_and_managed_source_match": true,
+    "changed_plist_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "configuration_credentials_global_config_preserved": true,
+    "original_native_processes_preserved": true,
+    "identical_business_tables_except_route_revision": 10,
+    "route_roles_and_target_preserved": true,
+    "route_snapshot_upgraded": false,
+    "route_native_identity_verified": true,
+    "route_snapshot_version": 2,
+    "original_route_choices_restored": 1,
+    "route_recovery_notifications": 0,
+    "old_outbox_rows_preserved": 639,
+    "no_route_redirection": true,
+    "frozen_outbox_rows": 639,
+    "unknown_results_preserved": 2,
+    "backup_integrity_and_foreign_keys": "passed",
+    "new_process_start_events": 1,
+    "schema_migration": false,
+    "database_restore": false,
+    "test_wechat_sends": 0,
+    "native_submissions": 0
+  },
+  "completed_at_beijing": "2026-11-08 17:19"
 }
