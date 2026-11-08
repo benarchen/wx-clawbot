@@ -1,0 +1,108 @@
+{
+  "status": "verified_before_publication",
+  "version": "0.1.10",
+  "schema": 6,
+  "route_snapshot_version": 2,
+  "git_published": false,
+  "local_deployed": false,
+  "source_sha256": "866eb0acb8555faee7b183fea26f614b8dd02d421d469f71da0b6fddb5d6cb31",
+  "wheel_sha256": "816caf15b0f926635af1c7865e451c3c3f0ea9175e1461d8cb926c20fd827b4f",
+  "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+  "frozen_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 40.57650204099991
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.07511116699970444
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.18137041699810652
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.02006999999866821
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "unittest_count": 771,
+  "unittest_seconds": 40.379,
+  "help": {
+    "status": "passed",
+    "commands": 15,
+    "aliases": 6,
+    "max_description_characters": 17,
+    "help_characters": 578,
+    "rendered_segments": 1,
+    "heading_marker_absent": true,
+    "all_syntax_parseable": true
+  },
+  "privacy_audit": {
+    "status": "passed",
+    "public_files": 308,
+    "private_values_compared": 3123,
+    "private_matches": 0,
+    "reachable_objects": {
+      "blob": 975,
+      "tree": 409,
+      "commit": 59,
+      "tag": 8
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.10-py3-none-any.whl",
+        "sha256": "816caf15b0f926635af1c7865e451c3c3f0ea9175e1461d8cb926c20fd827b4f"
+      },
+      {
+        "name": "wx_clawbot-0.1.10.tar.gz",
+        "sha256": "d8af9d4637500d66d6d95bb9504e9960941034881fbddf88dbeb64c2be5931f9"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "previous_release_changed_package_files": [
+      "__init__.py",
+      "controller.py"
+    ],
+    "validated_fix_files_unchanged": true,
+    "production_configuration_preserved": true,
+    "deployment_phase": false,
+    "production_version": "0.1.9",
+    "production_schema": 6,
+    "host_native_ready": false
+  },
+  "preflight": {
+    "idle_counts": {
+      "active_tasks": 0,
+      "active_occupancy": 0,
+      "pending_replies": 0,
+      "sending_attempts": 0,
+      "active_interactions": 0,
+      "active_async_questions": 0
+    },
+    "host_state": "not_running",
+    "native_state": "ready",
+    "child_render_parts": 5,
+    "only_plist_arguments_and_cwd_change": true
+  },
+  "initial_sandbox_test": {
+    "status": "failed_environment",
+    "errors": 17,
+    "cause": "Unix socket binding denied",
+    "successful_rerun_same_artifact": true
+  }
+}

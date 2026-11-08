@@ -46,7 +46,7 @@ documents 当前验证 JSON、本地链接／标题锚点、包版本、README �
 | 变化 | 重点失败路径／测试入口 |
 | --- | --- |
 | 路由／身份／发现 | independent_target、native_identity、native_target_lifecycle、catalog、routing；同 cwd 多对话、fork 共 sessionId、换代、notLoaded、不完整分页、宿主缺席、旧快照拒绝 |
-| 查询／帮助 | controller、runtime_lifecycle、commands；sessions 保留 focused／managed 与订阅／任务，空结果／筛选／失败／换代不清目标，查询期间可发原目标，离线不拉起宿主；help 全部命令及别名与解析器一致 |
+| 查询／帮助 | controller、runtime_lifecycle、commands；sessions 保留 focused／managed 与订阅／任务，空结果／筛选／失败／换代不清目标，查询期间可发原目标，离线不拉起宿主；help 全部命令、参数及别名与解析器一致，逐条复查简短说明的含义和长度，经实际输出渲染链核对完整性 |
 | 新建／宿主恢复 | visible_launch、host_connection、host_lifecycle；意图先落盘、丢 ACK、重复 nonce、无 boot／缺 completed、进程变化、授权截止和取消回收 |
 | 排队／准入／恢复 | native_queue、admission*、recovery_state；提交边界未知、完整队列／准确终态、合并输入不伪完成、占用 revision 过期拒绝、unknown 不重放 |
 | 同步／异步交互 | interactions、interaction_acceptance、async_questions、async_question_repro；原生裁决／跨端竞争、答案格式、期限边界、原 turn 已结、未知答案不可重试 |

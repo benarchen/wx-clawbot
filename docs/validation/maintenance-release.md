@@ -4,7 +4,7 @@
 
 ## 本次范围与顺序
 
-发布到既有公共仓库 https://github.com/benarchen/wx-clawbot ，沿用 dev／main，版本为 0.1.9，annotated v0.1.9 指向功能提交；schema 6、路由快照 version 2、依赖锁和原生能力门禁保持。远端与本地起点均为 `8278de5645a57f2fc0348b746d59899bfe0bdadd`，默认 main，标签尚不存在。
+发布到既有公共仓库 https://github.com/benarchen/wx-clawbot ，沿用 dev／main，版本为 0.1.9，annotated v0.1.9 指向功能提交；schema 6、路由快照 version 2、依赖锁和原生能力门禁保持。发布前核对时，远端与本地起点均为 `8278de5645a57f2fc0348b746d59899bfe0bdadd`，默认分支为 main，v0.1.9 标签尚不存在；实际创建、推送和核验结果见末节。
 
 包含 [DOC01 文档整改](documentation-restructure.md)、[sessions 纯查询及 help 核对](sessions-query-help.md)、[冷启动零额外 Shell](iterm-single-window.md)。保留首轮冷启动失败及旧版本验收边界，不将此前 0.1.8 冻结测试改写为 0.1.9 的结果。
 
@@ -28,7 +28,7 @@
 
 发布前公开内容与实际私密值比较：306 份文件、3118 个私密候选、918 个 blob／396 个 tree／57 个 commit／7 个 tag，以及 wheel／sdist 两份制品，零匹配。新增发布记录与提交／部署收尾仍继续复核，不把这组计数当作后续全部审计数量。
 
-同一 wheel 已预装到全新私有版本目录，manifest 完全一致；隔离渲染子进程输出五段并通过来源核验。当前 0.1.8 正式实例可核验、host／native ready，活动任务、等待／持有占用、pending／sending、同步及有效异步交互均为零。仅 ProgramArguments／WorkingDirectory 的 plist 差异已生成，plutil 校验通过，原 plist 已私有留存；此时尚未停止日常服务。
+同一 wheel 已预装到全新私有版本目录，manifest 完全一致；隔离渲染子进程输出五段并通过来源核验。发布前核对时，0.1.8 正式实例可核验、host／native ready，活动任务、等待／持有占用、pending／sending、同步及有效异步交互均为零。仅 ProgramArguments／WorkingDirectory 的 plist 差异已生成，plutil 校验通过，原 plist 已私有留存；此时尚未停止日常服务。
 
 ## 2026-11-08 14:07 实际发布与部署
 

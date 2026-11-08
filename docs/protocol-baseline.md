@@ -1,6 +1,6 @@
 # 协议、依赖与兼容基线
 
-适用应用 0.1.9。这里集中维护原生版本／能力／证据范围，其他页面引用本表；实际部署进度只见 [ROADMAP](../ROADMAP.md)。CLI 版本、daemon 的 initialize 版本、应用版本、SQLite schema 和路由快照不是同一对象。未知 server 版本拒绝，不能仅扩大白名单。
+适用应用 0.1.10。这里集中维护原生版本／能力／证据范围，其他页面引用本表；实际部署进度只见 [ROADMAP](../ROADMAP.md)。CLI 版本、daemon 的 initialize 版本、应用版本、SQLite schema 和路由快照不是同一对象。未知 server 版本拒绝，不能仅扩大白名单。
 
 ## 当前能力矩阵
 

@@ -13,7 +13,7 @@
 
 出站 Markdown 仍通过文本 item 的 `text_item.text` 发送，没有新增 `parse_mode` 或其他未经核验的模式字段。新回执在入账前完成兼容渲染和结构分段，发送器逐字使用冻结正文；升级不重排历史 outbox，投递重试不重新执行任务。接口 accepted、本人实际显示和实际复制分别记录，客户端兼容范围见[排版说明](wechat-markdown.md)及[真机证据](validation/wechat-markdown.md)。
 
-公共 `iLink-App-Id` 采用参考中的 `bot`；客户端版本按参考的 uint32 算法编码本项目自身版本；历史 `0.1.0.dev0` 对应 256，当前 0.1.9 对应 265。`base_info.channel_version` 使用本项目版本，`bot_agent` 为 `wx-clawbot/<version>`，不伪装成参考插件及其版本。真实接口已完成独立扫码、鉴权轮询及本人手机文本往返。
+公共 `iLink-App-Id` 采用参考中的 `bot`；客户端版本按参考的 uint32 算法编码本项目自身版本；历史 `0.1.0.dev0` 对应 256，当前 0.1.10 对应 266。`base_info.channel_version` 使用本项目版本，`bot_agent` 为 `wx-clawbot/<version>`，不伪装成参考插件及其版本。真实接口已完成独立扫码、鉴权轮询及本人手机文本往返。
 
 POST 加入 `Content-Type: application/json`、`AuthorizationType: ilink_bot_token` 和随机 uint32 十进制字符串的 base64 `X-WECHAT-UIN`。只有已登录 bot POST 才加入 Bearer。HTTPS 服务地址仅接受经校验的微信域名与标准端口；HTTP 重定向不自动跟随。登录的 IDC 跳转按应用层状态核对新 host，不能把凭据带到任意返回地址。
 

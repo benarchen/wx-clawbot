@@ -1,6 +1,6 @@
 # 需求、实现、测试与证据追溯
 
-适用应用 0.1.9。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
+适用应用 0.1.10。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
 
 ## 核心产品需求
 

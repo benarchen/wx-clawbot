@@ -1,6 +1,6 @@
 # wx-clawbot 开发契约与接口验证方案
 
-应用基线为 0.1.9，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
+应用基线为 0.1.10，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
 
 ## 1. 项目结构约定
 

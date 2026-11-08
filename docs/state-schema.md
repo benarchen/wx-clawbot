@@ -2,7 +2,7 @@
 
 本文件说明程序自有私有账本，状态以 [ROADMAP](../ROADMAP.md) 为准。真实业务项目数据库与 Codex 历史不属于升级对象。
 
-当前代码 `0.1.9` 使用 schema 6，延续 ASK01 已备份并显式升级的结构；具体本机加载状态见[部署证据](validation/local-release.md)。路由 JSON 快照 version 2 是独立格式，不是 SQLite schema 版本，见[身份契约](native-session-identity.md)。升级链支持 1／2／3／4／5→6；下方带旧版本的章节保存历史演进，不能当作当前部署版本或重复执行操作卡。
+当前代码 `0.1.10` 使用 schema 6，延续 ASK01 已备份并显式升级的结构；具体本机加载状态见[部署证据](validation/local-release.md)。路由 JSON 快照 version 2 是独立格式，不是 SQLite schema 版本，见[身份契约](native-session-identity.md)。升级链支持 1／2／3／4／5→6；下方带旧版本的章节保存历史演进，不能当作当前部署版本或重复执行操作卡。
 
 ## 当前结构总览
 

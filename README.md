@@ -2,7 +2,7 @@
 
 通过本人微信选择本机多个注册项目中的准确 Codex 原生会话，提交任务、接收结果并处理交互。iTerm2 用于可见创建和桌面操作；微信选择独立于电脑当前画面，首次接入无需状态栏或终端标题显示 Session ID。
 
-当前应用基线 `0.1.9`，运行账本 schema 6，路由快照 version 2。实际发布／本机切换证据见[0.1.9 记录](docs/validation/maintenance-release.md)，唯一进度源见 [ROADMAP](ROADMAP.md)。
+当前应用基线 `0.1.10`，运行账本 schema 6，路由快照 version 2。实际发布／本机切换证据见[0.1.10 记录](docs/validation/help-release.md)，唯一进度源见 [ROADMAP](ROADMAP.md)。
 
 ## 能力与前提
 
