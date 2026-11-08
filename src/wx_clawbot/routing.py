@@ -37,7 +37,7 @@ class Dispatch:
 
 class Routes:
     def __init__(self, projects: tuple[Project, ...], *, ttl=600, clock=time.monotonic):
-        if not projects or not 1 <= ttl <= 3600 or len({p.alias for p in projects}) != len(projects):
+        if not 1 <= ttl <= 3600 or len({p.alias for p in projects}) != len(projects):
             raise ValueError("Unique registered projects and a bounded list TTL required")
         self.projects = {p.alias: p for p in projects}
         self.ttl, self.clock = ttl, clock

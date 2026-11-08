@@ -1,0 +1,362 @@
+{
+  "goal": "PRJ01",
+  "status": "complete",
+  "updated_at_beijing": "2026-11-08 23:50",
+  "base_commit": "1f275f9bcd91a8feaae327a326a623ea6fbed08b",
+  "candidate_version": "0.1.10",
+  "candidate_only": true,
+  "schema": 6,
+  "route_snapshot_version": 2,
+  "route_registry_revision_optional": true,
+  "source_sha256": "feacc44d89069d67c0c0a37b359bde5e635acd680c567ecfbcca263c171722a9",
+  "wheel_sha256": "4986d5b9b125758b1b35407affdea766beb1d472ddc61716c4870839b1ef6b26",
+  "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+  "frozen_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 47.71656512499612
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.07759954200446373
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.18269708399748197
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.020228957997460384
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "full_tests": {
+    "count": 835,
+    "seconds": 46.362,
+    "status": "passed"
+  },
+  "extra_boundary_tests": {
+    "count": 53,
+    "seconds": 5.631,
+    "status": "passed",
+    "included_in_final_full_check": true
+  },
+  "native": {
+    "status": "main_flow_passed",
+    "server_version": "0.167.0",
+    "owned_projects": 2,
+    "owned_windows": 1,
+    "owned_terminals": 2,
+    "completed_business_inputs": 2,
+    "checks": {
+      "add_live_preserves_a": true,
+      "registered_discovery_only": true,
+      "two_original_threads_completed": true,
+      "selected_remove_blocked": true,
+      "remove_live": true,
+      "no_redirection": true
+    },
+    "original_context_preserved": true,
+    "cleaned_owned_terminals": 2,
+    "owned_terminals_absence_rechecked": true,
+    "protected_configuration_hashes_preserved": true,
+    "wechat_sends": 0,
+    "production_writes": 0,
+    "busy_remove_phone_acceptance": "passed",
+    "source_sha256": "83d58b22c5e0642d98384823322c835f5a300ece5acd9db87e6e1db9da11c50c",
+    "same_as_final_source": false,
+    "final_difference": "Prohibited-path guards, socket-close handling, private state argument rename and unused import; other 56 package files and native protocol/execution unchanged"
+  },
+  "phone_acceptance": {
+    "status": "passed",
+    "temporary_switch_authorized": true,
+    "messages_sent": 12,
+    "temporary_candidate_running": false,
+    "temporary_workspace_initialized": true,
+    "original_projects_preserved": true,
+    "restoration": "passed",
+    "first_four_commands": {
+      "project_list": true,
+      "live_add": true,
+      "projects_alias": true,
+      "visible_cd_ready": true
+    },
+    "registered_projects": 4,
+    "accurate_native_and_owned_terminal_verified": true,
+    "selected_remove_blocked": true,
+    "unfocused_running_remove_blocked": true,
+    "completed_then_removed": true,
+    "check_and_list_owner_verified": true,
+    "accurate_native_completed": true,
+    "sleep_command_count": 1,
+    "normal_candidate_restart": true,
+    "removed_project_absent_after_restart_backend": true,
+    "task_and_receipts_preserved": true,
+    "original_config_and_plist_restored": true,
+    "owner_restart_query_passed": true,
+    "owned_test_terminal_cleanup": "passed_other_terminals_preserved",
+    "all_phone_rows_retained": true
+  },
+  "privacy_audit": {
+    "status": "passed",
+    "public_files": 318,
+    "private_values_compared": 3230,
+    "private_matches": 0,
+    "reachable_objects": {
+      "blob": 999,
+      "tree": 417,
+      "commit": 61,
+      "tag": 9
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.10-py3-none-any.whl",
+        "sha256": "4986d5b9b125758b1b35407affdea766beb1d472ddc61716c4870839b1ef6b26"
+      },
+      {
+        "name": "wx_clawbot-0.1.10.tar.gz",
+        "sha256": "b9ff7535e937406d2c7aef05a7dea57a1aa7ed45ef9715577d4dfa0c8c612b7f"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "previous_release_changed_package_files": [
+      "cli.py",
+      "commands.py",
+      "config.py",
+      "controller.py",
+      "project_control.py",
+      "project_registry.py",
+      "routing.py",
+      "runtime_lifecycle.py",
+      "service.py"
+    ],
+    "unrelated_package_files_unchanged": true,
+    "production_configuration_preserved": true,
+    "deployment_phase": false,
+    "production_version": "0.1.10",
+    "production_schema": 6,
+    "host_native_ready": true,
+    "applicable_stage": "Final accepted-source and restored-runtime audit"
+  },
+  "diagrams": {
+    "figures": [
+      "F02",
+      "F03"
+    ],
+    "svg_and_png_render": "passed",
+    "visual_review": "passed",
+    "embedded_fonts": false
+  },
+  "checkpoints": {
+    "G00": "passed",
+    "G01": "passed",
+    "G02": "passed",
+    "G03": "passed",
+    "G04": "passed",
+    "G05": "passed",
+    "G06": "passed",
+    "G07": "passed_offline_native_and_phone",
+    "G08": "passed_final_cross_document_review",
+    "G09": "passed_goal_complete"
+  },
+  "test_matrix": {
+    "T01": "offline_passed",
+    "T02": "offline_passed_real_process_or_socket_failure_proof",
+    "T03": "offline_passed",
+    "T04": "offline_passed",
+    "T05": "offline_passed_case_variant_red_then_green",
+    "T06": "offline_passed",
+    "T07": "offline_passed",
+    "T08": "offline_passed",
+    "T09": "offline_passed",
+    "T10": "offline_passed",
+    "T11": "offline_passed",
+    "T12": "offline_passed",
+    "T13": "offline_passed",
+    "T14": "offline_passed_real_process_or_socket_failure_proof",
+    "T15": "offline_passed",
+    "T16": "offline_passed",
+    "T17": "offline_passed_real_process_or_socket_failure_proof",
+    "T18": "offline_passed_real_process_or_socket_failure_proof",
+    "T19": "offline_passed",
+    "T20": "offline_passed",
+    "T21": "offline_passed",
+    "T22": "offline_passed",
+    "T23": "offline_passed",
+    "T24": "offline_passed",
+    "T25": "offline_passed_real_process_or_socket_failure_proof",
+    "T26": "offline_passed",
+    "T27": "offline_passed",
+    "T28": "offline_passed",
+    "T29": "offline_passed_real_process_or_socket_failure_proof",
+    "T30": "offline_passed",
+    "T31": "offline_passed",
+    "T32": "offline_passed",
+    "T33": "offline_and_native_passed",
+    "T34": "offline_and_real_busy_phone_passed"
+  },
+  "acceptance": {
+    "A01": "passed_candidate_scope",
+    "A02": "passed_candidate_scope",
+    "A03": "passed_candidate_scope",
+    "A04": "passed_candidate_scope",
+    "A05": "passed_candidate_scope",
+    "A06": "passed_candidate_scope",
+    "A07": "passed_candidate_scope",
+    "A08": "passed_candidate_scope",
+    "A09": "passed_candidate_scope",
+    "A10": "passed_candidate_scope_with_case_variant_regression",
+    "A11": "passed_candidate_scope",
+    "A12": "passed_candidate_scope",
+    "A13": "passed_native_phone_cleanup_and_restoration",
+    "A14": "passed_current_candidate_scope",
+    "A15": "passed_goal_complete"
+  },
+  "git_committed": false,
+  "git_pushed": false,
+  "production_deployed": false,
+  "actual_business_workspace_initialized": false,
+  "limitations": [
+    "No formal release or deployment; daily original 0.1.10 restored",
+    "Actual business workspace has not been initialized",
+    "New configuration requires explicit conversion for old 0.1.10 rollback",
+    "Multiple workspace roots, rename, move-root, arbitrary external add and force are outside scope"
+  ],
+  "final_source_comparison": {
+    "status": "passed",
+    "changed_from_previous_candidate": [
+      "project_control.py"
+    ],
+    "only_expected_socket_close_changes": false,
+    "changed_from_native_verified_candidate": [
+      "config.py",
+      "project_control.py",
+      "project_registry.py"
+    ],
+    "other_package_files_identical": 56,
+    "native_protocol_and_execution_modules_unchanged": true,
+    "native_verified_source_sha256": "83d58b22c5e0642d98384823322c835f5a300ece5acd9db87e6e1db9da11c50c",
+    "previous_source_sha256": "ce2a1151115f0b4d51085a673610e25fabb7a71640eac0959e562b8d808eebf6",
+    "final_source_sha256": "feacc44d89069d67c0c0a37b359bde5e635acd680c567ecfbcca263c171722a9",
+    "final_wheel_sha256": "4986d5b9b125758b1b35407affdea766beb1d472ddc61716c4870839b1ef6b26",
+    "only_private_state_argument_rename_from_previous": true
+  },
+  "documentation_review": {
+    "status": "passed_candidate_scope",
+    "topics": [
+      "commands_and_aliases",
+      "workspace_scan_vs_thread_discovery",
+      "directory_association_only",
+      "single_registry_and_runtime_revision",
+      "remove_blockers_and_history",
+      "zero_projects_and_legacy_config",
+      "permissions_and_ipc",
+      "candidate_vs_deployed",
+      "native_vs_phone_evidence",
+      "rollback_vs_database_restore"
+    ],
+    "readme": "current_source_verified_capabilities_and_old_daily_baseline_distinguished",
+    "legacy_template": "retained_for_0.1.10",
+    "new_template": "config/project-registry.example.json"
+  },
+  "policy_hardening": {
+    "case_variant": "regression_red_then_green",
+    "targeted_tests": 54,
+    "targeted_seconds": 5.621,
+    "frozen_recheck": "passed",
+    "source_comparison": {
+      "status": "passed",
+      "changed_package_files": [
+        "config.py",
+        "project_registry.py"
+      ],
+      "changes": [
+        "Case-insensitive prohibited path components",
+        "Reuse same predicate before directory-entry stat",
+        "Remove one unused import"
+      ],
+      "other_package_files_identical": 57,
+      "native_verified_source_sha256": "83d58b22c5e0642d98384823322c835f5a300ece5acd9db87e6e1db9da11c50c",
+      "final_source_sha256": "9420d511ae04a6fbb1fee5443427e022e734f8680d9b334cca2f5e5272e782b4",
+      "final_wheel_sha256": "3421389f9ecf980f604eb36fa711f349598da3bd0402f3e19c3e71d17df0e037",
+      "native_protocol_and_execution_modules_unchanged": true
+    },
+    "full_tests": 825,
+    "full_seconds": 46.03,
+    "source_sha256": "9420d511ae04a6fbb1fee5443427e022e734f8680d9b334cca2f5e5272e782b4"
+  },
+  "process_and_ipc_hardening": {
+    "real_process_exit_after_commit": 73,
+    "stale_route_after_readd_not_restored": true,
+    "startup_and_consumer_lock_races": "passed",
+    "success_reply_lost_no_replay": "passed",
+    "scan_permission_and_vanished_entry": "passed",
+    "disk_full_preserves_original": "passed",
+    "resource_bounds": "16_connections_64KiB_256_projects_passed",
+    "callback_error_regression": "red_then_green",
+    "unhandled_project_callback_errors": 0,
+    "targeted_tests_before_last_case": 61,
+    "full_tests": 833,
+    "frozen_source_sha256": "ce2a1151115f0b4d51085a673610e25fabb7a71640eac0959e562b8d808eebf6"
+  },
+  "goal_status": "complete",
+  "blocked_audit": {
+    "same_condition_consecutive_goal_turns": 3,
+    "completion_proven": false,
+    "blocking_condition": "Owner deferred temporary switch and phone/native busy acceptance",
+    "missing_requirements": [
+      "G07",
+      "G09",
+      "T34",
+      "A13",
+      "A15"
+    ],
+    "safe_independent_work_remaining": [],
+    "applicable_stage": "Historical three-turn blocked audit; user has now authorized continuation"
+  },
+  "initialization_regression": {
+    "red_then_green": true,
+    "targeted_count": 64,
+    "real_cli_and_live_ipc": true,
+    "failure_before_configuration_write": true
+  },
+  "deliverables": {
+    "D01": "passed",
+    "D02": "passed",
+    "D03": "passed",
+    "D04": "passed",
+    "D05": "passed",
+    "D06": "passed",
+    "D07": "passed",
+    "D08": "passed"
+  },
+  "restoration": {
+    "status": "passed",
+    "original_source_sha256": "866eb0acb8555faee7b183fea26f614b8dd02d421d469f71da0b6fddb5d6cb31",
+    "version": "0.1.10",
+    "schema": 6,
+    "normal_stop": true,
+    "original_config_and_plist_restored": true,
+    "database_restored": false,
+    "all_phone_rows_retained": true,
+    "single_verified_consumer": true,
+    "native_ready": true,
+    "business_tables_rowwise_verified": 12,
+    "unknown_results_preserved": 2,
+    "input_target_unbound": true,
+    "host_state": "ready"
+  }
+}

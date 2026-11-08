@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "workspace_root": "/absolute/path/to/projects",
+  "revision": 1,
+  "projects": [
+    {"alias": "sample-one", "root": "/absolute/path/to/projects/sample-one"},
+    {"alias": "sample-two", "root": "/absolute/path/to/projects/sample-two"}
+  ],
+  "operations": []
+}

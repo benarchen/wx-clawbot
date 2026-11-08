@@ -1,6 +1,7 @@
 """Fixed WeChat command grammar; ordinary text is never evaluated as shell."""
 
 import re
+import shlex
 from dataclasses import dataclass
 
 
@@ -24,6 +25,33 @@ class Command:
     text: str = ""
 
 
+def parse_project(value, *, local=False):
+    try:
+        args = shlex.split(value)
+    except ValueError:
+        raise CommandError("项目参数引号无效，请用 /project 查看列表。") from None
+    action = args.pop(0) if args else "list"
+    result = {"action": action}
+    if action in {"list", "check"}:
+        if action == "check" and len(args) == 2 and args[0] == "--request":
+            result["request"] = args[1]
+        elif args:
+            raise CommandError("用法：/project list 或 /project check。")
+    elif action == "remove":
+        if len(args) != 1:
+            raise CommandError("用法：/project remove <别名>。")
+        result["name"] = args[0]
+    elif action == "add":
+        if len(args) not in {1, 3} or len(args) == 3 and args[1] != "--alias":
+            raise CommandError("用法：/project add <目录名> [--alias <别名>]。")
+        result["name"] = args[0]
+        if len(args) == 3:
+            result["alias"] = args[2]
+    else:
+        raise CommandError("项目子命令：list、add、remove、check；初始化请在本机操作。")
+    return result
+
+
 def parse_command(value: str) -> Command:
     if not isinstance(value, str) or not value.strip() or len(value) > 32000 or "\0" in value:
         raise CommandError("消息须为非空文本，且不超过 32000 个字符。")
@@ -35,6 +63,9 @@ def parse_command(value: str) -> Command:
         raise CommandError("命令格式无效，请使用 /help。")
     name = ALIASES.get(match[1], match[1])
     argument = match[2] or ""
+    if name == "project":
+        parse_project(argument)
+        return Command(name, argument=argument)
     if name in NO_ARGUMENTS:
         if argument.strip():
             raise CommandError("该命令不接受参数。")

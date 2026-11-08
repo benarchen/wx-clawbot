@@ -4,6 +4,8 @@
 
 ## 核心产品需求
 
+PRJ01 是 P02／P03 的已验收候选扩展，离线、专用原生与本人手机闭环已完成，尚未正式发布：一层初始化与双端注册→[项目管理契约](project-management.md)→`config.py`／`project_registry.py`／`project_control.py`／运行生命周期→[文件与配置测试](../tests/test_project_registry.py)／[真实本地 IPC 与竞争测试](../tests/test_project_runtime.py)→[专用原生及阶段证据](validation/project-management.md)。原 P／V 编号不改，不能把原 W05 的通过用于宣称新项目管理已全部验收。
+
 测试列中的方法均来自现有源码，可在对应文件搜索；列举代表性失败路径，其他回归按测试指南选择。所有证据按其当时版本和前置解读，TGT02 的无读屏语义取代旧身份要求，但不倒改旧实测。
 
 | 需求 | 命令／旅程与技术设计 | 实现入口 | 现有离线测试及关键断言 | 动态／手机证据与范围 |

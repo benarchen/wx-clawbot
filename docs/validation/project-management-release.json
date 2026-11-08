@@ -1,0 +1,117 @@
+{
+  "status": "verified_ready_to_publish",
+  "version": "0.1.11",
+  "schema": 6,
+  "route_snapshot_version": 2,
+  "authorized": true,
+  "git_published": false,
+  "local_deployed": false,
+  "updated_at_beijing": "2026-11-09 07:45",
+  "source_sha256": "67e51343fbdba40a3272fefc3a3fb8cd4d23e93f2ce341fbf65fbf013c94be6e",
+  "wheel_sha256": "63444d5897a96adb7ef52413086c69fbf83f5d3f73542c10be37ba4a8bf4b29b",
+  "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+  "frozen_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 47.66916362500342
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.07745554199209437
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.18733200000133365
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.019591999996919185
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "unittest_count": 835,
+  "unittest_seconds": 46.367,
+  "accepted_candidate_comparison": {
+    "status": "passed",
+    "only_version_changed": true,
+    "changed_files": [
+      "__init__.py"
+    ],
+    "other_package_files_identical": 58,
+    "accepted_source_sha256": "feacc44d89069d67c0c0a37b359bde5e635acd680c567ecfbcca263c171722a9",
+    "release_source_sha256": "67e51343fbdba40a3272fefc3a3fb8cd4d23e93f2ce341fbf65fbf013c94be6e"
+  },
+  "privacy_audit": {
+    "status": "passed",
+    "public_files": 320,
+    "private_values_compared": 3240,
+    "private_matches": 0,
+    "reachable_objects": {
+      "blob": 999,
+      "tree": 417,
+      "commit": 61,
+      "tag": 9
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.11-py3-none-any.whl",
+        "sha256": "63444d5897a96adb7ef52413086c69fbf83f5d3f73542c10be37ba4a8bf4b29b"
+      },
+      {
+        "name": "wx_clawbot-0.1.11.tar.gz",
+        "sha256": "18e63d62be4bf25e6a46c7c989af04bb822908bf2100555f3fd830569fce6680"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "previous_release_changed_package_files": [
+      "__init__.py",
+      "cli.py",
+      "commands.py",
+      "config.py",
+      "controller.py",
+      "project_control.py",
+      "project_registry.py",
+      "routing.py",
+      "runtime_lifecycle.py",
+      "service.py"
+    ],
+    "unrelated_package_files_unchanged": true,
+    "production_configuration_preserved": true,
+    "deployment_phase": false,
+    "production_version": "0.1.10",
+    "production_schema": 6,
+    "host_native_ready": false
+  },
+  "preflight": {
+    "idle_counts": {
+      "active_tasks": 0,
+      "active_occupancy": 0,
+      "pending_replies": 0,
+      "sending_attempts": 0,
+      "active_interactions": 0,
+      "active_async_questions": 0
+    },
+    "host_state": "not_running",
+    "native_version": "0.167.0",
+    "verified_schema": true,
+    "child_render_parts": 5
+  },
+  "initial_build_failure": {
+    "cause": "sandbox PyPI DNS restriction",
+    "same_wheel_completed_with_normal_permissions": true
+  },
+  "actual_business_workspace_initialized": false
+}

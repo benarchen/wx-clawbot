@@ -1,12 +1,14 @@
 # wx-clawbot 开发契约与接口验证方案
 
-应用基线为 0.1.10，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
+应用基线为 0.1.11，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
 
 ## 1. 项目结构约定
 
 源码按真实职责放在 `src/wx_clawbot/`；模块表见架构 F03。`tests/test_*.py` 为离线测试，`tests/integration/` 为显式集成入口，不能把其中所有脚本一并自动执行。`tests/fixtures/` 只保存脱敏最小样本；`config/` 只放无身份模板。状态在私有目录，临时资料在被忽略的项目 `.tmp/`。无行为不建框架层，规范以 AGENTS 为源。
 
 ## 2. 模块边界
+
+PRJ01 候选新增注册服务与仅当前 UID 可访问的本地 IPC；桥接运行时 CLI 不直接改配置，停止时与消费者锁协调。持久配置／路由快照撤销修订／运行快照同步及 remove 与接收、派发竞争见[专题](project-management.md)。无需新增 SQLite schema；候选验收与正式发布／部署状态分别以 ROADMAP 为准。
 
 | 边界 | 输入／输出与契约 | 不允许的替代 |
 | --- | --- | --- |

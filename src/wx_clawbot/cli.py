@@ -90,6 +90,22 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="wx-clawbot")
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
+    project = commands.add_parser("project", help="管理已有目录的项目注册")
+    project_actions = project.add_subparsers(dest="project_action", required=True)
+    for action_name in ("init", "list", "add", "remove", "check"):
+        action = project_actions.add_parser(action_name)
+        action.add_argument("--state-dir", type=Path, default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
+        action.add_argument("--config", type=Path)
+        if action_name in {"add", "remove"}:
+            action.add_argument("name")
+        if action_name == "add":
+            action.add_argument("--alias", default="")
+        if action_name == "init":
+            action.add_argument("--root", required=True)
+            action.add_argument("--apply", action="store_true")
+            action.add_argument("--confirm", default="")
+        if action_name == "check":
+            action.add_argument("--request", default="")
     check = commands.add_parser("doctor", help="只读核对本机版本与项目配置")
     check.add_argument("--config", type=Path)
     check.add_argument("--iterm2", action="store_true", help="显式测试 iTerm2 API，可能触发脚本授权")
@@ -148,6 +164,21 @@ def main(argv: list[str] | None = None) -> int:
         action.add_argument("--state-dir", type=Path,
                             default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     args = parser.parse_args(argv)
+    if args.command == "project":
+        from .project_control import project_operation
+        from .project_registry import ProjectError
+        from .channels.http import ProtocolError
+        params = {name: getattr(args, name) for name in ("name", "alias", "apply", "confirm", "request") if hasattr(args, name)}
+        if args.project_action == "init":
+            params["root"] = args.root
+        try:
+            result = asyncio.run(project_operation(args.config or args.state_dir / "config.json",
+                                                  args.state_dir, args.project_action, **params))
+        except (ProjectError, ConfigError, ProtocolError, OSError) as exc:
+            print(json.dumps({"status": "failed", "message": str(exc)}, ensure_ascii=False))
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     if args.command in {"admission-report", "admission-release"}:
         from . import admission_ops
         try:
@@ -201,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             projects = load_projects(args.config)
             asyncio.run(serve(projects, args.state_dir, args.socket,
-                              args.codex_executable, args.codex_home, emit=emit))
+                              args.codex_executable, args.codex_home, emit=emit, config_path=args.config))
         except KeyboardInterrupt:
             emit({"status": "stopped", "native_terminals_preserved": True})
             return 130

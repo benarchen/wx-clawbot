@@ -1,6 +1,6 @@
 # wx-clawbot 当前架构
 
-本文描述应用 0.1.10 的实际结构；状态见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
+本文描述应用 0.1.11 的实际结构；状态见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
 
 图中实线是有标签的数据／调用关系，虚线是管理、来源或非运行依赖。模块图的节点是逻辑模块；部署图才表示进程边界。Mermaid 为唯一图形维护源，渲染检查见 [DOC01 报告](validation/documentation-restructure.md)。旧设计输入和反例保留固定提交及历史记录，不视为当前路径。
 
@@ -58,7 +58,7 @@ flowchart TB
 
 [查看独立 SVG](diagrams/architecture-F02.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-范围：正式运行。开发检出不进入生产导入路径；launchd 只托管本项目，Codex daemon／iTerm2 的生命周期由用户及其原生机制管理。
+范围：运行结构；其中 PRJ01 项目管理 IPC 已完成候选验收，尚未正式部署，状态见 ROADMAP。开发检出不进入生产导入路径；launchd 只托管本项目，Codex daemon／iTerm2 的生命周期由用户及其原生机制管理。
 
 ```mermaid
 flowchart TB
@@ -66,10 +66,14 @@ flowchart TB
   release["独立 release：wheel／lock／manifest／venv"] -.->|"冻结代码与解释器"| serve
   subgraph inside["serve 内部；不是独立服务"]
     loops["微信收发／命令／原生事件／恢复协程"]
+    registry["PRJ01 注册服务与私有 Unix IPC"]
     dbworker["SQLite 单写入工作线程"]
     httpworkers["有界 HTTPS 工作线程"]
   end
   serve --> loops
+  localcli["本人本机 project CLI"] <-->|"准确实例／同 UID／代次"| registry
+  loops <-->|"同一注册服务"| registry
+  registry <-->|"原子持久化／私有备份"| config["唯一私有项目清单 config.json"]
   loops --> dbworker
   loops --> httpworkers
   serve -->|"有界 CPU／超时回收"| helpers["临时渲染／图片／宿主探测子进程"]
@@ -93,6 +97,10 @@ flowchart TB
 ```mermaid
 flowchart TB
   life["service／runtime_lifecycle"] -->|"组合与代次管理"| ctrl["commands／routing／controller"]
+  local["本人本机 project CLI"] <-->|"私有 Unix IPC"| reg["PRJ01 project_control／project_registry"]
+  ctrl <-->|"本人项目子命令／串行 gate"| reg
+  reg -->|"同一修订更新路由／发现／重连"| life
+  reg <-->|"单份配置／备份／撤销修订"| cfg["config.json"]
   channel["channels：本人绑定与 HTTPS"] -->|"规范化 Inbox"| ctrl
   ctrl -->|"准确发现／选择"| cat["catalog／sessions／subscriptions"]
   cat <-->|"元数据／loaded／订阅"| adapter["agents：Codex 协议与原生队列"]
@@ -114,6 +122,7 @@ flowchart TB
 | --- | --- | --- |
 | 通道／媒体 | `channels/wechat.py`、`messages.py`、`media.py` | 不选择 thread，不执行项目工作 |
 | 固定命令／目录／路由 | `commands.py`、`config.py`、`routing.py`、`controller.py` | 不用模型猜目标，不向普通 Shell 注入任务 |
+| PRJ01 注册管理候选 | `project_registry.py`、`project_control.py` | 单份配置、准确实例、同 UID IPC；不执行 Shell，不创建业务目录，不绕过任务／占用保护 |
 | 发现／身份／订阅 | `catalog.py`、`sessions.py`、`subscriptions.py` | 不读页脚，不 resume notLoaded，不伪造宿主 |
 | 可见宿主 | `hosts/lifecycle.py`、`hosts/visible.py`、`launcher.py` | 自有启动意图至多一次，不清理用户资源 |
 | 原生适配 | `agents/codex.py`、`rpc.py`、`queue.py` | 校验实际 server 版本／socket，不另建运行时 |
@@ -137,6 +146,8 @@ flowchart TB
 | Outbox／尝试 | 最终结果和投递分离，冻结正文；HTTP 意图与结果持久化，未知不自动重试 |
 
 ## 5. 项目、目录与上下文
+
+PRJ01 已验收候选将“项目总目录的一层初始化扫描”与“已注册项目的准确会话发现”分开；list／check 不扫描注册候选或触发任务对账。双端变更持久化后安装同一运行快照，取消注册保留文件／历史但撤销旧选择资格；零项目及故障窗口见[项目管理设计](project-management.md)，不等于 Codex 规则热更新。
 
 项目文件留在原目录。`/cd` 对 realpath、权限和范围校验，失败保留原选择；合法目录没有受管会话时可见新建，不把旧 thread 原地改到另一项目。已有对象发现限定注册根和已知准确 cwd，不递归磁盘或抓取全部私人历史。
 

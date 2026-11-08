@@ -1,13 +1,14 @@
 """Keep WeChat alive while host and existing native connections recover."""
 
 import asyncio
+import hashlib
 from pathlib import Path
 
 from .agents.base import Capabilities
 from .agents.codex import CodexConnection
 from .agents.rpc import ConnectionLost
 from .catalog import SessionCatalog
-from .commands import CommandError
+from .commands import CommandError, parse_command, parse_project
 from .controller import Controller, RouteCommitFailed
 from .execution import Execution
 from .hosts.discovery import ItermDirectory
@@ -92,6 +93,7 @@ class BridgeRuntime:
         self.pending_restore = False
         self.host_generation = None
         self.transition = asyncio.Lock()
+        self.project_manager = None
 
     def offline_controller(self):
         catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), UnavailableNative())
@@ -99,10 +101,14 @@ class BridgeRuntime:
                                 self.executable, self.codex_home, host=self.host)
         controller.native_ready = False
         controller.engine = OfflineExecution(controller)
+        controller.project_manager = getattr(self, "project_manager", None)
         return controller
 
     async def initialize(self):
         snapshot = await self.state.load_routes()
+        if self.project_manager is not None:
+            from .project_registry import sanitize_routes
+            snapshot = sanitize_routes(snapshot, self.project_manager.store.config)
         if snapshot and isinstance(snapshot.get("cwd"), str):
             try:
                 project, cwd = self.controller.routes.resolve_cd(snapshot["cwd"])
@@ -114,7 +120,29 @@ class BridgeRuntime:
                 pass
 
     def prepare(self, message):
+        if not getattr(message, "content", ()) and not getattr(message, "error", None):
+            command = parse_command(message.text)
+            if command.name in {"project", "projects"} and self.project_manager is not None:
+                args = parse_project(command.argument) if command.name == "project" else {"action": "list"}
+                return self.project_command(message, args)
         return self.controller.prepare(message)
+
+    async def project_command(self, message, args):
+        from .project_registry import ProjectError, describe
+        from .config import ConfigError
+        action = args.pop("action")
+        if action in {"add", "remove"}:
+            args["request"] = "wx-prj-" + hashlib.sha256(message.message_id.encode()).hexdigest()[:32]
+        try:
+            async with asyncio.timeout(30):
+                result = await self.project_manager.execute(action, **args)
+            await self.reply(message, describe(result))
+        except (ProjectError, ConfigError) as exc:
+            await self.reply(message, str(exc), priority=0)
+        except (OSError, TimeoutError):
+            await self.reply(message, "项目变更未确认，请检查请求记录，不要自动重试。\n请求：" + args.get("request", "无"), priority=0)
+        finally:
+            await self.state.handled(message.message_id)
 
     async def reply(self, *args, **kwargs):
         await self.controller.reply(*args, **kwargs)
@@ -181,7 +209,7 @@ class BridgeRuntime:
             found_socket, found_executable = await asyncio.to_thread(discover_runtime, self.codex_home)
             socket, executable = socket or found_socket, executable or found_executable
         executable = executable.resolve(strict=True)
-        native_tui_command(executable, self.codex_home, self.projects[0].root)
+        native_tui_command(executable, self.codex_home, self.codex_home)
         native = await CodexConnection.connect(socket)
         if Path(native.server_info["codexHome"]).resolve(strict=True) != self.codex_home:
             await native.close()
@@ -198,17 +226,19 @@ class BridgeRuntime:
                 native, executable = await self.connect_native()
                 self.native_generation += 1
                 self.native_state = "ready"
-                await self.controller.retire()
-                catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), native)
-                controller = Controller(self.projects, catalog, self.state, self.starter,
-                                        executable, self.codex_home, host=self.host)
-                controller.native_generation = self.native_generation
-                engine = Execution(controller)
-                self.controller = controller
-                self.pending_restore = True
-                self.host_generation = None
-                controller.before_change = self.restore_host
-                await self.initialize()
+                async with self.transition:
+                    await self.controller.retire()
+                    catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), native)
+                    controller = Controller(self.projects, catalog, self.state, self.starter,
+                                            executable, self.codex_home, host=self.host)
+                    controller.native_generation = self.native_generation
+                    controller.project_manager = self.project_manager
+                    engine = Execution(controller)
+                    self.controller = controller
+                    self.pending_restore = True
+                    self.host_generation = None
+                    controller.before_change = self.restore_host
+                    await self.initialize()
                 await self.restore_host()  # Native targets do not wait for a host connection.
                 try:
                     await self.host.ensure()

@@ -17,6 +17,8 @@
 
 ## 默认离线检查
 
+PRJ01 专项入口为 `tests/test_project_registry.py`、`tests/test_project_runtime.py`，覆盖真实目录、配置原子写、真实子进程落盘后退出／启动锁、Unix socket 成功回执丢失／提前断开／资源上限、双端一致性、取消注册竞争和崩溃收敛；未处理回调异常也必须令用例失败。显式真实原生入口 `tests/integration/project_management_native.py` 的 prepare 不运行任务，run／cleanup 须有专用资源授权；两个临时项目／一个窗口／两个标签，无真实微信发送。逐 T／A 状态及手机范围见[PRJ01 清单](../goals/20261108-2048-project-management.md)。
+
 在项目根和项目 venv 执行：
 
 ```sh

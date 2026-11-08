@@ -18,7 +18,11 @@ from .output import render_segments, render_in_worker
 
 
 HELP = ("**项目与会话**\n\n"
-        "`/projects`：列出已注册项目及可用状态。\n\n"
+        "`/project`、`/project list`：列出已注册项目及可用状态。\n\n"
+        "`/project add <目录名> [--alias <别名>]`：注册总目录下的已有目录。\n\n"
+        "`/project remove <别名>`：取消注册，保留目录及历史。\n\n"
+        "`/project check [--request <请求 ID>]`：检查注册、目录或最近请求。\n\n"
+        "`/projects`：兼容项目列表查询。\n\n"
         "`/cd <别名或目录>`：复用或新建受管会话并选中。\n\n"
         "`/new [标题]`：在当前目录新建并选中可见会话。\n\n"
         "`/sessions [关键词]`（`/ss`）：查询会话，保留输入目标和观察。\n\n"
@@ -77,6 +81,8 @@ class Controller:
         self.retired = False
         self.recovery_requested = asyncio.Event()
         self.rollback_timeout = 2
+        self.project_manager = None
+        self.project_reservations = {}
 
     def prepare(self, message):
         """Run at receive order, before any task awaits a network operation."""
@@ -113,8 +119,14 @@ class Controller:
             destination = (self.routes.project, self.routes.cwd)
         if command.name in SELECTIONS | {"attach", "detach"}:
             self.selection_pending += 1
+        project = (dispatch.target.project_alias if dispatch else target.project_alias if target else
+                   destination[0].alias if destination else None)
+        token = object()
+        if project is not None:
+            self.project_reservations[token] = project
         return self.execute(message, command, revision, target, dispatch, destination,
-                            generation=self.native_generation)
+                            generation=self.native_generation, project_token=token,
+                            project_revision=self.project_manager.revision if self.project_manager else None)
 
     async def reply(self, message, text, *, priority=2, suffix=""):
         key = hashlib.sha256(message.message_id.encode()).hexdigest()[:32]
@@ -131,7 +143,26 @@ class Controller:
                 if not self.retired or suffix:
                     raise
 
-    async def execute(self, message, command, revision, target, dispatch, destination, *, generation=None):
+    async def execute(self, message, command, revision, target, dispatch, destination, *, generation=None,
+                      project_token=None, project_revision=None):
+        try:
+            manager = self.project_manager
+            if manager is not None and command.name not in {"help", "projects", "status", "stop", "approve", "deny", "answer"}:
+                async with manager.gate:
+                    if manager.failed or manager.revision != project_revision:
+                        try:
+                            await self.reply(message, "项目注册清单已变化或尚未收敛；请刷新会话，本条操作未执行。", priority=0)
+                            await self.state.handled(message.message_id)
+                        finally:
+                            if command.name in SELECTIONS | {"attach", "detach"}:
+                                self.selection_pending -= 1
+                        return
+                    return await self._execute(message, command, revision, target, dispatch, destination, generation=generation)
+            return await self._execute(message, command, revision, target, dispatch, destination, generation=generation)
+        finally:
+            self.project_reservations.pop(project_token, None)
+
+    async def _execute(self, message, command, revision, target, dispatch, destination, *, generation=None):
         operation = asyncio.current_task()
         dynamic = command.name not in {"help", "projects", "status"}
         if dynamic:
@@ -358,7 +389,8 @@ class Controller:
             if session is None or session.target != target:
                 raise RouteCommitFailed("Durable selection has no verified identity record")
             return target_record(session)
-        return {"version": 2, "revision": routes.revision, "mode": routes.mode,
+        return {**({"registry_revision": self.project_manager.store.config.revision} if self.project_manager else {}),
+                "version": 2, "revision": routes.revision, "mode": routes.mode,
                 "project": routes.project.alias if routes.project else None,
                 "cwd": str(routes.cwd) if routes.cwd else None,
                 "target": encode(routes.target), "observer": encode(routes.observer),
@@ -380,6 +412,9 @@ class Controller:
 
     async def restore(self):
         snapshot = await self.state.load_routes()
+        if self.project_manager is not None:
+            from .project_registry import sanitize_routes
+            snapshot = sanitize_routes(snapshot, self.project_manager.store.config)
         if snapshot is None:
             return
         if (type(snapshot.get("version")) is not int or snapshot["version"] not in {1, 2}

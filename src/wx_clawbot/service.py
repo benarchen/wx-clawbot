@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 from .channels.http import TransportError, WeixinHttp
-from .channels.private import load_credentials, private_directory
+from .channels.private import load_credentials, private_directory, private_lease
 from .channels.wechat import WechatApi
 from .commands import CommandError, parse_command
 from .delivery import Sender
@@ -75,7 +75,7 @@ async def poll(controller, api, *, emit=None):
                     name = parse_command(message.text).name if not getattr(message, "content", ()) else "message"
                 except CommandError:
                     name = "invalid"
-                static = name in {"help", "projects", "status"}
+                static = name in {"help", "projects", "status"} or name == "project" and parse_command(message.text).argument.strip() in {"", "list", "check"}
                 urgent = name in {"stop", "approve", "deny", "answer"}
                 if not static and len(jobs) >= (40 if urgent else 32):
                     await controller.reply(message, "当前待处理命令已达上限，本条操作未接收，请稍后重试。", priority=0)
@@ -101,15 +101,20 @@ async def poll(controller, api, *, emit=None):
         await asyncio.gather(*jobs, return_exceptions=True)
 
 
-async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex_home: Path, *, emit=None):
-    host = state = http = instance = None
+async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex_home: Path, *, emit=None, config_path=None):
+    host = state = http = instance = project_server = None
     stage = "state"
     try:
         root = private_directory(state_dir.expanduser().absolute())
         credentials = load_credentials(root / "credentials.json")
         codex_home = codex_home.resolve(strict=True)
-        state = await RuntimeState.open(root / "runtime.sqlite3", credentials)
-        instance = ForegroundInstance(root)
+        with private_lease(root / "project-edit.lock"):
+            state = await RuntimeState.open(root / "runtime.sqlite3", credentials)
+            instance = ForegroundInstance(root)
+            if config_path is not None:
+                from .project_registry import ProjectStore
+                project_store = ProjectStore(config_path, root)
+                projects = project_store.config.projects
         host = HostLifecycle()
         starter = VisibleStarter(LaunchRegistry(root / "launches"), ItermWindowStarter(lifecycle=host))
         last_health = None
@@ -126,6 +131,12 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
                 emit(report)
 
         runtime = BridgeRuntime(projects, state, starter, host, socket, executable, codex_home, emit=runtime_emit)
+        if config_path is not None:
+            from .project_registry import ProjectManager
+            from .project_control import ProjectServer
+            runtime.project_manager = ProjectManager(project_store, runtime)
+            project_server = ProjectServer(runtime.project_manager, instance)
+            await project_server.start()
         await runtime.initialize()
         runtime_emit({"status": "capabilities", **runtime.report()})
         http = WeixinHttp()
@@ -140,6 +151,8 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
                 tasks.create_task(component_task("agent", runtime.run()))
                 tasks.create_task(component_task("host", runtime.watch_host()))
                 tasks.create_task(component_task("lifecycle", instance.watch_stop()))
+                if runtime.project_manager is not None:
+                    tasks.create_task(component_task("project_registry", runtime.project_manager.watch_failure()))
         except* StopRequested:
             pass
     except (ComponentError, ExceptionGroup, UpgradeRequired):
@@ -147,6 +160,8 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
     except Exception as exc:
         raise ComponentError(stage, exc) from None
     finally:
+        if project_server:
+            await project_server.close()
         if http:
             await http.close()
         if state:
