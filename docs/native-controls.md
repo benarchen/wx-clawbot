@@ -1,6 +1,6 @@
 # Codex 原生命令适配：NCM01
 
-状态：统一命令及展示优化纳入 0.1.12，已完成 0.169.0 的专用原生／本人微信验收，测试设置恢复、自有终端清理和去重制品实际加载／数据保护均已核验。Git 交付见[发布记录](validation/native-controls-release.md)；本轮不切换本机临时兼容候选。范围以[施工清单](../goals/20261109-2349-native-control-commands.md)为准，最终证据见[验收记录](validation/codex-0169.md)，项目进度见 [ROADMAP](../ROADMAP.md)。
+状态：统一命令及展示优化纳入 0.1.12，已完成 0.169.0 的专用原生／本人微信验收，测试设置恢复、自有终端清理和去重制品实际加载／数据保护均已核验。Git 交付见[发布记录](validation/native-controls-release.md)；后续已按本人授权切换至 0.1.12 正式独立制品，实际加载与保护结果见发布记录。范围以[施工清单](../goals/20261109-2349-native-control-commands.md)为准，最终证据见[验收记录](validation/codex-0169.md)，项目进度见 [ROADMAP](../ROADMAP.md)。
 
 ## 微信入口与范围
 
@@ -32,6 +32,8 @@
 匹配 0.167.0 schema 的模型目录包含推理选项、defaultReasoningEffort、serviceTiers、defaultServiceTier；目录最多 10 页／1000 项／2 MiB，循环／重复或超限明确失败。每个名称和 ID 均有边界；只作为运行时提供候选，不保证账号实际推理访问。Fast 识别以目录中的 Fast 名称及该条目的原生 id 为准，未知／歧义不猜测。
 
 当前设置的完整快照来源是原有 loaded-only 订阅路径：请求前后核验准确 loaded 对象，以没有任何设置覆盖参数的 thread/resume 响应读取有效 model／reasoningEffort／serviceTier，不从全局 config、历史 turn、标题／页脚猜。只对同一连接已核验的 route 订阅读取；首次合法订阅和之后的快照读取均不得加载 notLoaded 存档。模型／推理在前后读取间变化应拒绝本次快照。0.167.0 双临时项目实测确认快照可随设置变化且不修改全局配置；同一候选已补充即时 TUI 观察，具体差异见下段，不能扩写为桌面显示一致性已通过。
+
+读取边界复核：前后 loaded 检查不是服务端条件式 resume。0.169.0 专用原生已验证：订阅保持时关闭 TUI 仍 loaded；另一连接归档会卸载会话，但即使归档发生在 loaded 检查与 resume 之间，原生仍明确拒绝 resume 已归档对象，随后独立核验没有重新加载。此两条真实路径未复现存档恢复，现有控制逻辑保持；离线回归覆盖读取途中卸载拒绝和归档错误不自动 unarchive／重试。结论限本次版本与关闭／归档路径，不推广到所有卸载机制或未来版本，详见[原生验证](validation/native-settings-lifecycle.md)。此前已接受的设置写入竞争边界与此读取验证分别保留。
 
 同一候选 Controller 实测后，A 的即时屏幕采样仍显示原模型，准确原生 turn_context 已采用微信命令程序设置的新模型／推理。该次只采样一次，未证明之后是否自动刷新；桌面标签不能作为当前设置或会话身份权威，也不强制重绘 TUI。后续查询以原生新快照为准，桌面客户端另行操作仍可能改变同一 thread 的设置；本人手机验收中的专用 TUI 手动标记已有准确 turn_context 后续采用证据。
 
@@ -65,4 +67,4 @@ RPC 前提交 intent；同一消息命中任何既有记录均不再发送。con
 
 ## 0.169.0 衔接候选
 
-实际 daemon 已确认为 0.169.0，准确 managed schema 和 43 份相关契约已对照；模型目录使用原 thread provider，不切换 provider。设置和环境管理保持边界，environments 不发送；0.169.0 图片输入及异步问题专项仍关闭。专用原生和本人手机已通过各自功能范围，0.1.12 源码与本机临时运行分开，逐阶段见 [衔接记录](validation/codex-0169.md)。
+实际 daemon 已确认为 0.169.0，准确 managed schema 和 43 份相关契约已对照；模型目录使用原 thread provider，不切换 provider。设置和环境管理保持边界，environments 不发送；0.169.0 图片输入及异步问题专项仍关闭。专用原生和本人手机已通过各自功能范围，0.1.12 正式制品已本机加载，逐阶段验收与原临时运行记录见 [衔接记录](validation/codex-0169.md)。

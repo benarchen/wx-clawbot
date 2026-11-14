@@ -1,12 +1,12 @@
 {
-  "status": "git_published_runtime_unchanged",
+  "status": "git_published_and_locally_deployed",
   "version": "0.1.12",
   "schema": 6,
   "route_snapshot_version": 2,
   "authorized": true,
   "git_published": true,
-  "local_deployed": false,
-  "updated_at_beijing": "2026-11-14 14:24",
+  "local_deployed": true,
+  "updated_at_beijing": "2026-11-14 15:51",
   "base_commit": "e2f9d69c715dae1b7e549bea0d889663a7e5e6ad",
   "accepted_candidate": {
     "version": "0.1.11_internal_unpublished_candidate",
@@ -23,9 +23,6 @@
     "fast_proves_setting_only": true,
     "desktop_atomic_protection_promised": false
   },
-  "production_switches": 0,
-  "wechat_sends": 0,
-  "native_submissions": 0,
   "source_sha256": "3dc042e197eea534603717bb6c97a2629570136a55fd53479f61fc769c1c6460",
   "wheel_sha256": "a7231f20f1329cbfe0d039c516015202f8cf3533f3c5a3a9098b121ddd2f2418",
   "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
@@ -107,7 +104,8 @@
     "production_configuration_preserved": true,
     "local_deployed": false,
     "running_version": "0.1.11",
-    "running_source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369"
+    "running_source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+    "scope": "Git publication preflight, before subsequent authorized deployment; historical running-version fields preserved"
   },
   "manifest_verified": true,
   "diagram": {
@@ -153,5 +151,142 @@
     "force_push": false,
     "github_release_created": false,
     "result_documents": "Archived in a subsequent ordinary commit on dev and fast-forwarded main; version tag stays fixed."
+  },
+  "deployment": {
+    "authorized_after_git_publication": true,
+    "verified_at_beijing": "2026-11-14 15:51",
+    "status": "deployed_verified",
+    "version": "0.1.12",
+    "schema": 6,
+    "route_snapshot_version": 2,
+    "source_sha256": "3dc042e197eea534603717bb6c97a2629570136a55fd53479f61fc769c1c6460",
+    "wheel_sha256": "a7231f20f1329cbfe0d039c516015202f8cf3533f3c5a3a9098b121ddd2f2418",
+    "seconds_to_ready": 16.641,
+    "normal_stop": true,
+    "old_exit_code": 0,
+    "backup_integrity_and_foreign_keys": "passed",
+    "backup_tables": 13,
+    "single_consumer_verified": true,
+    "actual_argv_cwd_manifest_verified": true,
+    "child_render_verified": true,
+    "old_rows_and_frozen_receipts_preserved": true,
+    "exact_old_business_tables": 9,
+    "historical_unknown_preserved": 2,
+    "control_records_preserved": 11,
+    "config_credentials_global_config_preserved": true,
+    "registered_projects": 12,
+    "selected_target_observer_preserved": true,
+    "route_identity_independently_verified": true,
+    "host_ready": true,
+    "native_ready": true,
+    "original_native_processes_preserved": true,
+    "changed_plist_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "schema_migration": false,
+    "database_restore": false,
+    "automatic_test_messages": 0,
+    "native_submissions": 0,
+    "watcher_will_exit": true,
+    "prior_attempt": {
+      "outcome": "original_compatible_release_restored",
+      "reason": "maintenance check required host ready immediately after native-only wait",
+      "fix": "bounded wait requires both host and native ready; original checks retained",
+      "product_code_changed": false
+    }
+  },
+  "deployment_documentation": {
+    "status": "synchronized",
+    "git_commit_or_push_in_this_switch": false
+  },
+  "actions_by_phase": {
+    "git_publication": {
+      "production_switches": 0,
+      "wechat_sends": 0,
+      "native_submissions": 0
+    },
+    "local_deployment": {
+      "scope": "Post-publication 0.1.12 deployment only; earlier NCM01 candidate switches excluded",
+      "attempts": 2,
+      "verified_successful_deployments": 1,
+      "rollbacks_to_previous_release": 1,
+      "automatic_test_messages": 0,
+      "native_submissions": 0
+    }
+  },
+  "maintenance_followup": {
+    "updated_at_beijing": "2026-11-14 21:44",
+    "status": "validated_pending_git_delivery",
+    "fixed": [
+      "phase_scoped_deployment_counts",
+      "historical_acceptance_wording",
+      "editable_metadata_version",
+      "unreachable_project_list_condition"
+    ],
+    "development_distribution_version": "0.1.12",
+    "product_release_or_service_switch_performed": false,
+    "settings_unload_race": {
+      "status": "verified_on_0.169.0_close_and_archive_paths",
+      "offline_loss_observation_regression_added": true,
+      "server_atomic_protection_proven": false,
+      "record": "native-settings-lifecycle.json",
+      "restoration_side_effect_observed": false
+    },
+    "verification": {
+      "unittest_count": 933,
+      "unittest_seconds": 47.271,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "required_checks": {
+        "status": "passed",
+        "checks": [
+          {
+            "check": "unittest",
+            "exit_code": 0,
+            "seconds": 47.57306258400058
+          },
+          {
+            "check": "compile",
+            "exit_code": 0,
+            "seconds": 0.09046099999977741
+          },
+          {
+            "check": "dependencies",
+            "exit_code": 0,
+            "seconds": 0.1437497919996531
+          },
+          {
+            "check": "diff",
+            "exit_code": 0,
+            "seconds": 0.011866040999848337
+          },
+          {
+            "check": "documents",
+            "exit_code": 0
+          }
+        ],
+        "wechat_sends": 0,
+        "native_submissions": 0,
+        "production_writes": 0
+      },
+      "development_source_version": "0.1.12",
+      "development_distribution_version": "0.1.12",
+      "deployment_counter_consistency": "passed",
+      "historical_evidence_and_heading_anchors_preserved": true,
+      "existing_11_modified_files_retained": true,
+      "running_package_integrity": "passed",
+      "only_workspace_package_change": [
+        "project_registry.py"
+      ],
+      "git_commit_or_push": false,
+      "followup_full_tests": {
+        "count": 934,
+        "seconds": 47.46,
+        "status": "passed"
+      },
+      "scope": "Residual workspace validation before subsequent authorized Git delivery"
+    }
   }
 }

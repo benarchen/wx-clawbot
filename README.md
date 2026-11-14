@@ -2,7 +2,7 @@
 
 通过本人微信选择本机多个注册项目中的准确 Codex 原生会话，提交任务、接收结果并处理交互。iTerm2 用于可见创建和桌面操作；微信选择独立于电脑当前画面，首次接入无需状态栏或终端标题显示 Session ID。
 
-当前源码版本 `0.1.12`，运行账本 schema 6，路由快照 version 2。本轮 Git 交付见[0.1.12 记录](docs/validation/native-controls-release.md)，唯一进度源见 [ROADMAP](ROADMAP.md)。本轮不切换本机服务；现有临时兼容候选与正式源码版本分开记录。
+当前源码版本 `0.1.12`，运行账本 schema 6，路由快照 version 2。本轮 Git 交付见[0.1.12 记录](docs/validation/native-controls-release.md)，唯一进度源见 [ROADMAP](ROADMAP.md)。本机已加载已发布的 `0.1.12` 正式独立制品；后续工作区修正与交付状态见 ROADMAP，实际来源和旧数据保护见发布记录。
 
 ## 能力与前提
 

@@ -252,8 +252,8 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await connection.close()
 
-    async def settings_connection(self):
-        self.server_version = '0.167.0'
+    async def settings_connection(self, version='0.167.0'):
+        self.server_version = version
         self.resume_settings = {'cwd': self.thread['cwd'], 'model': self.thread['model'],
                                 'modelProvider': self.thread['modelProvider'],
                                 'reasoningEffort': 'high', 'serviceTier': None}
@@ -275,6 +275,41 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError,'not loaded'):
             await connection.read_settings('fixture-thread', Path(self.thread['cwd']))
         self.assertNotIn('thread/resume',self.methods)
+
+    async def test_settings_snapshot_rejects_membership_lost_after_resume_without_retry(self):
+        from unittest.mock import patch
+        for version in ('0.167.0', '0.169.0'):
+            with self.subTest(version=version):
+                self.loaded_page = {'data': ['fixture-thread'], 'nextCursor': None}
+                connection = await self.settings_connection(version)
+                request = connection.rpc.request
+                async def lose_membership(method, params, **kwargs):
+                    result = await request(method, params, **kwargs)
+                    if method == 'thread/resume':
+                        self.loaded_page = {'data': [], 'nextCursor': None}
+                    return result
+                start = len(self.requests)
+                with patch.object(connection.rpc, 'request', side_effect=lose_membership):
+                    with self.assertRaisesRegex(ValueError, 'unloaded during settings read'):
+                        await connection.read_settings('fixture-thread', Path(self.thread['cwd']))
+                methods = [row['method'] for row in self.requests[start:]]
+                self.assertEqual(methods.count('thread/resume'), 1)
+                self.assertNotIn('thread/start', methods)
+                self.assertNotIn('thread/settings/update', methods)
+                await connection.close()
+
+    async def test_settings_snapshot_archive_rejection_never_unarchives_or_retries(self):
+        from wx_clawbot.agents.rpc import RpcError
+        connection = await self.settings_connection('0.169.0')
+        self.resume_error = {'code': -32000, 'message': 'fixture session is archived; explicit unarchive required'}
+        start = len(self.requests)
+        with self.assertRaises(RpcError) as error:
+            await connection.read_settings('fixture-thread', Path(self.thread['cwd']))
+        self.assertEqual(error.exception.code, -32000)
+        methods = [row['method'] for row in self.requests[start:]]
+        self.assertEqual(methods.count('thread/resume'), 1)
+        for forbidden in ('thread/unarchive', 'thread/start', 'thread/settings/update'):
+            self.assertNotIn(forbidden, methods)
 
     async def test_settings_snapshot_rejects_other_provider_or_effective_directory(self):
         connection = await self.settings_connection()

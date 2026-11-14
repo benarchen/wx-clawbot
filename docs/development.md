@@ -18,6 +18,13 @@ python3.14 -m venv .venv
 
 editable 仅用于开发；正式制品不依赖开发路径。构建后端精确版本为 setuptools 80.9.0；需要构建时在项目 venv 安装，不全局安装。不要只改版本范围或绕过哈希锁解决兼容问题。环境无法联网时保留安装未验证，不能用已有包冒充重建。
 
+修改项目版本后，在开发 venv 重新执行 editable 安装以刷新生成的包元数据，不手工编辑 `src/wx_clawbot.egg-info/`。已安装上述固定构建后端时，可离线刷新并核对源码版本与安装版本：
+
+```sh
+.venv/bin/python -m pip install --no-deps --no-build-isolation -e .
+.venv/bin/python -c 'from importlib.metadata import version; from wx_clawbot import __version__; assert version("wx-clawbot") == __version__; print(__version__)'
+```
+
 离线单元／文档检查不要求登录微信或启动原生任务。真实宿主／Codex 测试另需已核验版本、本人授权和专用资源；不为跑普通检查打开用户应用。
 
 ## 目录与阅读地图

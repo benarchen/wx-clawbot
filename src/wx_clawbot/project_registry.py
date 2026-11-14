@@ -369,14 +369,13 @@ def describe(result):
         return "初始化预览（未写入）：\n" + json.dumps(result, ensure_ascii=False)
     if action == "list":
         return project_list(result)
-    if action in {"list", "check"}:
+    if action == "check":
         rows = result["projects"]
         text = "已注册项目：\n" + ("\n\n".join(
             f"{r['alias']}：{'可用' if r['available'] else '不可访问'}\n{r['root']}" for r in rows) or "暂无已注册项目。")
-        if action == "check":
-            text += "\n\n检查：" + ("\n".join(result["problems"]) or "注册清单与目录检查通过。")
-            if "request" in result:
-                text += "\n请求记录：" + json.dumps(result["request"], ensure_ascii=False)
+        text += "\n\n检查：" + ("\n".join(result["problems"]) or "注册清单与目录检查通过。")
+        if "request" in result:
+            text += "\n请求记录：" + json.dumps(result["request"], ensure_ascii=False)
         return text
     label = {"committed": "项目注册变更已生效", "already_committed": "该项目请求已提交，请核对当前清单",
              "already_registered": "项目已注册，未重复修改", "not_registered": "项目未注册，未修改"}[status]

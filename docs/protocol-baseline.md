@@ -25,6 +25,8 @@
 
 账号额度从同运行时 account/rateLimits/read 取得主次窗口和多桶，只请求 excludeResetCreditDetails=true，不传 Reserve 能力、不切账号或刷新认证；两版只读与本人手机额度实收均有证据。默认 status 按本人要求隐藏内部 token 统计，保留账号范围、未知值与北京时间查询时点；展示优化的同包检查、窄屏渲染及本人微信实收均已完成，分层证据见[专题](native-controls.md)及[0.169.0 记录](validation/codex-0169.md)。
 
+0.169.0 设置读取的生命周期另有[真实验证](validation/native-settings-lifecycle.md)：订阅保持时关闭 TUI 仍 loaded；跨连接归档会卸载，但检查与 resume 之间发生归档时原生明确拒绝恢复。结论仅限已测路径，不扩写成所有版本或所有卸载方式的原子保护。
+
 ## 版本与重建
 
 采用 daemon 实际报告的匹配原生可执行文件生成 `app-server generate-json-schema --experimental`，核对全部桥接所用方法和嵌入类型；稳定版另核，原生队列仍是实验接口。生成文件原始摘要与最小字段保存在 fixture／逐版本 JSON，不能把当前网络文档替代版本匹配证据。

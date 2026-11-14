@@ -1,0 +1,157 @@
+{
+  "status": "verified_on_native_0.169.0",
+  "verified_at_beijing": "2026-11-14 21:44",
+  "server_version": "0.169.0",
+  "candidate": {
+    "metadata_version": "0.1.12",
+    "source_sha256": "4790db28a961091211b29441b4bc70418a77fd38434204e5072c62ca1573e1b0",
+    "wheel_sha256": "a73b28b3ba84f7a64b1d55bac101eadcebbb720798a3e90b31708d482632d7a7",
+    "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+    "formal_release": false,
+    "deployed_to_daily_service": false
+  },
+  "checks": {
+    "subscriptions_retain_both_loaded": true,
+    "closed_tui_settings_read": true,
+    "already_unloaded_read_refused": true,
+    "archive_a": "ack_and_membership_checked",
+    "archive_a_loaded": false,
+    "interleaved_read": "refused",
+    "archive_b": "ack_and_membership_checked",
+    "archive_b_loaded": false,
+    "after_read_b_loaded": false,
+    "restoration_side_effect": false,
+    "protected_configuration_preserved": true,
+    "owned_terminals_closed": true
+  },
+  "independent_verification": {
+    "status": "passed",
+    "server_version": "0.169.0",
+    "fixtures": [
+      {
+        "fixture": "a",
+        "startup_turns": 1,
+        "completed": true,
+        "extra_inputs": 0,
+        "terminal_absent": true,
+        "native_unloaded": true
+      },
+      {
+        "fixture": "b",
+        "startup_turns": 1,
+        "completed": true,
+        "extra_inputs": 0,
+        "terminal_absent": true,
+        "native_unloaded": true
+      }
+    ],
+    "archive_intents": 2,
+    "archive_acks": 2,
+    "server_archive_refusal_observed": true,
+    "read_did_not_reload_archived_thread": true
+  },
+  "scope": {
+    "tested_paths": [
+      "owned TUI close with retained subscription",
+      "independent-client archive before settings read",
+      "independent-client archive between loaded check and resume"
+    ],
+    "unproven": [
+      "all other native unload mechanisms",
+      "same lifecycle behavior on earlier or future daemon versions",
+      "server-side conditional resume atomicity"
+    ]
+  },
+  "native_startup_turns": 2,
+  "additional_native_inputs": 0,
+  "archive_requests": 2,
+  "unarchive_requests": 0,
+  "settings_update_requests": 0,
+  "wechat_sends": 0,
+  "production_writes": 0,
+  "first_guard_failure_preserved": true,
+  "owned_terminals_closed": true,
+  "all_test_threads_unloaded_after_cleanup": true,
+  "full_tests": {
+    "count": 934,
+    "seconds": 47.46,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "required_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 48.41738370799885
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.08008724999854167
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.20730737499980023
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.012012875000436907
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "cleanup": {
+    "status": "completed",
+    "removed_environment_count": 32,
+    "freed_mib": 1999.9,
+    "before_mib": 3041.3,
+    "after_mib": 1041.4,
+    "retained_original_copy_inputs": 5,
+    "wheels_locks_manifests_and_sdists_retained": true,
+    "raw_native_evidence_backups_and_logs_retained": true,
+    "production_releases_untouched": true
+  },
+  "git_delivery": {
+    "status": "prepared",
+    "base_commit": "125db56d89cb3e15ef021a3c732e0a153ca8a933",
+    "new_version_tag": false,
+    "daily_service_changed": false
+  },
+  "public_content_audit": {
+    "status": "passed",
+    "public_files": 344,
+    "private_values_compared": 3633,
+    "private_matches": 0,
+    "reachable_objects": {
+      "blob": 1125,
+      "tree": 446,
+      "commit": 65,
+      "tag": 11
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.12-py3-none-any.whl",
+        "sha256": "a73b28b3ba84f7a64b1d55bac101eadcebbb720798a3e90b31708d482632d7a7"
+      },
+      {
+        "name": "wx_clawbot-0.1.12.tar.gz",
+        "sha256": "d758a230a688ca31cc73f6da234b8c3cc7aabb4b92fac287fbb106f856ada8ae"
+      }
+    ],
+    "workspace_matches_tested_frozen_package": true,
+    "production_version": "0.1.12",
+    "production_package_unchanged": true,
+    "config_protection": true
+  }
+}

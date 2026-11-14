@@ -23,6 +23,8 @@ PRJ01 专项入口为 `tests/test_project_registry.py`、`tests/test_project_run
 
 NCM01 的 `tests/test_native_controls.py`、连接／控制器专项核语法、准确 route、loaded-only 查询与用量；`test_native_control_writes.py` 核联合模型／推理及单字段 Fast 设置、早到／缺失／冲突通知、忙碌与未知，`test_control_journal.py` 核持久化／权限／容量，`test_native_control_process.py` 用真实合成 Unix socket 和崩溃子进程证明最多一次写入。历史单字段 903 项及原生结果保留原范围；现行联合命令／展示去重候选已通过同包 932 项，0.169.0 专用原生和本人手机功能关卡另有准确设置／turn／清理证据。驱动空闲轮询缺陷已复现修正，恢复只读对账不重放；离线不能替代手机实收，逐项验收与历史展示缺口见[验证记录](validation/native-controls.md)。
 
+后续读取边界回归：`test_settings_snapshot_rejects_membership_lost_after_resume_without_retry` 覆盖 0.167.0／0.169.0 在读取途中观察到 unloaded 的拒绝、一次 resume 上限及不发送 start／settings update。另有 `test_settings_snapshot_archive_rejection_never_unarchives_or_retries` 核对原生归档拒绝的传播及不自动恢复。0.169.0 持续订阅、关闭 TUI、另一连接归档以及 loaded／resume 间归档的真实结果见[专用验证](validation/native-settings-lifecycle.md)；这些用例不证明所有版本／卸载方式的服务端原子保护。
+
 `tests/integration/native_controls_probe.py prepare` 只建专用夹具；`bridge-run` 使用 `native_control_bridge.py`，通过实际 Controller／Execution／RuntimeState 接入真实原生，全部微信输入为本机合成，本人客户端不被操作。新一轮 run／bridge-run／cleanup 须取得具体授权；`test_native_controls_probe.py` 验证重复执行、换代与精确 sleep 包装保护。候选原生／手机层级和具体操作卡见[阶段记录](validation/native-controls.md)。
 
 在项目根和项目 venv 执行：
