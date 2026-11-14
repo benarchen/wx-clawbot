@@ -216,8 +216,8 @@
     }
   },
   "maintenance_followup": {
-    "updated_at_beijing": "2026-11-14 21:44",
-    "status": "validated_pending_git_delivery",
+    "updated_at_beijing": "2026-11-14 21:48",
+    "status": "git_delivered_not_deployed",
     "fixed": [
       "phase_scoped_deployment_counts",
       "historical_acceptance_wording",
@@ -287,6 +287,7 @@
         "status": "passed"
       },
       "scope": "Residual workspace validation before subsequent authorized Git delivery"
-    }
+    },
+    "git_delivery_record": "native-settings-lifecycle.json"
   }
 }

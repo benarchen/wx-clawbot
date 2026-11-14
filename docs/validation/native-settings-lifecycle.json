@@ -123,10 +123,21 @@
     "production_releases_untouched": true
   },
   "git_delivery": {
-    "status": "prepared",
+    "status": "published_and_remote_verified",
     "base_commit": "125db56d89cb3e15ef021a3c732e0a153ca8a933",
     "new_version_tag": false,
-    "daily_service_changed": false
+    "daily_service_changed": false,
+    "commit": "97a8f7ee82a6d8764b5e0ab4c5c430e83110a180",
+    "remote_refs": {
+      "refs/heads/dev": "97a8f7ee82a6d8764b5e0ab4c5c430e83110a180",
+      "refs/heads/main": "97a8f7ee82a6d8764b5e0ab4c5c430e83110a180",
+      "refs/tags/v0.1.12": "d03e50407913dcde4c9f757726f5909efd8e0466",
+      "refs/tags/v0.1.12^{}": "69685918adaae4b6b20dd023eb028a3e1b8effa0"
+    },
+    "verified_at_beijing": "2026-11-14 21:48",
+    "merge": "fast_forward",
+    "push": "atomic",
+    "result_documents": "Archived in a subsequent ordinary documentation commit; version tag unchanged"
   },
   "public_content_audit": {
     "status": "passed",
