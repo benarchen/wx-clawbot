@@ -1,6 +1,6 @@
 # Codex 原生命令适配：NCM01
 
-状态：统一命令及展示优化纳入 0.1.12，已完成 0.169.0 的专用原生／本人微信验收，测试设置恢复、自有终端清理和去重制品实际加载／数据保护均已核验。Git 交付见[发布记录](validation/native-controls-release.md)；后续已按本人授权切换至 0.1.12 正式独立制品，实际加载与保护结果见发布记录。范围以[施工清单](../goals/20261109-2349-native-control-commands.md)为准，最终证据见[验收记录](validation/codex-0169.md)，项目进度见 [ROADMAP](../ROADMAP.md)。
+状态：统一命令及展示优化纳入 0.1.12，已完成 0.169.0 的专用原生／本人微信验收，测试设置恢复、自有终端清理和去重制品实际加载／数据保护均已核验。Git 交付见[发布记录](validation/native-controls-release.md)；后续已按本人授权先加载 0.1.12 正式独立制品，再切换同版本元数据的维护制品；最新实际摘要与保护结果见[维护部署记录](validation/maintenance-deployment.md)。范围以[施工清单](../goals/20261109-2349-native-control-commands.md)为准，最终证据见[验收记录](validation/codex-0169.md)，项目进度见 [ROADMAP](../ROADMAP.md)。
 
 ## 微信入口与范围
 

@@ -1,0 +1,98 @@
+{
+  "status": "deployed_verified",
+  "version": "0.1.12",
+  "schema": 6,
+  "route_snapshot_version": 2,
+  "source_sha256": "4790db28a961091211b29441b4bc70418a77fd38434204e5072c62ca1573e1b0",
+  "wheel_sha256": "a73b28b3ba84f7a64b1d55bac101eadcebbb720798a3e90b31708d482632d7a7",
+  "seconds_to_ready": 8.318,
+  "normal_stop": true,
+  "old_exit_code": 0,
+  "backup_integrity_and_foreign_keys": "passed",
+  "backup_tables": 13,
+  "single_consumer_verified": true,
+  "actual_argv_cwd_manifest_verified": true,
+  "child_render_verified": true,
+  "old_rows_and_frozen_receipts_preserved": true,
+  "exact_old_business_tables": 9,
+  "historical_unknown_preserved": 2,
+  "control_records_preserved": 11,
+  "config_credentials_global_config_preserved": true,
+  "registered_projects": 12,
+  "selected_target_observer_preserved": true,
+  "route_identity_independently_verified": true,
+  "host_ready": true,
+  "native_ready": true,
+  "original_native_processes_preserved": true,
+  "changed_plist_keys": [
+    "ProgramArguments",
+    "WorkingDirectory"
+  ],
+  "schema_migration": false,
+  "database_restore": false,
+  "automatic_test_messages": 0,
+  "native_submissions": 0,
+  "deployment_kind": "maintenance_same_version_different_digest",
+  "previous_source_sha256": "3dc042e197eea534603717bb6c97a2629570136a55fd53479f61fc769c1c6460",
+  "code_commit": "3b239a9d9f0aae09e5a3417144ee368854901954",
+  "tests_count": 934,
+  "new_version_tag": false,
+  "verified_at_beijing": "2026-11-14 22:13",
+  "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+  "full_tests": {
+    "count": 934,
+    "seconds": 47.46,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "scope": "Same frozen package; completed before this deployment, not rerun during downtime"
+  },
+  "git_delivery": {
+    "code_status": "published_and_remote_verified_before_deployment",
+    "code_commit": "3b239a9d9f0aae09e5a3417144ee368854901954",
+    "merge": "fast_forward",
+    "push": "atomic",
+    "result_documents": "Ordinary documentation commit on dev/main; final refs verified after publication",
+    "existing_tag_unchanged": true
+  },
+  "initial_release_record": "native-controls-release.json",
+  "lifecycle_validation_record": "native-settings-lifecycle.json",
+  "server_version": "0.169.0",
+  "public_content_audit": {
+    "status": "passed",
+    "public_files": 346,
+    "private_values_compared": 3633,
+    "private_matches": 0,
+    "reachable_objects": {
+      "blob": 1149,
+      "tree": 456,
+      "commit": 67,
+      "tag": 11
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.12-py3-none-any.whl",
+        "sha256": "a73b28b3ba84f7a64b1d55bac101eadcebbb720798a3e90b31708d482632d7a7"
+      },
+      {
+        "name": "wx_clawbot-0.1.12.tar.gz",
+        "sha256": "d758a230a688ca31cc73f6da234b8c3cc7aabb4b92fac287fbb106f856ada8ae"
+      }
+    ],
+    "workspace_matches_tested_frozen_package": true,
+    "production_version": "0.1.12",
+    "production_package_matches_maintenance_candidate": true,
+    "config_protection": true,
+    "scope": "Before result-document commit; reachable history audited again before push"
+  },
+  "documentation_checks": {
+    "status": "passed",
+    "checks": [
+      "relative links and anchors",
+      "JSON and version consistency",
+      "ROADMAP record limits",
+      "affected-document semantic review",
+      "git diff --check"
+    ]
+  }
+}

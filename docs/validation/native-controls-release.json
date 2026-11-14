@@ -288,6 +288,8 @@
       },
       "scope": "Residual workspace validation before subsequent authorized Git delivery"
     },
-    "git_delivery_record": "native-settings-lifecycle.json"
-  }
+    "git_delivery_record": "native-settings-lifecycle.json",
+    "scope": "Historical validation/Git delivery phase before subsequent authorized maintenance deployment"
+  },
+  "subsequent_maintenance_deployment_record": "maintenance-deployment.json"
 }

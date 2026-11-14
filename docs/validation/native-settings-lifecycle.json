@@ -8,7 +8,8 @@
     "wheel_sha256": "a73b28b3ba84f7a64b1d55bac101eadcebbb720798a3e90b31708d482632d7a7",
     "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
     "formal_release": false,
-    "deployed_to_daily_service": false
+    "deployed_to_daily_service": false,
+    "scope": "Historical validation/Git delivery phase before subsequent authorized maintenance deployment"
   },
   "checks": {
     "subscriptions_retain_both_loaded": true,
@@ -164,5 +165,6 @@
     "production_version": "0.1.12",
     "production_package_unchanged": true,
     "config_protection": true
-  }
+  },
+  "subsequent_maintenance_deployment_record": "maintenance-deployment.json"
 }
