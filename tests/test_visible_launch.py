@@ -94,9 +94,11 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
     async def test_fixed_entry_command_and_exec_argv_do_not_expand_user_content(self):
         record = self.registry.prepare(self.identity, self.project, self.project.root, self.executable,
                                        self.home, "title $(touch NEVER)")
-        command = shlex.split(self.registry.command(self.identity))
-        self.assertEqual(command[0], str(Path(sys.executable).absolute()))
-        self.assertEqual(command[1:4], ["-I", "-m", "wx_clawbot.launcher"])
+        with patch.dict(os.environ, {}, clear=True):
+            command = shlex.split(self.registry.command(self.identity))
+        self.assertEqual(command[:3], ["/usr/bin/env", "-u", "WX_CLAWBOT_RELEASE_MANIFEST"])
+        self.assertEqual(command[3], str(Path(sys.executable).absolute()))
+        self.assertEqual(command[4:7], ["-I", "-m", "wx_clawbot.launcher"])
         self.assertNotIn(str(self.project.root), command)
         self.assertNotIn(record["title"], command)
         before = os.environ.get("PATH")
@@ -107,6 +109,19 @@ class VisibleTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any(flag in argv for flag in ("--model", "-c", "--remote")))
         self.assertEqual(os.environ.get("PATH"), before)
         self.assertFalse((self.root / "NEVER").exists())
+
+    async def test_launch_command_pins_current_manifest_over_stale_gui_environment(self):
+        from wx_clawbot.release import ENVIRONMENT_KEY
+        with patch.dict(os.environ, {ENVIRONMENT_KEY: "/current/release.json"}):
+            command = shlex.split(self.registry.command(self.identity))
+        self.assertEqual(command[:3], ["/usr/bin/env", ENVIRONMENT_KEY + "=/current/release.json",
+                                      str(Path(sys.executable).absolute())])
+
+    async def test_development_launch_command_clears_stale_gui_manifest(self):
+        from wx_clawbot.release import ENVIRONMENT_KEY
+        with patch.dict(os.environ, {}, clear=True):
+            command = shlex.split(self.registry.command(self.identity))
+        self.assertEqual(command[:3], ["/usr/bin/env", "-u", ENVIRONMENT_KEY])
 
     async def test_bridge_manifest_is_verified_but_not_inherited_by_external_codex(self):
         from wx_clawbot.launcher import main

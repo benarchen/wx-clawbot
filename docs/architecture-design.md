@@ -1,6 +1,6 @@
 # wx-clawbot 当前架构
 
-本文描述应用 0.1.12 的实际结构，包含 NCM01 原生命令；源码交付与本机运行状态分开见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
+本文描述应用 0.1.13 的实际结构，包含 NCM01 原生命令及可见启动 manifest 固定；源码交付与本机运行状态分开见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
 
 图中实线是有标签的数据／调用关系，虚线是管理、来源或非运行依赖。模块图的节点是逻辑模块；部署图才表示进程边界。Mermaid 为唯一图形维护源，渲染检查见 [DOC01 报告](validation/documentation-restructure.md)。旧设计输入和反例保留固定提交及历史记录，不视为当前路径。
 
@@ -231,7 +231,7 @@ sequenceDiagram
   participant S as 路由账本
   C->>L: 持久化 launch ID、目录、可信 argv
   C->>H: 有界按需连接；同一意图创建一次
-  H->>P: 启动固定 launcher
+  H->>P: 固定当前 manifest，启动 launcher
   H-->>C: 自有窗口／标签／terminal 回执
   P->>L: boot：PID／启动时间／TTY
   P->>N: exec 原生 TUI，发送随机启动标记

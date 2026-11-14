@@ -163,7 +163,7 @@ launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/local.wx-clawbot.
 
 回退仅选择兼容 schema 6 的独立旧制品，保留当前数据库和 native-controls 中所有新写入，不把旧快照覆盖到已有新记录上。旧版本不认识设置命令时明确拒绝，不能靠降级补发旧操作。未来手机候选短时切换须有具体操作卡与对应授权，私有目录权限／唯一消费者／恢复检查与正式发布分开。
 
-正式目录 `<state-dir>/releases/<version>-<wheel摘要前12位>/` 内含独立 venv、wheel、lock 和 release.json。不能移动复制 venv 或原地更新在用目录。manifest 核对包文件、源码、wheel、lock、依赖、Python 和 schema；源码摘要不是 wheel 摘要。桥接自有渲染／媒体／探测／启动子进程核同一来源；外部 Codex 不冒充本项目包。
+正式目录 `<state-dir>/releases/<version>-<wheel摘要前12位>/` 内含独立 venv、wheel、lock 和 release.json。不能移动复制 venv 或原地更新在用目录。manifest 核对包文件、源码、wheel、lock、依赖、Python 和 schema；源码摘要不是 wheel 摘要。桥接自有渲染／媒体／探测／启动子进程核同一来源；可见启动显式覆盖当前 manifest，不接受 iTerm2 进程残留的旧值，外部 Codex 启动前移除桥接专用变量。
 
 在开发 venv 准备固定构建后端，然后对全新项目 `.tmp` 路径先看计划，明确 apply 后构建；这些命令不启动服务：
 

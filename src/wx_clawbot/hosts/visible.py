@@ -66,8 +66,12 @@ class LaunchRegistry:
 
     def command(self, launch_id):
         check_launch_id(launch_id)
+        from ..release import ENVIRONMENT_KEY
+        manifest = os.environ.get(ENVIRONMENT_KEY)
+        environment = [ENVIRONMENT_KEY + "=" + manifest] if manifest is not None else ["-u", ENVIRONMENT_KEY]
         # Preserve the venv interpreter path: resolving its symlink loses the venv.
-        return shlex.join([str(Path(sys.executable).absolute()), "-I", "-m", "wx_clawbot.launcher",
+        return shlex.join(["/usr/bin/env", *environment, str(Path(sys.executable).absolute()),
+                           "-I", "-m", "wx_clawbot.launcher",
                            "--registry", str(self.root), "--launch-id", launch_id])
 
 

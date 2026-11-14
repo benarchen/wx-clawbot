@@ -57,7 +57,7 @@ documents 当前验证 JSON、本地链接／标题锚点、包版本、README �
 | --- | --- |
 | 路由／身份／发现 | independent_target、native_identity、native_target_lifecycle、catalog、routing；同 cwd 多对话、fork 共 sessionId、换代、notLoaded、不完整分页、宿主缺席、旧快照拒绝 |
 | 查询／帮助 | controller、runtime_lifecycle、commands；sessions 保留 focused／managed 与订阅／任务，空结果／筛选／失败／换代不清目标，查询期间可发原目标，离线不拉起宿主；help 全部命令、参数及别名与解析器一致，逐条复查简短说明的含义和长度，经实际输出渲染链核对完整性 |
-| 新建／宿主恢复 | visible_launch、host_connection、host_lifecycle；意图先落盘、丢 ACK、重复 nonce、无 boot／缺 completed、进程变化、授权截止和取消回收 |
+| 新建／宿主恢复 | visible_launch、host_connection、host_lifecycle；意图先落盘、丢 ACK、重复 nonce、无 boot／缺 completed、进程变化、授权截止和取消回收；可见启动覆盖正式 manifest／清除开发残留 |
 | 排队／准入／恢复 | native_queue、admission*、recovery_state；提交边界未知、完整队列／准确终态、合并输入不伪完成、占用 revision 过期拒绝、unknown 不重放 |
 | 同步／异步交互 | interactions、interaction_acceptance、async_questions、async_question_repro；原生裁决／跨端竞争、答案格式、期限边界、原 turn 已结、未知答案不可重试 |
 | 通道／媒体／投递 | wechat_*、image_*、delivery_state；本人身份、游标原子、防重／冲突、SSRF／重定向／媒体超限、同会话顺序、发送未知及重复风险确认 |
@@ -95,6 +95,8 @@ documents 当前验证 JSON、本地链接／标题锚点、包版本、README �
 `engineering_performance.py` 的 measure／load／compare 使用合成输入和假发送端，load 至少 120 秒；对比要求准确基线／候选解释器、源码摘要和冻结 manifest，交替组及预热规则见[运维交接](operations.md#eng01本地检查性能与真实原生交接)与原 Goal。失败样本不参与提速比，慢样本不删除。
 
 `engineering_release.py` 在全新合成状态根检查隔离导入、子进程、错误 manifest、单消费者及停止；不能替代真实 launchd 切换。发布部署按运维，构建／安装、实际加载、原生可用和真人收件分列。
+
+0.1.13 的正式可见启动命令必须直接由 `test_visible_launch.py` 覆盖：不得再以测试子类手工传 manifest 代替生产入口验证。真实回归保留 GUI 旧环境，核 boot、唯一握手和自有资源清理；[执行结果](validation/visible-launch-manifest.md)。
 
 ## 通过、失败和证据格式
 

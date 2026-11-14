@@ -1,6 +1,6 @@
 # 需求、实现、测试与证据追溯
 
-适用应用 0.1.12。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
+适用应用 0.1.13。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
 
 ## 核心产品需求
 
@@ -45,6 +45,8 @@ PRJ01 是 P02／P03 的已验收扩展，离线、专用原生与本人手机闭
 ## NCM01 开发阶段
 
 标题保留既有链接；本阶段成果纳入 0.1.12，Git 交付见[发布记录](validation/native-controls-release.md)，既有原生／手机证据不因版本更名扩写。
+
+0.1.13 仅补正可见启动的制品环境固定，不改变产品能力、协议兼容或数据格式；新增回归与真实复测见[启动修复记录](validation/visible-launch-manifest.md)。
 
 [施工清单](../goals/20261109-2349-native-control-commands.md) C01 至 C08 → [原生命令契约](native-controls.md) → `commands.py`／`controller.py`／`native_controls.py`／`agents/codex.py`／`execution.py` → [查询与语法测试](../tests/test_native_controls.py)、连接／控制器测试及[授权专用探针](../tests/integration/native_controls_probe.py) → [阶段证据](validation/native-controls.md)。查询阶段的离线通过不能代替设置写入、竞争、原生与手机关卡，原 P／V 编号保持。
 

@@ -6,8 +6,10 @@
 | --- | --- |
 | 文档标识 | PRD，沿用 P01 至 P14 验收编号 |
 | 产品责任与用户 | 本人；单用户本机产品，不虚构其他审批角色 |
-| 适用基线 | 应用基线为 0.1.12，沿用已交付 MVP；实际发布、运行与后续进度见 [ROADMAP](../ROADMAP.md) |
+| 适用基线 | 应用基线为 0.1.13，沿用已交付 MVP；实际发布、运行与后续进度见 [ROADMAP](../ROADMAP.md) |
 | 本次修订 | 2026-11-14：0.1.12 纳入原生命令、0.169.0 兼容与微信输出精简／分组／去重；Git 交付与本机运行分开见[版本记录](validation/native-controls-release.md) |
+
+2026-11-15：0.1.13 修复可见启动的 manifest 环境继承，不改变 P01 至 P14 产品范围。
 | 结构依据 | 借鉴 [Atlassian PRD 指南](https://www.atlassian.com/agile/product-management/requirements)的目标、背景、假设、故事、交互与非目标组织方式，按单用户产品裁剪；并非标准认证 |
 
 本文回答为什么做、为谁做、支持什么及如何验收。命令细则由[命令契约](command-contract-proposal.md)维护，技术实现见[架构](architecture-design.md)，需求与实现证据见[追溯矩阵](requirements-traceability.md)。历史设计及章节去向见 [DOC01 报告](validation/documentation-restructure.md)，旧施工描述不代表当前状态。

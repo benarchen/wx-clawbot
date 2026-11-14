@@ -1,6 +1,6 @@
 # wx-clawbot 开发契约与接口验证方案
 
-应用基线为 0.1.12，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
+应用基线为 0.1.13，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
 
 ## 1. 项目结构约定
 
@@ -49,7 +49,7 @@ PRJ01 自 0.1.11 新增注册服务与仅当前 UID 可访问的本地 IPC；桥
 
 既有对话必需准确原生代次、thread／native session、注册 cwd、加载及正式订阅能力；无需 terminal 或可见 ID。发现根目录不代表递归子目录，预算或分页不完整明确拒绝。身份、稳定编号及 version 1→2 路由快照兼容见[身份契约](native-session-identity.md)。
 
-新建先持久化 launch 意图，固定入口读取私有登记，launcher 使用 argv 和 exec，不让用户标题或路径成为 Shell 代码。boot 的 PID／启动时间／TTY 和真实端点核对后，再查唯一不可预测标记、非派生 thread、准确输入和 completed 回复；只有窗口回执不能 ready。未知状态仅核对，不重复创建。架构 F05 是当前时序。
+新建先持久化 launch 意图，固定入口读取私有登记，launcher 使用 argv 和 exec，不让用户标题或路径成为 Shell 代码。正式子进程显式覆盖为桥接当前 manifest，开发子进程清除 GUI 残留的该变量，不继承 iTerm2 的旧制品身份。boot 的 PID／启动时间／TTY 和真实端点核对后，再查唯一不可预测标记、非派生 thread、准确输入和 completed 回复；只有窗口回执不能 ready。未知状态仅核对，不重复创建。架构 F05 是当前时序。
 
 ## 5. 排队、任务与取消
 
