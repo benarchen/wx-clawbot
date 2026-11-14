@@ -1,12 +1,12 @@
 {
-  "status": "checked_ready_for_git",
+  "status": "git_published_runtime_unchanged",
   "version": "0.1.12",
   "schema": 6,
   "route_snapshot_version": 2,
   "authorized": true,
-  "git_published": false,
+  "git_published": true,
   "local_deployed": false,
-  "updated_at_beijing": "2026-11-14 14:22",
+  "updated_at_beijing": "2026-11-14 14:24",
   "base_commit": "e2f9d69c715dae1b7e549bea0d889663a7e5e6ad",
   "accepted_candidate": {
     "version": "0.1.11_internal_unpublished_candidate",
@@ -78,10 +78,10 @@
     "private_values_compared": 4235,
     "private_matches": 0,
     "reachable_objects": {
-      "blob": 1061,
-      "tree": 431,
-      "commit": 63,
-      "tag": 10
+      "blob": 1120,
+      "tree": 442,
+      "commit": 64,
+      "tag": 11
     },
     "archives": [
       {
@@ -134,5 +134,24 @@
     "current_consumers_reviewed": true,
     "historical_evidence_preserved": true,
     "new_native_or_phone_tests": false
+  },
+  "git": {
+    "feature_commit": "69685918adaae4b6b20dd023eb028a3e1b8effa0",
+    "tag": "v0.1.12",
+    "tag_object": "d03e50407913dcde4c9f757726f5909efd8e0466",
+    "annotated": true,
+    "tag_target": "69685918adaae4b6b20dd023eb028a3e1b8effa0",
+    "main_merge": "fast_forward",
+    "push": "atomic",
+    "remote_verification": {
+      "refs/heads/dev": "69685918adaae4b6b20dd023eb028a3e1b8effa0",
+      "refs/heads/main": "69685918adaae4b6b20dd023eb028a3e1b8effa0",
+      "refs/tags/v0.1.12": "d03e50407913dcde4c9f757726f5909efd8e0466",
+      "refs/tags/v0.1.12^{}": "69685918adaae4b6b20dd023eb028a3e1b8effa0"
+    },
+    "remote_verified_at_beijing": "2026-11-14 14:24",
+    "force_push": false,
+    "github_release_created": false,
+    "result_documents": "Archived in a subsequent ordinary commit on dev and fast-forwarded main; version tag stays fixed."
   }
 }
