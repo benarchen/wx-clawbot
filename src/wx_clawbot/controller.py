@@ -7,14 +7,15 @@ import os
 from dataclasses import asdict
 from pathlib import Path
 
-from .commands import Command, CommandError, parse_command
+from .commands import Command, CommandError, NATIVE_CONTROLS, parse_command
 from .catalog import DiscoveryUnavailable
 from .hosts.visible import LaunchPending, reconcile_launch
 from .hosts.lifecycle import HostUnavailable
 from .routing import RouteError, Routes, Target
 from .sessions import SessionUnbound
 from .subscriptions import Subscriptions
-from .output import render_segments, render_in_worker
+from .output import render_segments, render_in_worker, inline_literal, bold_literal, target_description
+from .project_registry import describe
 
 
 HELP = ("**项目与会话**\n\n"
@@ -30,6 +31,15 @@ HELP = ("**项目与会话**\n\n"
         "`/unfocus`（`/uf`）：退出输入目标，保留观察和任务。\n\n"
         "`/attach <序号>`（`/a`）：观察后续桌面任务，不改变输入目标。\n\n"
         "`/detach`（`/ua`）：取消观察，保留输入目标和任务。\n\n"
+        "**Codex 原生命令**\n\n"
+        "`/model`：查看模型和思考等级。\n\n"
+        "`/model list`：列出运行时模型。\n\n"
+        "`/model set <模型名称> [推理强度]`：设置模型及推理，省略用模型默认。\n\n"
+        "`/fast`：查看 Fast 开关与支持情况。\n\n"
+        "`/fast on`、`/fast off`：开启或关闭 Fast。\n\n"
+        "`/codex status`：查看会话设置与账号额度。\n\n"
+        "思考等级控制模型思考投入；Fast 为快速模式设置。\n\n"
+        "修改仅作用于选中会话，忙碌时拒绝；桌面并发可能影响排队任务。Fast 仅确认设置。\n\n"
         "**任务控制**\n\n"
         "`/send <序号> <指令>`（`/s`）：向列表会话单发，不改变输入目标。\n\n"
         "`/status [任务 ID]`：查询总览或指定任务状态。\n\n"
@@ -83,6 +93,7 @@ class Controller:
         self.rollback_timeout = 2
         self.project_manager = None
         self.project_reservations = {}
+        self.task_reservations = {}
 
     def prepare(self, message):
         """Run at receive order, before any task awaits a network operation."""
@@ -104,6 +115,12 @@ class Controller:
         dispatch, target = None, None
         if command.name in {"focus", "attach", "send"}:
             target = self.routes.select(command.index, snapshot=snapshot)
+        if command.name in NATIVE_CONTROLS and not (command.name == "model" and command.argument == "list"):
+            if self.selection_pending:
+                raise RouteError("会话选择尚在处理中，请等待明确回执后重试。")
+            target = self.routes.target
+            if target is None:
+                raise RouteError("请先用 /sessions 和 /focus 选择输入目标。")
         if command.name in {"message", "send"}:
             if self.selection_pending:
                 raise RouteError("会话选择尚在处理中，请等待明确回执后再发送任务。")
@@ -124,6 +141,8 @@ class Controller:
         token = object()
         if project is not None:
             self.project_reservations[token] = project
+        if dispatch is not None:
+            self.task_reservations[token] = dispatch.target
         return self.execute(message, command, revision, target, dispatch, destination,
                             generation=self.native_generation, project_token=token,
                             project_revision=self.project_manager.revision if self.project_manager else None)
@@ -161,6 +180,7 @@ class Controller:
             return await self._execute(message, command, revision, target, dispatch, destination, generation=generation)
         finally:
             self.project_reservations.pop(project_token, None)
+            self.task_reservations.pop(project_token, None)
 
     async def _execute(self, message, command, revision, target, dispatch, destination, *, generation=None):
         operation = asyncio.current_task()
@@ -184,10 +204,16 @@ class Controller:
                 for project in self.routes.projects.values():
                     available = (project.root.is_dir() and project.root.resolve() == project.root
                                  and os.access(project.root, os.R_OK | os.X_OK))
-                    rows.append(f"{project.alias}：{'可用' if available else '不可访问'}\n{project.root}")
-                text = "已注册项目：\n" + "\n".join(rows)
+                    rows.append({"alias": project.alias, "root": str(project.root), "available": available})
+                text = describe({"status": "ok", "action": "list", "projects": rows})
             elif name == "help":
                 text = HELP
+            elif name in NATIVE_CONTROLS:
+                if not self.native_ready:
+                    raise RouteError("原生运行时未就绪，本条原生命令未发送。")
+                async with self.changes:
+                    text = await self.engine.native_controls.execute(command, target, revision,
+                                                                      message_id=message.message_id)
             elif name == "sessions":
                 text = await self._query_sessions(command.argument, generation)
             else:
@@ -352,13 +378,14 @@ class Controller:
             if not self.native_ready or generation is not None and generation != self.native_generation:
                 raise RouteError("原生连接已变化，本次未刷新会话列表，请稍后重试。")
             snapshot = self.routes.snapshot(tuple(s.target for s in sessions))
-            rows = [f"{i}．{s.target.project_alias}｜{s.title}｜{'受管会话' if s.target.origin == 'managed' else '既有原生会话'}\n会话：{s.target.session_id}\n目录：{s.target.cwd}"
+            rows = [bold_literal(f"{i}．{s.target.project_alias} · {s.title}")
+                    + f"\n\n会话：{inline_literal(s.target.session_id)}\n\n目录：{inline_literal(s.target.cwd)}"
                     for i, s in enumerate(sessions, 1)]
             missing = len(self.catalog.unverified)
-            return ("会话列表（序号 10 分钟有效；输入目标与观察订阅未改变）：\n"
-                    + ("\n".join(rows) or "暂无匹配的已核验会话。")
-                    + (f"\n另有 {missing} 个会话未通过准确原生身份核验。" if missing else "")
-                    + f"\n{self.catalog.scope_note}\n列表：{snapshot.list_id}")
+            return (f"**会话列表 · {len(rows)} 个**\n\n"
+                    + ("\n\n".join(rows) or "暂无匹配的已核验会话。")
+                    + (f"\n\n另有 {missing} 个会话未通过身份核验。" if missing else "")
+                    + f"\n\n{self.catalog.scope_note}\n\n序号 10 分钟有效；选择用 `/focus <序号>`。输入目标与观察订阅未改变。")
 
     async def _refresh_contents(self, keyword=""):
         if self.routes.cwd is not None:
@@ -532,7 +559,7 @@ class Controller:
         routes._check_revision(revision)
         if name == "focus":
             await self._set_focus(target, revision, routes)
-            return f"执行目标：{target.project_alias}｜{target.session_id}\n目录：{target.cwd}"
+            return '**已选择会话**\n\n'+target_description(target)+'\n\n后续普通消息将发送到此会话。'
         if name == "unfocus":
             previous = routes.target
             if previous:
@@ -551,9 +578,8 @@ class Controller:
                     await self.subscriptions.release(target, "observer")
                 raise
             if previous and previous != target:
-                return (f"观察订阅已从 {previous.project_alias}｜{previous.session_id} 替换为 "
-                        f"{target.project_alias}｜{target.session_id}；执行目标未改变。")
-            return f"观察订阅：{target.project_alias}｜{target.session_id}；执行目标未改变。"
+                return '**已更换观察会话**\n\n'+target_description(target)+'\n\n输入目标未改变。'
+            return '**已观察会话**\n\n'+target_description(target)+'\n\n输入目标未改变。'
         if name == "detach":
             previous = routes.observer
             if previous:
@@ -577,7 +603,7 @@ class Controller:
                     chosen = matches[0].target
                     async with asyncio.timeout_at(host_deadline):
                         await self._set_focus(chosen, revision, routes, managed=True)
-                    return f"执行目标：{project.alias}｜{chosen.session_id}（复用受管会话）\n目录：{cwd}"
+                    return '**已复用会话**\n\n'+target_description(chosen)+'\n\n目录：'+inline_literal(cwd)
                 if matches:
                     raise RouteError("该目录有多个受管会话，请用 /sessions 和 /focus 明确选择。")
             # Stable source native ID maps one launch request to at most one visible terminal.
@@ -606,5 +632,5 @@ class Controller:
             await self._set_focus(chosen, revision, routes, managed=True)
             self.last_managed[(project.alias, cwd)] = chosen
             await self.state.supersede_reply(launch_id + "-starting")
-            return f"可见会话已就绪，执行目标：{project.alias}｜{chosen.session_id}\n目录：{cwd}"
+            return '**会话已就绪并选中**\n\n'+target_description(chosen)+'\n\n目录：'+inline_literal(cwd)
         raise CommandError("未知命令，请使用 /help。")

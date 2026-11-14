@@ -15,6 +15,8 @@ NO_ARGUMENTS = {"projects", "unfocus", "detach", "help"}
 OPTIONAL_TEXT = {"sessions", "new"}
 OPTIONAL_ID = {"status", "stop"}
 REQUEST_ID = re.compile(r"[A-Za-z0-9_.:-]{1,128}\Z")
+NATIVE_CONTROLS = frozenset({"model", "fast", "codex"})
+MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}\Z")
 
 
 @dataclass(frozen=True)
@@ -23,6 +25,7 @@ class Command:
     argument: str = ""
     index: int | None = None
     text: str = ""
+    reasoning: str | None = None
 
 
 def parse_project(value, *, local=False):
@@ -63,6 +66,20 @@ def parse_command(value: str) -> Command:
         raise CommandError("命令格式无效，请使用 /help。")
     name = ALIASES.get(match[1], match[1])
     argument = match[2] or ""
+    if name in NATIVE_CONTROLS:
+        argument = argument.strip()
+        if name == "model":
+            if argument in {"", "list"}:
+                return Command(name, argument=argument or "get")
+            setting = re.fullmatch(r"set[ \t]+([^ \t\r\n]+)(?:[ \t]+([a-z][a-z0-9_-]{0,31}))?", argument)
+            if setting and MODEL_ID.fullmatch(setting[1]):
+                return Command(name, argument="set", text=setting[1], reasoning=setting[2])
+            raise CommandError("用法：/model、/model list 或 /model set <模型名称> [推理强度]；省略强度用模型目录默认。")
+        if name == "fast" and argument in {"", "on", "off"}:
+            return Command(name, argument=argument or "get")
+        if name == "codex" and argument == "status":
+            return Command(name, argument=argument)
+        raise CommandError("用法：/fast、/fast on、/fast off 或 /codex status；帮助请用 /help。")
     if name == "project":
         parse_project(argument)
         return Command(name, argument=argument)

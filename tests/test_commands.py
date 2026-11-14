@@ -7,7 +7,7 @@ from wx_clawbot.controller import HELP
 
 class CommandTests(unittest.TestCase):
     def test_help_covers_every_supported_command_and_alias_with_parseable_syntax(self):
-        samples = {"help": "", "projects": "", "project": " list", "cd": " fixture", "new": " 标题",
+        samples = {"help": "", "projects": "", "project": " list", "model": "", "fast": "", "codex": " status", "cd": " fixture", "new": " 标题",
                    "sessions": " keyword", "focus": " 1", "unfocus": "", "attach": " 1",
                    "detach": "", "send": " 1 task", "status": " t-fixture", "stop": " t-fixture",
                    "approve": " r-fixture", "deny": " r-fixture", "answer": " q-fixture answer"}

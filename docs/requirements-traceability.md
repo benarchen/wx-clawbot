@@ -1,6 +1,6 @@
 # 需求、实现、测试与证据追溯
 
-适用应用 0.1.11。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
+适用应用 0.1.12。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
 
 ## 核心产品需求
 
@@ -41,3 +41,15 @@ PRJ01 是 P02／P03 的已验收扩展，离线、专用原生与本人手机闭
 ## 使用与维护
 
 增加／改变核心行为时更新对应需求、命令、设计、模块、测试及适用证据；没有真实证据就保留缺口，不用测试名称填作已通过。测试文件链接只保证可定位，验证执行结果须另记录。当前表按 DOC01 从源码与历史记录逐项核对；本轮未重新执行功能、原生或手机测试。
+
+## NCM01 开发阶段
+
+标题保留既有链接；本阶段成果纳入 0.1.12，Git 交付见[发布记录](validation/native-controls-release.md)，既有原生／手机证据不因版本更名扩写。
+
+[施工清单](../goals/20261109-2349-native-control-commands.md) C01 至 C08 → [原生命令契约](native-controls.md) → `commands.py`／`controller.py`／`native_controls.py`／`agents/codex.py`／`execution.py` → [查询与语法测试](../tests/test_native_controls.py)、连接／控制器测试及[授权专用探针](../tests/integration/native_controls_probe.py) → [阶段证据](validation/native-controls.md)。查询阶段的离线通过不能代替设置写入、竞争、原生与手机关卡，原 P／V 编号保持。
+
+`test_native_control_writes.py`／`test_control_journal.py`／`test_native_control_process.py` 覆盖联合字段、Fast、忙碌、事件、磁盘和隔离进程崩溃；Controller 覆盖接收预留／派发锁及活跃交互。T20／T23 的原生竞争及 Fast 证明范围按本人接受边界验收，不承诺桌面原子保护。T24 即时 TUI 旧显示与实际新值差异保留；桌面手动后续采用已有准确 turn_context，不能扩写为即时 UI 刷新保证。
+
+0.169.0 冻结功能候选 924 项及专用原生通过，T33 至 T36 的本人手机统一命令、账号额度、桌面／busy、原设置／B／配置保护与自有终端清理均已核对。旧单字段结果仍限原候选；最终设置与三个测试输入有准确身份／事件／turn 证据，详见 [0.169.0 记录](validation/codex-0169.md)。
+
+C07／T26 至 T28：同版 schema、实际只读接口和本人手机均证明账号两窗口额度；token 事件缓存仍有准确范围和边界校验，默认隐藏其诊断明细。新增[展示测试](../tests/test_command_display.py)覆盖窄屏独立段落、原始字段隐藏、中文状态／未知值、目录默认和操作编号保留；最终去重制品同包 932 项／47.553 秒及必需检查通过。360 px 预览、本人会话／任务实收与最后四图的去重 status／8 项模型目录／完整 help 均已核验；实际加载／旧数据保护通过，逐 T／A／D 索引及 G09／G10 结果见[验收记录](validation/native-controls.md)。

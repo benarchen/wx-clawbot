@@ -2,13 +2,14 @@
 
 通过本人微信选择本机多个注册项目中的准确 Codex 原生会话，提交任务、接收结果并处理交互。iTerm2 用于可见创建和桌面操作；微信选择独立于电脑当前画面，首次接入无需状态栏或终端标题显示 Session ID。
 
-当前源码版本 `0.1.11`，运行账本 schema 6，路由快照 version 2。本轮发布／本机切换状态见[0.1.11 记录](docs/validation/project-management-release.md)，唯一进度源见 [ROADMAP](ROADMAP.md)。
+当前源码版本 `0.1.12`，运行账本 schema 6，路由快照 version 2。本轮 Git 交付见[0.1.12 记录](docs/validation/native-controls-release.md)，唯一进度源见 [ROADMAP](ROADMAP.md)。本轮不切换本机服务；现有临时兼容候选与正式源码版本分开记录。
 
 ## 能力与前提
 
 - 本人绑定、注册项目／合法目录、既有已加载对话选择、单次派发、持续选择、独立观察与可见新建。
 - 当前源码支持总目录一层初始化，以及本机／微信 `project list/add/remove/check`；保留 `/projects`，注册变更即时生效，只维护已有目录关联。此能力已完成 PRJ01 验收，属于 0.1.11；旧 0.1.10 不支持新子命令，详见[项目管理](docs/project-management.md)。
 - 原生队列、进展／文本结果、同步审批／追问、停止和恢复核对；unknown 不自动重放，投递失败不重新执行任务。
+- 0.1.12 支持 `/model`、`/model list`、`/model set <模型名称> [推理强度]`、`/fast [on|off]` 及 `/codex status`。只改微信选中的会话，忙碌时拒绝；省略推理使用模型目录默认，Fast 仅确认开关设置。状态页显示模型、思考等级和账号剩余额度，默认隐藏 token 明细；[原生命令](docs/native-controls.md)说明版本及竞争边界。该能力已经过 0.169.0 原生及本人手机功能验收。
 - 单张静态 JPEG／PNG 入站、原会话处理及文本结果。逐原生版本的代码准入、schema、真实原生和手机证据见[兼容矩阵](docs/protocol-baseline.md)，不能把某版核心通过当作全部功能验收。
 
 需要 macOS、Python 3.14、Git、已登录 Codex 的既有受支持 daemon，以及可见创建所需的 iTerm2 Python API。电脑需开机联网，睡眠或关机期间不保证在线。注册根和已知准确 cwd 才在发现范围内，不递归搜索全部子目录／私人历史；详见[原生身份](docs/native-session-identity.md)。

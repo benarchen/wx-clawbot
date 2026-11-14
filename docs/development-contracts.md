@@ -1,6 +1,6 @@
 # wx-clawbot 开发契约与接口验证方案
 
-应用基线为 0.1.11，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
+应用基线为 0.1.12，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
 
 ## 1. 项目结构约定
 
@@ -98,6 +98,10 @@ PRJ01 自 0.1.11 新增注册服务与仅当前 UID 可访问的本地 IPC；桥
 日志只记安全状态／类型和必要脱敏关联，不打印原始响应、正文或凭据。迁移、维护、释放和 retry 默认只读，apply 要求准确对象和对应权限，见运维操作卡。
 
 ## 9. 关键接口验证关卡
+
+NCM01 的原生设置路径独立于普通 Dispatch：Controller 冻结输入目标和项目修订，持有注册 gate 与 changes，再由 NativeControls 持有执行 admission_gate；普通任务接收预留可见，修改不能绕过任务／队列／活跃交互和占用。唯一原生事件消费者分发设置事件，窗口在 RPC 前建立，当前设置由 loaded-only 快照确认，不把事件当唯一因果证明。原生桌面竞争和 Fast 证明范围已获本人接受，完整契约见[专题](native-controls.md)。
+
+ControlJournal 只处理有限、私有的设置意图及冻结回执，短 lease 及文件 fsync 不跨网络 await；不新增任务、不操作全局模型，也不增加 schema。产品写实现的离线、真实原生与微信验收必须分别记录，不能因专用 RPC 探针通过就认定 Controller／重启／手机闭环通过。
 
 这些是持续有效的验证要求，不是本次已执行列表。历史版本通过和当前适用范围由[追溯](requirements-traceability.md)及证据给出；真实测试须明确新一轮授权与专用资源，旧 Goal 的单次许可不能继承。
 

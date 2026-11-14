@@ -1,8 +1,8 @@
 # 原生会话身份与宿主来源
 
-PRJ01 候选的项目注册修订与 native thread 身份是不同对象：取消注册撤销旧列表／选择资格，重新注册不自动恢复旧选择；再次显式选择仍须本页完整原生复验。候选通过层级及可选 registry_revision 见[项目管理](project-management.md)，不改变 s- 编号算法或 loaded／订阅条件。
+PRJ01 自 0.1.11 的项目注册修订与 native thread 身份是不同对象：取消注册撤销旧列表／选择资格，重新注册不自动恢复旧选择；再次显式选择仍须本页完整原生复验。验收层级及可选 registry_revision 见[项目管理](project-management.md)，不改变 s- 编号算法或 loaded／订阅条件。
 
-TGT02 已完成双路径真实原生接入、切换、恢复与关闭／卸载验收，并随 0.1.8 发布部署；当前应用 0.1.11 沿用本文件的身份契约。[功能证据](validation/native-session-no-footer.md)、[首次发布切换](validation/native-session-release.md)分别记录工程与上线结果；后续发布见[0.1.11 记录](validation/project-management-release.md)，旧 0.1.7 的边界见[TGT01](validation/wechat-independent-target.md)，唯一进度源为 [ROADMAP](../ROADMAP.md)。
+TGT02 已完成双路径真实原生接入、切换、恢复与关闭／卸载验收，并随 0.1.8 发布部署；当前应用 0.1.12 沿用本文件的身份契约。[功能证据](validation/native-session-no-footer.md)、[首次发布切换](validation/native-session-release.md)分别记录工程与上线结果；后续发布见[0.1.12 记录](validation/native-controls-release.md)，旧 0.1.7 的边界见[TGT01](validation/wechat-independent-target.md)，唯一进度源为 [ROADMAP](../ROADMAP.md)。
 
 ## 选择与证据
 

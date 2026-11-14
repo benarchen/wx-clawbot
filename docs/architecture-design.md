@@ -1,6 +1,6 @@
 # wx-clawbot 当前架构
 
-本文描述应用 0.1.11 的实际结构；状态见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
+本文描述应用 0.1.12 的实际结构，包含 NCM01 原生命令；源码交付与本机运行状态分开见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
 
 图中实线是有标签的数据／调用关系，虚线是管理、来源或非运行依赖。模块图的节点是逻辑模块；部署图才表示进程边界。Mermaid 为唯一图形维护源，渲染检查见 [DOC01 报告](validation/documentation-restructure.md)。旧设计输入和反例保留固定提交及历史记录，不视为当前路径。
 
@@ -92,7 +92,7 @@ flowchart TB
 
 [查看独立 SVG](diagrams/architecture-F03.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-范围：serve 内部的逻辑职责。图简化辅助调用，准确入口在下表；所有持久化状态共用同一账本执行器。
+范围：serve 内部的逻辑职责；NCM01 自 0.1.12 纳入源码，不能据图推定日常版本已加载。图简化辅助调用，准确入口在下表；SQLite 状态共用同一账本执行器，配置、启动回执及控制意图文件分别原子持久化。
 
 ```mermaid
 flowchart TB
@@ -108,6 +108,10 @@ flowchart TB
   ctrl -->|"冻结 Dispatch"| exec["execution／admission 系列"]
   exec -->|"核验后提交／中断"| adapter
   adapter -->|"单一事件消费"| exec
+  ctrl -->|"NCM01：原生设置命令"| controls["native_controls：快照／忙碌检查／确认"]
+  exec -->|"沿用同一消费者分发设置事件"| controls
+  controls <-->|"准确 thread：查询／显式设置"| adapter
+  controls <-->|"短 lease；意图先落盘；冻结回执"| journal["control_journal：私有 JSON；不重放"]
   exec -->|"终态与历史核对"| result["results／output／render_worker"]
   exec -->|"准确请求与补充"| interact["interactions／async_questions"]
   result -->|"冻结结果"| store["runtime_state／occupancy／async_state／schema"]
@@ -126,6 +130,7 @@ flowchart TB
 | 发现／身份／订阅 | `catalog.py`、`sessions.py`、`subscriptions.py` | 不读页脚，不 resume notLoaded，不伪造宿主 |
 | 可见宿主 | `hosts/lifecycle.py`、`hosts/visible.py`、`launcher.py` | 自有启动意图至多一次，不清理用户资源 |
 | 原生适配 | `agents/codex.py`、`rpc.py`、`queue.py` | 校验实际 server 版本／socket，不另建运行时 |
+| NCM01 原生命令 | `native_controls.py`、`control_journal.py` | 当前原生设置为权威；意图不是任务／默认配置；共用准入锁，承认桌面竞争；自 0.1.12 纳入，实际运行状态见 ROADMAP |
 | 执行／准入／恢复 | `execution.py`、`admission.py`、`admission_recovery.py`、`admission_ops.py` | 原生队列权威，unknown 不重放，结果不等同占用 |
 | 交互 | `interactions.py`、`async_questions.py` | 同步裁决与异步补充分开，不擅自授权 |
 | 结果／展示／发送 | `results.py`、`output.py`、`render_worker.py`、`delivery.py` | 事务外渲染、入账后冻结，重投不执行任务 |
@@ -144,6 +149,7 @@ flowchart TB
 | Task／占用 | client／queue／turn 关联执行；waiting／holding／released 独立审计 |
 | Interaction | 同步请求绑定原代次，异步问题绑定准确 turn／item；新输入须复验 |
 | Outbox／尝试 | 最终结果和投递分离，冻结正文；HTTP 意图与结果持久化，未知不自动重试 |
+| NCM01 控制意图 | 源消息摘要唯一，准确目标及显式字段请求；先落盘再发，unknown 不重放，不新增 SQLite 表 |
 
 ## 5. 项目、目录与上下文
 

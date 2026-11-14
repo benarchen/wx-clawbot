@@ -229,6 +229,53 @@
           "threadId"
         ]
       }
+    },
+    "0.169.0": {
+      "v1/InitializeParams.json": {
+        "sha256": "c608ff6bdd94e661423dca9b44cd1dcea7eac610f74e1310284c61eab64280bc",
+        "required": [
+          "clientInfo"
+        ],
+        "properties": [
+          "capabilities",
+          "clientInfo"
+        ]
+      },
+      "v2/ThreadReadParams.json": {
+        "sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+        "required": [
+          "threadId"
+        ],
+        "properties": [
+          "includeTurns",
+          "threadId"
+        ]
+      },
+      "v2/ThreadQueueAddParams.json": {
+        "sha256": "240db55be5b3f82f85ee5392c1515f34aa3987e81ab817381f7271cbb8c9434d",
+        "required": [
+          "clientUserMessageId",
+          "input",
+          "threadId"
+        ],
+        "properties": [
+          "clientUserMessageId",
+          "input",
+          "responsesapiClientMetadata",
+          "threadId"
+        ]
+      },
+      "v2/ServerRequestResolvedNotification.json": {
+        "sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+        "required": [
+          "requestId",
+          "threadId"
+        ],
+        "properties": [
+          "requestId",
+          "threadId"
+        ]
+      }
     }
   }
 }

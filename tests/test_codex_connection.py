@@ -31,6 +31,7 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
                        "canAcceptDirectInput": True}
         self.resume_changes = {}
         self.resume_error = None
+        self.resume_settings = {}
         self.list_rows = [self.thread]
         self.loaded_page = {"data": ["fixture-thread"], "nextCursor": None}
 
@@ -49,7 +50,7 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
                     if self.resume_error is not None:
                         await websocket.send(json.dumps({"id": message["id"], "error": self.resume_error}))
                         continue
-                    result = {"thread": {**self.thread, **self.resume_changes}}
+                    result = {"thread": {**self.thread, **self.resume_changes}, **self.resume_settings}
                 elif message["method"] == "thread/list":
                     result = {"data": self.list_rows, "nextCursor": None}
                 elif message["method"] == "thread/loaded/list":
@@ -83,6 +84,28 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError, "schema baseline"):
             await CodexConnection.connect(self.socket)
         self.assertEqual(self.methods, ["initialize"])
+
+    async def test_0169_list_is_account_scoped_and_settings_read_has_no_environment_override(self):
+        self.server_version='0.169.0'
+        self.thread['reasoningEffort']='high'
+        self.resume_settings={'model':'fixture-model','modelProvider':'fixture-provider','reasoningEffort':'high','serviceTier':'default','cwd':self.temp.name}
+        connection=await CodexConnection.connect(self.socket)
+        try:
+            self.assertFalse(connection.capabilities.image_input)
+            await connection.list_project_threads(Path(self.temp.name))
+            request=next(v for v in self.requests if v['method']=='thread/list')
+            self.assertTrue(request['params']['currentAccountOnly']);self.assertFalse(request['params']['includeAttachedThreads'])
+            result=await connection.read_settings('fixture-thread',Path(self.temp.name))
+            self.assertEqual(result['model'],'fixture-model')
+            self.assertEqual(next(v['params'] for v in self.requests if v['method']=='thread/resume'),{'threadId':'fixture-thread','excludeTurns':True})
+        finally:await connection.close()
+
+    async def test_0169_attached_thread_cannot_be_selected_as_an_independent_session(self):
+        self.server_version='0.169.0';self.thread['attachedToThreadId']='parent'
+        connection=await CodexConnection.connect(self.socket)
+        try:
+            with self.assertRaisesRegex(ValueError,'Attached'):await connection.inspect('fixture-thread')
+        finally:await connection.close()
 
     async def test_verified_0165_handshake_and_read_do_not_submit_tasks(self):
         self.server_version = "0.165.0"
@@ -228,3 +251,49 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
                     await connection.is_loaded("fixture-thread")
         finally:
             await connection.close()
+
+    async def settings_connection(self):
+        self.server_version = '0.167.0'
+        self.resume_settings = {'cwd': self.thread['cwd'], 'model': self.thread['model'],
+                                'modelProvider': self.thread['modelProvider'],
+                                'reasoningEffort': 'high', 'serviceTier': None}
+        connection = await CodexConnection.connect(self.socket)
+        self.addAsyncCleanup(connection.close)
+        return connection
+
+    async def test_settings_snapshot_uses_only_loaded_subscription_without_overrides(self):
+        connection = await self.settings_connection()
+        result = await connection.read_settings('fixture-thread', Path(self.thread['cwd']))
+        self.assertEqual(result, {k:v for k,v in self.resume_settings.items() if k!='cwd'})
+        calls = [m for m in self.requests if m['method']=='thread/resume']
+        self.assertEqual(len(calls),1)
+        self.assertEqual(calls[0]['params'], {'threadId':'fixture-thread','excludeTurns':True})
+        self.assertFalse(any('update' in m['method'] or 'start' in m['method'] for m in self.requests))
+
+    async def test_settings_snapshot_never_hydrates_an_unloaded_archive(self):
+        connection = await self.settings_connection(); self.loaded_page = {'data':[]}
+        with self.assertRaisesRegex(ValueError,'not loaded'):
+            await connection.read_settings('fixture-thread', Path(self.thread['cwd']))
+        self.assertNotIn('thread/resume',self.methods)
+
+    async def test_settings_snapshot_rejects_other_provider_or_effective_directory(self):
+        connection = await self.settings_connection()
+        for field,value in (('cwd','/fixture/other'),('modelProvider','other-provider')):
+            before=self.resume_settings[field];self.resume_settings[field]=value
+            with self.subTest(field=field),self.assertRaises(ValueError):
+                await connection.read_settings('fixture-thread',Path(self.thread['cwd']))
+            self.resume_settings[field]=before
+
+    async def test_settings_snapshot_rejects_conflicting_model_or_session(self):
+        connection = await self.settings_connection()
+        for field,value in (('model','other-model'),('sessionId','other-session'),('reasoningEffort','low')):
+            self.resume_changes={field:value}
+            with self.subTest(field=field),self.assertRaises(ValueError):
+                await connection.read_settings('fixture-thread',Path(self.thread['cwd']))
+
+    async def test_settings_snapshot_does_not_enable_unverified_versions(self):
+        connection = await CodexConnection.connect(self.socket)
+        self.addAsyncCleanup(connection.close)
+        with self.assertRaisesRegex(ValueError,'not verified'):
+            await connection.read_settings('fixture-thread',Path(self.thread['cwd']))
+        self.assertNotIn('thread/resume',self.methods)

@@ -333,10 +333,42 @@ class ProjectStore:
         return self.config
 
 
+def inline_path(value):
+    fence = "`" * (max((len(m[0]) for m in re.finditer(r"`+", value)), default=0) + 1)
+    return f"{fence} {value} {fence}"
+
+
+def project_list(result):
+    rows, workspace = result["projects"], result.get("workspace_root")
+    sections = [f"**已注册项目 · {len(rows)} 个**"]
+    if workspace:
+        sections.append("总目录：" + inline_path(workspace))
+    items, size = [], 0
+    for row in rows:
+        alias = row["alias"].replace("_", r"\_")
+        lines = [f"**{alias}**" + ("" if row["available"] else " · ⚠️ 目录不可访问")]
+        if not row["available"] or not workspace or Path(row["root"]) != Path(workspace) / row["alias"]:
+            lines.append("目录：" + inline_path(row["root"]))
+        # WeChat folds hard breaks; separate project rows with real paragraphs.
+        item = "\n\n".join(lines)
+        # Keep whole projects below the renderer's Markdown paragraph budget.
+        if items and size + 2 + len(item) > 6000:
+            sections.append("\n\n".join(items))
+            items, size = [], 0
+        size += len(item) + (2 if items else 0)
+        items.append(item)
+    sections.append("\n\n".join(items) if rows else "暂无已注册项目。")
+    if rows:
+        sections.append("使用 `/cd 项目名` 进入会话。")
+    return "\n\n".join(sections)
+
+
 def describe(result):
     status, action = result["status"], result.get("action")
     if status == "preview":
         return "初始化预览（未写入）：\n" + json.dumps(result, ensure_ascii=False)
+    if action == "list":
+        return project_list(result)
     if action in {"list", "check"}:
         rows = result["projects"]
         text = "已注册项目：\n" + ("\n\n".join(

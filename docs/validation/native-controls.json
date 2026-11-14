@@ -1,0 +1,1366 @@
+{
+  "status": "all_scoped_acceptance_passed",
+  "workflow_status": "G00_G10_complete",
+  "version": "0.1.11_internal_unpublished_candidate",
+  "schema": 6,
+  "source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+  "wheel_sha256": "54e9ad5c4a553c6953cb4c5cd317db42b9ef8cb49dd130ec9afea112d9e68ac5",
+  "full_tests": {
+    "count": 932,
+    "seconds": 47.553,
+    "status": "passed"
+  },
+  "frozen_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 48.80209899999318
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.07240366699988954
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.18292629200732335
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.020017667004140094
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "current_version_evidence": "codex-0169.json",
+  "functional_phone_and_native": "passed_and_owned_test_terminals_cleaned",
+  "display_phone_receipt": "passed_final_four_owner_screenshots",
+  "temporary_candidate_running": true,
+  "formally_published": false,
+  "git_committed": false,
+  "unknown_replayed": false,
+  "updated_at_beijing": "2026-11-14 13:47",
+  "checkpoints": {
+    "G00": "passed_with_documented_scope",
+    "G01": "passed_with_documented_scope",
+    "G02": "passed_with_documented_scope",
+    "G03": "passed_with_documented_scope",
+    "G04": "passed_with_documented_scope",
+    "G05": "passed_with_documented_scope",
+    "G06": "passed_with_documented_scope",
+    "G07": "passed_with_documented_scope",
+    "G08": "passed_with_documented_scope",
+    "G09": "passed_with_documented_scope",
+    "G10": "passed_with_documented_scope"
+  },
+  "historical_0167_and_resume_inventory": {
+    "status": "resume_inventory_complete_native_unavailable_new_cli_compatibility_pending",
+    "goal_status": "blocked",
+    "version": "0.1.11",
+    "schema": 6,
+    "source_sha256": "ae6969b77c5a4ffdd8584ebcb17b7d4289075a30141bb203f9202f10e8ff822c",
+    "wheel_sha256": "4cc67944bb4d29572899587c03ffa64e9bf834a265a20d3902eecc72b885a08a",
+    "frozen_checks": {
+      "status": "passed",
+      "checks": [
+        {
+          "check": "unittest",
+          "exit_code": 0,
+          "seconds": 48.610679125005845
+        },
+        {
+          "check": "compile",
+          "exit_code": 0,
+          "seconds": 0.048411916999612004
+        },
+        {
+          "check": "dependencies",
+          "exit_code": 0,
+          "seconds": 0.1968308329815045
+        },
+        {
+          "check": "diff",
+          "exit_code": 0,
+          "seconds": 0.023949084017658606
+        },
+        {
+          "check": "documents",
+          "exit_code": 0
+        }
+      ],
+      "wechat_sends": 0,
+      "native_submissions": 0,
+      "production_writes": 0
+    },
+    "full_tests": {
+      "count": 916,
+      "seconds": 47.298,
+      "status": "passed"
+    },
+    "targeted_tests": 129,
+    "help": {
+      "syntax_rows": 25,
+      "max_description_characters": 17,
+      "segments": 1,
+      "characters": 1010,
+      "native_section": true,
+      "codex_help_added": false
+    },
+    "live_catalog": {
+      "status": "passed",
+      "same_frozen_candidate": false,
+      "server_version": "0.167.0",
+      "model_count": 11,
+      "fast_models": 5,
+      "configuration_hashes_preserved": true,
+      "thread_reads": 0,
+      "settings_writes": 0,
+      "native_submissions": 0,
+      "wechat_sends": 0,
+      "tested_source_sha256": "40e632dac4a2476dd1d4946b8733ae2d7c219d50f75950b3663869fb8c14e96a"
+    },
+    "writes_enabled": true,
+    "native_settings_read_acceptance": "owned_two_project_dynamic_passed",
+    "write_implementation": "unified_pair_candidate_implemented_frozen_passed_real_combined_and_phone_pending",
+    "checkpoints": {
+      "G00": "passed",
+      "G01": "passed",
+      "G02": "implementation_evidence_passed_with_user_accepted_boundary",
+      "G03": "query_candidate_offline_and_owned_settings_read_passed_tui_not_observed",
+      "G04": "final_help_and_parser_offline_passed",
+      "G05": "unified_pair_offline_passed_real_combined_write_and_phone_pending",
+      "G06": "offline_process_crash_and_owned_controller_readonly_recovery_passed",
+      "G07": "916_passed_quota_frozen_package",
+      "G08": "phone_model_fast_quota_and_phone_desktop_task_adoption_passed_busy_cleanup_restore_pending",
+      "G09": "candidate_docs_and_diagram_synced_final_dynamic_results_pending",
+      "G10": "not_complete"
+    },
+    "native_probe": {
+      "phase": "cleaned",
+      "maximum_owned_windows": 1,
+      "maximum_owned_terminals": 2,
+      "startup_handshakes": 2,
+      "maximum_settings_updates": 12,
+      "maximum_queue_inputs": 3,
+      "automatic_replay": false,
+      "generation_guard": "before_and_after_settings_rpc",
+      "repeat_run_guard": "before_host_and_connection",
+      "authorization": "explicit_user_received_and_executed",
+      "actual_owned_windows": 1,
+      "actual_owned_terminals": 2,
+      "settings_requests": 8,
+      "confirmed_event_and_readback": 7,
+      "normalized_null_clear_readback_review": 1,
+      "queue_inputs": 3,
+      "all_inputs": "completed",
+      "original_a_restored": true,
+      "b_unchanged": true,
+      "protected_configuration_unchanged": true,
+      "owned_terminals_absent": true,
+      "currently_running": false,
+      "current_turn_kept_old_effort": true,
+      "preexisting_queued_turn_used_new_effort": true,
+      "fast_actual_request_tier_exposed": false,
+      "desktop_display_observed": false,
+      "phone_tested": false
+    },
+    "git_committed": false,
+    "production_deployed": false,
+    "native_submissions": 6,
+    "wechat_sends": 0,
+    "updated_at_beijing": "2026-11-14 09:30",
+    "supplemental_probe_guard_checks": {
+      "status": "passed",
+      "count": 874,
+      "seconds": 46.36,
+      "new_guard_tests": 3,
+      "same_query_package": true,
+      "checks": [
+        {
+          "check": "unittest",
+          "exit_code": 0,
+          "seconds": 46.55421000000206
+        },
+        {
+          "check": "compile",
+          "exit_code": 0,
+          "seconds": 0.04816175001906231
+        },
+        {
+          "check": "dependencies",
+          "exit_code": 0,
+          "seconds": 0.20237920799991116
+        },
+        {
+          "check": "diff",
+          "exit_code": 0,
+          "seconds": 0.023966417007613927
+        },
+        {
+          "check": "documents",
+          "exit_code": 0
+        }
+      ],
+      "initial_sandbox_run": {
+        "status": "failed",
+        "errors": 34,
+        "permission_denied_socket_bind": 34,
+        "assertion_failures": 0
+      },
+      "native_actions": 0
+    },
+    "blocker": {
+      "kind": "waiting_owner_first_phone_command_group",
+      "temporary_switch_authorization_received": true,
+      "current_audit_turns": 1
+    },
+    "previous_query_candidate": {
+      "source_sha256": "40e632dac4a2476dd1d4946b8733ae2d7c219d50f75950b3663869fb8c14e96a",
+      "wheel_sha256": "5fa56af872a1842f0cf35ca5f610191ab332b060004daf0759cb13817c6ee7a8",
+      "frozen_checks": {
+        "status": "passed",
+        "checks": [
+          {
+            "check": "unittest",
+            "exit_code": 0,
+            "seconds": 47.92293791600969
+          },
+          {
+            "check": "compile",
+            "exit_code": 0,
+            "seconds": 0.09043816701159813
+          },
+          {
+            "check": "dependencies",
+            "exit_code": 0,
+            "seconds": 0.20999312499770895
+          },
+          {
+            "check": "diff",
+            "exit_code": 0,
+            "seconds": 0.02399766698363237
+          },
+          {
+            "check": "documents",
+            "exit_code": 0
+          }
+        ],
+        "wechat_sends": 0,
+        "native_submissions": 0,
+        "production_writes": 0
+      },
+      "full_tests": {
+        "count": 871,
+        "seconds": 46.613,
+        "status": "passed"
+      },
+      "supplemental_probe_guard_checks": {
+        "status": "passed",
+        "count": 874,
+        "seconds": 46.36,
+        "new_guard_tests": 3,
+        "same_query_package": true,
+        "checks": [
+          {
+            "check": "unittest",
+            "exit_code": 0,
+            "seconds": 46.55421000000206
+          },
+          {
+            "check": "compile",
+            "exit_code": 0,
+            "seconds": 0.04816175001906231
+          },
+          {
+            "check": "dependencies",
+            "exit_code": 0,
+            "seconds": 0.20237920799991116
+          },
+          {
+            "check": "diff",
+            "exit_code": 0,
+            "seconds": 0.023966417007613927
+          },
+          {
+            "check": "documents",
+            "exit_code": 0
+          }
+        ],
+        "initial_sandbox_run": {
+          "status": "failed",
+          "errors": 34,
+          "permission_denied_socket_bind": 34,
+          "assertion_failures": 0
+        },
+        "native_actions": 0
+      }
+    },
+    "query_only_candidate": {
+      "source_sha256": "c4fd24446eac254e38f32d42e514290b14be7c294161cd4a9169f5c33b9e0abe",
+      "wheel_sha256": "6def71f7786681042288d574b12848373e72d5774a9e8c35c9b88dc51d60a189",
+      "full_tests": {
+        "count": 875,
+        "seconds": 46.343,
+        "status": "passed"
+      },
+      "frozen_checks": {
+        "status": "passed",
+        "checks": [
+          {
+            "check": "unittest",
+            "exit_code": 0,
+            "seconds": 47.54025183300837
+          },
+          {
+            "check": "compile",
+            "exit_code": 0,
+            "seconds": 0.09044033297686838
+          },
+          {
+            "check": "dependencies",
+            "exit_code": 0,
+            "seconds": 0.21017650002613664
+          },
+          {
+            "check": "diff",
+            "exit_code": 0,
+            "seconds": 0.023936874989885837
+          },
+          {
+            "check": "documents",
+            "exit_code": 0
+          }
+        ],
+        "wechat_sends": 0,
+        "native_submissions": 0,
+        "production_writes": 0
+      }
+    },
+    "execution_status": "0169_candidate_temporarily_running_phone_acceptance_in_progress",
+    "production_writes_enabled": false,
+    "accepted_boundary": {
+      "explicit_user": true,
+      "known_busy_and_queued": "refuse",
+      "post_check_desktop_race": "disclosed_not_atomic",
+      "fast_proof": "native_setting_event_and_readback_only",
+      "actual_request_tier_speed_billing": "not_provided"
+    },
+    "next_candidate_probe": {
+      "phase": "cleaned",
+      "windows": 1,
+      "terminals": 2,
+      "startup_handshakes": 2,
+      "max_setting_requests": 8,
+      "max_native_queue_inputs": 3,
+      "owner_screen_reads": 1,
+      "owned_rollout_audit": true,
+      "wechat_actions": 0,
+      "production_writes": 0,
+      "specific_authorization_required": true,
+      "authorization": "explicit_user_executed",
+      "actual_settings_requests": 6,
+      "actual_native_queue_inputs": 3,
+      "all_inputs_completed": true,
+      "original_a_restored": true,
+      "b_unchanged": true,
+      "protected_configuration_unchanged": true,
+      "zero_active_occupancy": true,
+      "remaining_queries_verified": [
+        "/sessions",
+        "/focus 2",
+        "/model",
+        "/help",
+        "/unfocus"
+      ],
+      "driver_failure_preserved": true,
+      "driver_poll_timeout_reproduced_and_fixed": true,
+      "original_pump_exception_not_saved": true,
+      "readonly_reconciliation": true,
+      "native_replays": 0,
+      "tui_immediate_snapshot": "old_model_visible",
+      "new_model_adoption": "exact_turn_context_verified",
+      "owned_terminals_absent": true
+    },
+    "journal": {
+      "format": 1,
+      "max_records": 2048,
+      "max_record_bytes": 16384,
+      "schema_changed": false,
+      "replay_on_restart": false,
+      "file_fsync": true,
+      "directory_fsync": true,
+      "lease_across_network_await": false
+    },
+    "diagram": {
+      "svg_sha256": "32ec8577c4d3af4c7f9b757b25b26a1a424b92a24e46097d11556ed89a625694",
+      "png_sha256": "33c34e53dc956825a9d44c9d7357dcff37a92344a537489678e19f917d7764c7",
+      "source_sha256": "60eccc461687c7b679e1b14aedc285c1fb806f16588037e54d46058f94f62ccf",
+      "visually_inspected": true,
+      "new_nodes": [
+        "native_controls",
+        "control_journal"
+      ],
+      "labels_visible": true,
+      "clipping_observed": false,
+      "embedded_font": false
+    },
+    "before_owned_controller_checks": {
+      "full_tests": {
+        "count": 902,
+        "seconds": 47.361,
+        "status": "passed"
+      },
+      "frozen_checks": {
+        "status": "passed",
+        "checks": [
+          {
+            "check": "unittest",
+            "exit_code": 0,
+            "seconds": 47.625390250002965
+          },
+          {
+            "check": "compile",
+            "exit_code": 0,
+            "seconds": 0.09023087500827387
+          },
+          {
+            "check": "dependencies",
+            "exit_code": 0,
+            "seconds": 0.2030359999916982
+          },
+          {
+            "check": "diff",
+            "exit_code": 0,
+            "seconds": 0.021803875017212704
+          },
+          {
+            "check": "documents",
+            "exit_code": 0
+          }
+        ],
+        "wechat_sends": 0,
+        "native_submissions": 0,
+        "production_writes": 0
+      }
+    },
+    "phone": {
+      "phase": "candidate_running_for_phone",
+      "same_wheel_installed_private_new_release": true,
+      "service_switched": true,
+      "old_runtime_version": "0.1.11",
+      "schema": 6,
+      "old_tables": 13,
+      "registered_projects": 12,
+      "registry_changes": false,
+      "same_project_test_subdirectories": 2,
+      "proposed_plist_changed_keys": [
+        "ProgramArguments",
+        "WorkingDirectory"
+      ],
+      "max_explicit_settings_requests": 8,
+      "max_tasks": 3,
+      "manual_desktop_input": 1,
+      "automatic_wechat_actions": 0,
+      "restore_old_runtime_preserve_new_database_and_control_records": true,
+      "input_target_ends_unfocused": true,
+      "specific_user_authorization": true,
+      "actual_source_verified": true,
+      "single_verified_consumer": true,
+      "native_ready": true,
+      "old_rows_verified": true,
+      "config_unchanged": true,
+      "post_switch_python_display_check_corrected": true,
+      "no_repeat_switch": true,
+      "database_restore": false,
+      "owner_commands_started": false
+    },
+    "unified_model_request": {
+      "status": "native_combined_setting_and_phone_model_group_passed_remaining_acceptance_pending",
+      "syntax": "/model set <model> [effort]",
+      "omitted_effort": "fresh_selected_model_catalog_default",
+      "default_missing_or_unsupported": "require_explicit_effort",
+      "request_fields": [
+        "model",
+        "effort"
+      ],
+      "other_fields_preserved": true,
+      "atomicity_claim": false,
+      "partial_application": "unknown_no_rollback_or_replay",
+      "old_syntax_supported": false,
+      "development_tests": {
+        "count": 906,
+        "seconds": 49.605,
+        "passed": true
+      },
+      "project_list_linebreak_fix": "phone_screenshots_passed",
+      "source_sha256": "6006d6d7cb141cbf7968f4b2e00947ff7791c4294ab8b1cb532f40881ebd23d1",
+      "wheel_sha256": "308d43e612eb0fdf79c0ee872893f1a20250cbc7fd90bf8e4c335c46bd8c3f90",
+      "frozen_tests": 906
+    },
+    "phone_first_group": {
+      "status": "screenshots_and_readonly_owned_identity_checked",
+      "commands": [
+        "cd phone-a",
+        "model",
+        "model list",
+        "help",
+        "project"
+      ],
+      "catalog_count": 11,
+      "project_count": 12,
+      "owned_terminals": 2,
+      "owned_windows": 1,
+      "settings_writes": 0,
+      "normal_tasks": 0,
+      "passed": [
+        "accurate_cwd",
+        "original_model_effort",
+        "catalog",
+        "help_native_section",
+        "project_bold_and_root_once"
+      ],
+      "not_passed": [
+        "project_per_item_linebreak",
+        "codex_status_row_not_fully_visible"
+      ],
+      "private_screenshot_evidence_recorded": true
+    },
+    "previous_single_field_candidate": {
+      "source_sha256": "173aa10dcc66feb4e4d6b249b66c26ed412141d5efcdbadc636354108ab13458",
+      "wheel_sha256": "30f1a27504eb52c556815c4319d965326b933feb9696c2c61e0e1d2719e8e9b6",
+      "frozen_checks": {
+        "status": "passed",
+        "checks": [
+          {
+            "check": "unittest",
+            "exit_code": 0,
+            "seconds": 47.74544470899855
+          },
+          {
+            "check": "compile",
+            "exit_code": 0,
+            "seconds": 0.09012604202143848
+          },
+          {
+            "check": "dependencies",
+            "exit_code": 0,
+            "seconds": 0.20040716702351347
+          },
+          {
+            "check": "diff",
+            "exit_code": 0,
+            "seconds": 0.02274629200110212
+          },
+          {
+            "check": "documents",
+            "exit_code": 0
+          }
+        ],
+        "wechat_sends": 0,
+        "native_submissions": 0,
+        "production_writes": 0
+      },
+      "full_tests": {
+        "count": 903,
+        "seconds": 47.536,
+        "status": "passed"
+      }
+    },
+    "phone_candidate_update": {
+      "normal_stop": true,
+      "seconds_to_ready": 7.81,
+      "old_and_new_rows_preserved": true,
+      "config_unchanged": true,
+      "original_daily_restore_target_preserved": true,
+      "owned_windows": 1,
+      "owned_terminals": 2,
+      "settings_writes": 0,
+      "normal_tasks": 1,
+      "finished_phone_acceptance": false,
+      "daily_runtime_restored": false,
+      "source_sha256": "ae6969b77c5a4ffdd8584ebcb17b7d4289075a30141bb203f9202f10e8ff822c",
+      "all_five_control_files_byte_unchanged": true,
+      "native_settings_writes": 0,
+      "restored_original": false
+    },
+    "phone_unified_model_group": {
+      "status": "screenshots_private_journal_and_native_readback_passed",
+      "selected_model_default": "gpt-6.1-sol/low",
+      "explicit_pair": "gpt-6-luna/medium",
+      "confirmed_pair_updates": 2,
+      "unchanged_operations": 1,
+      "matching_settings_events_and_after": true,
+      "provider_and_tier_preserved": true,
+      "b_unchanged": true,
+      "configuration_hashes_preserved": true,
+      "owned_windows": 1,
+      "owned_terminals": 2,
+      "project_per_item_linebreak_screenshot": "passed",
+      "ordinary_tasks_so_far": 0,
+      "fast_and_task_adoption_and_desktop_and_restore": "pending"
+    },
+    "phone_fast_group": {
+      "status": "screenshots_private_intents_and_exact_native_turn_passed",
+      "fast_confirmed_changes": 2,
+      "fast_actual_request_tier": "not_provided",
+      "invalid_model_no_task": true,
+      "ordinary_tasks": 1,
+      "completed_once": true,
+      "adopted_model": "gpt-6-luna",
+      "adopted_effort": "medium",
+      "b_unchanged": true,
+      "configuration_hashes_preserved": true,
+      "owned_tui_screenshot_model_and_effort": "gpt-6-luna/medium",
+      "manual_desktop_input": "pending"
+    },
+    "account_quota_gap": {
+      "found_during_phone_acceptance": true,
+      "cause": "status_only_subscribed_thread_tokenUsage_no_account_quota_read",
+      "matched_native_schema": "0.167.0",
+      "live_read_method": "account/rateLimits/read",
+      "params": {
+        "excludeResetCreditDetails": true
+      },
+      "returned_windows_minutes": [
+        300,
+        10080
+      ],
+      "scope": "native_account_bucket_not_thread_or_inferred_model_usage",
+      "implementation": "frozen_916_passed_live_same_package_and_phone_receipt_passed",
+      "new_auth_or_reserve_or_reset_operations": false,
+      "private_usage_snapshot_retained": true,
+      "account_and_thread_usage_separated": true,
+      "unavailable_failure_generation_tests_passed": true,
+      "same_frozen_live_read": true,
+      "auth_reserve_reset_mutations": 0
+    },
+    "previous_unified_candidate": {
+      "source_sha256": "6006d6d7cb141cbf7968f4b2e00947ff7791c4294ab8b1cb532f40881ebd23d1",
+      "wheel_sha256": "308d43e612eb0fdf79c0ee872893f1a20250cbc7fd90bf8e4c335c46bd8c3f90",
+      "frozen_checks": {
+        "status": "passed",
+        "checks": [
+          {
+            "check": "unittest",
+            "exit_code": 0,
+            "seconds": 49.572918374993606
+          },
+          {
+            "check": "compile",
+            "exit_code": 0,
+            "seconds": 0.07342933298787102
+          },
+          {
+            "check": "dependencies",
+            "exit_code": 0,
+            "seconds": 0.18740995801636018
+          },
+          {
+            "check": "diff",
+            "exit_code": 0,
+            "seconds": 0.01998066602391191
+          },
+          {
+            "check": "documents",
+            "exit_code": 0
+          }
+        ],
+        "wechat_sends": 0,
+        "native_submissions": 0,
+        "production_writes": 0
+      },
+      "full_tests": {
+        "count": 906,
+        "seconds": 47.911,
+        "status": "passed"
+      }
+    },
+    "phone_desktop_adoption": {
+      "status": "owner_input_and_exact_owned_native_turn_passed",
+      "completed_once": true,
+      "no_tools": true,
+      "model": "gpt-6-luna",
+      "effort": "medium",
+      "b_and_configuration_preserved": true
+    },
+    "resume_inventory": {
+      "at_beijing": "2026-11-14 08:48",
+      "running_source_matches_last_candidate": true,
+      "source_and_installed_manifest_verified": true,
+      "host": "not_running",
+      "native": "unavailable",
+      "cli_version": "0.169.0",
+      "daemon_version": null,
+      "old_test_processes_alive": false,
+      "bridge_process_changed": true,
+      "bridge_config_unchanged": true,
+      "codex_config_hash_changed": true,
+      "configuration_overwritten": false,
+      "active_tasks": 0,
+      "active_occupancy": 0,
+      "quick_check_passed": true,
+      "old_test_target_in_ledger": true,
+      "busy_test_found": false,
+      "frozen_checks": {
+        "status": "passed",
+        "checks": [
+          {
+            "check": "unittest",
+            "exit_code": 0,
+            "seconds": 47.96496895799646
+          },
+          {
+            "check": "compile",
+            "exit_code": 0,
+            "seconds": 0.07729862499400042
+          },
+          {
+            "check": "dependencies",
+            "exit_code": 0,
+            "seconds": 0.18725279199134093
+          },
+          {
+            "check": "diff",
+            "exit_code": 0,
+            "seconds": 0.020095875006518327
+          },
+          {
+            "check": "documents",
+            "exit_code": 0
+          }
+        ],
+        "wechat_sends": 0,
+        "native_submissions": 0,
+        "production_writes": 0
+      },
+      "unittest_count": 916,
+      "unittest_seconds": 47.525,
+      "new_runtime_round_required": true,
+      "mutations": 0
+    },
+    "compatibility_0169": {
+      "evidence": "codex-0169.json",
+      "daemon_version": "0.169.0",
+      "generated_schemas": 479,
+      "compared_schemas": 43,
+      "changed_schemas": 18,
+      "same_frozen_tests": 924,
+      "seconds": 47.652,
+      "source_sha256": "cd94a13f759175ec82e407fc1f95af75030a2205f96542c5140886d112066a26",
+      "wheel_sha256": "a78cfebc49f2adc1c8e94a60f83f76ae012ad0fc7ff1a014e8b70133de9bbe7d",
+      "dynamic": "passed_5_settings_3_tasks_cleaned",
+      "service_switched": true,
+      "phone": "settings_noop_fast_error_and_native_task_adoption_passed_desktop_busy_closeout_pending"
+    }
+  },
+  "next_candidate": {
+    "source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+    "wheel_sha256": "54e9ad5c4a553c6953cb4c5cd317db42b9ef8cb49dd130ec9afea112d9e68ac5",
+    "frozen_checks": {
+      "status": "passed",
+      "checks": [
+        {
+          "check": "unittest",
+          "exit_code": 0,
+          "seconds": 48.80209899999318
+        },
+        {
+          "check": "compile",
+          "exit_code": 0,
+          "seconds": 0.07240366699988954
+        },
+        {
+          "check": "dependencies",
+          "exit_code": 0,
+          "seconds": 0.18292629200732335
+        },
+        {
+          "check": "diff",
+          "exit_code": 0,
+          "seconds": 0.020017667004140094
+        },
+        {
+          "check": "documents",
+          "exit_code": 0
+        }
+      ],
+      "wechat_sends": 0,
+      "native_submissions": 0,
+      "production_writes": 0
+    },
+    "tests": {
+      "count": 932,
+      "seconds": 47.553,
+      "result": "passed"
+    },
+    "changed_behavior": "omit directory basename only when exactly equal to project alias",
+    "running": true,
+    "switch_pending": null,
+    "native_mutations": 0
+  },
+  "closeout_index": {
+    "test_run": "same frozen b380026/54e9ad5c candidate, 932 tests/47.553s",
+    "requirements": {
+      "T01": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_seven_entries_have_explicit_actions",
+          "tests/test_native_controls.py::test_unapproved_commands_and_compound_options_never_become_tasks"
+        ]
+      },
+      "T02": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_unapproved_commands_and_compound_options_never_become_tasks",
+          "tests/test_native_control_writes.py::test_unsupported_model_effort_or_tier_never_sends"
+        ]
+      },
+      "T03": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_help_native_section_remains_a_bridge_help_and_renders",
+          "tests/test_runtime_lifecycle.py::test_static_commands_work_without_host_or_native_and_never_launch"
+        ]
+      },
+      "T04": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_seven_entries_have_explicit_actions",
+          "tests/test_native_controls.py::test_status_reads_account_quota_separately_and_other_queries_do_not"
+        ]
+      },
+      "T05": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_observer_role_does_not_substitute_for_input_subscription",
+          "tests/test_controller.py::test_native_model_list_does_not_need_focus_or_create_tasks"
+        ]
+      },
+      "T06": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_codex_connection.py::test_settings_snapshot_rejects_other_provider_or_effective_directory",
+          "tests/test_sessions.py::test_runtime_session_and_project_changes_are_rejected"
+        ]
+      },
+      "T07": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_controller.py::test_native_query_received_before_unfocus_never_uses_new_selection",
+          "tests/test_project_runtime.py::test_selected_or_observed_project_cannot_be_removed"
+        ]
+      },
+      "T08": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_codex_connection.py::test_settings_snapshot_uses_only_loaded_subscription_without_overrides",
+          "tests/test_codex_connection.py::test_settings_snapshot_never_hydrates_an_unloaded_archive"
+        ]
+      },
+      "T09": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_pages_are_complete_unique_and_read_only",
+          "tests/test_native_controls.py::test_duplicate_rows_cursors_and_invalid_fields_fail_closed",
+          "tests/test_native_controls.py::test_pagination_and_byte_bounds_refuse_incomplete_catalog"
+        ]
+      },
+      "T10": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_0169_catalog_uses_selected_provider_without_changing_it",
+          "tests/test_native_control_writes.py::test_unsupported_model_effort_or_tier_never_sends"
+        ]
+      },
+      "T11": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_omitted_effort_uses_selected_model_default_even_for_current_model",
+          "tests/test_native_control_writes.py::test_missing_or_unsupported_default_requires_explicit_effort"
+        ]
+      },
+      "T12": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_fast_uses_catalog_ids_and_distinguishes_unknown_and_unsupported",
+          "tests/test_native_controls.py::test_fast_read_is_not_a_toggle_and_unsupported_is_explicit"
+        ]
+      },
+      "T13": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_model_pair_and_fast_preserve_other_fields"
+        ],
+        "native_evidence": "docs/validation/codex-0169.json#dynamic_native"
+      },
+      "T14": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_0169_pair_update_queries_original_provider_and_keeps_tier",
+          "tests/test_native_control_writes.py::test_model_pair_and_fast_preserve_other_fields"
+        ],
+        "native_evidence": "docs/validation/codex-0169.json#dynamic_native"
+      },
+      "T15": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_same_value_is_durable_noop_and_duplicate_message_never_sends",
+          "tests/test_native_control_writes.py::test_source_reuse_with_different_operation_never_sends_again"
+        ]
+      },
+      "T16": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_missing_or_wrong_event_cannot_confirm_ack",
+          "tests/test_native_control_writes.py::test_native_rejection_needs_unchanged_readback",
+          "tests/test_native_control_writes.py::test_partial_pair_application_is_unknown_without_rollback_or_replay"
+        ]
+      },
+      "T17": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_model_pair_and_fast_preserve_other_fields",
+          "tests/test_native_control_writes.py::test_late_receipt_after_timeout_never_reopens_window_or_changes_result"
+        ]
+      },
+      "T18": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_selection_or_generation_change_after_send_never_replays",
+          "tests/test_native_control_writes.py::test_pre_send_settings_change_is_rejected_without_overwriting_desktop"
+        ]
+      },
+      "T19": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_busy_queue_received_occupancy_and_interactions_refuse_before_send",
+          "tests/test_controller.py::test_control_active_interactions_cannot_hide_behind_recent_resolved_history"
+        ]
+      },
+      "T20": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_controller.py::test_received_task_reservation_blocks_setting_before_task_intent",
+          "tests/test_controller.py::test_setting_and_normal_dispatch_share_admission_gate"
+        ],
+        "native_evidence": "docs/validation/codex-0169.json#dynamic_native",
+        "scope": "已知忙碌／排队拒绝；本人接受桌面检查后竞争，不承诺跨客户端原子互斥。"
+      },
+      "T21": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_catalog.py::test_verified_native_identity_is_stable_across_refresh_and_filtering",
+          "tests/test_native_control_writes.py::test_0169_pair_update_queries_original_provider_and_keeps_tier"
+        ]
+      },
+      "T22": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_project_runtime.py::test_incoming_selection_reservation_blocks_remove_before_execution",
+          "tests/test_controller.py::test_native_query_received_before_unfocus_never_uses_new_selection"
+        ]
+      },
+      "T23": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_busy_queue_received_occupancy_and_interactions_refuse_before_send"
+        ],
+        "native_evidence": "docs/validation/codex-0169.json#dynamic_native",
+        "phone_functional_evidence": "docs/validation/codex-0169.json#phone",
+        "scope": "准确 turn_context 证明模型／推理采用；Fast 仅设置事件与回读。"
+      },
+      "T24": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_model_read_has_fresh_snapshot_no_usage_or_catalog_calls"
+        ],
+        "native_evidence": "docs/validation/codex-0169.json#dynamic_native",
+        "phone_functional_evidence": "docs/validation/codex-0169.json#phone",
+        "scope": "即时 TUI 旧显示限制保留，桌面后续实际采用已核验。"
+      },
+      "T25": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_image_controller.py::test_model_image_rejection_preserves_error_without_text_only_retry",
+          "tests/test_image_controller.py::test_unverified_image_runtime_refuses_before_download_or_task_admission"
+        ],
+        "scope": "沿用旧图像能力的模型拒绝保护；0.169.0 图片专项关闭，不声明本版图片实收通过。"
+      },
+      "T26": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_controls.py::test_usage_remains_scoped_bounded_and_hidden_from_default_status",
+          "tests/test_native_controls.py::test_invalid_usage_never_crashes_or_becomes_real_zero"
+        ]
+      },
+      "T27": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_quota.py::test_multiple_buckets_keep_their_native_model_labels_without_guessing",
+          "tests/test_native_control_quota.py::test_remaining_windows_and_reset_are_native_and_account_scoped"
+        ]
+      },
+      "T28": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_runtime_lifecycle.py::test_static_commands_work_without_host_or_native_and_never_launch",
+          "tests/test_native_controls.py::test_read_error_is_bounded_and_never_leaks_native_error_content"
+        ]
+      },
+      "T29": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_writes.py::test_confirmed_and_unknown_restart_return_frozen_receipt_without_rpc",
+          "tests/test_runtime_lifecycle.py::test_twenty_native_recoveries_keep_one_consumer_and_release_old_engines"
+        ]
+      },
+      "T30": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_native_control_process.py::test_crash_after_wire_ack_restart_does_not_repeat_rpc",
+          "tests/test_native_control_process.py::test_crash_after_durable_confirmation_recovers_frozen_reply_without_rpc",
+          "tests/test_control_journal.py::test_real_child_exit_after_intent_does_not_authorize_recreation"
+        ]
+      },
+      "T31": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_command_display.py::test_target_label_omits_identical_project_directory_name_only",
+          "tests/test_command_display.py::test_catalog_unknown_labels_cannot_inject_markdown_or_html",
+          "tests/test_command_display.py::test_compact_target_and_actionable_id_do_not_change_identifier"
+        ],
+        "final_evidence": "docs/validation/codex-0169.json#final_acceptance"
+      },
+      "T32": {
+        "offline": "passed_frozen_932",
+        "tests": [
+          "tests/test_project_runtime.py::test_project_list_aliases_share_compact_rendering_and_check_keeps_details",
+          "tests/test_controller.py::test_display_line_breaks_cannot_change_task_input_or_code_result_bytes"
+        ]
+      },
+      "T33": {
+        "offline": "not_substituted_for_live_evidence",
+        "tests": [],
+        "native_evidence": "docs/validation/codex-0169.json#dynamic_native",
+        "phone_functional_evidence": "docs/validation/codex-0169.json#phone"
+      },
+      "T34": {
+        "offline": "not_substituted_for_live_evidence",
+        "tests": [],
+        "native_evidence": "docs/validation/codex-0169.json#dynamic_native",
+        "scope": "专用原生 busy／queued 与同准确原生的只读重连恢复；不重启或降级用户 daemon。"
+      },
+      "T35": {
+        "offline": "not_substituted_for_live_evidence",
+        "tests": [],
+        "phone_functional_evidence": "docs/validation/codex-0169.json#phone",
+        "final_evidence": "docs/validation/codex-0169.json#final_acceptance"
+      },
+      "T36": {
+        "offline": "not_substituted_for_live_evidence",
+        "tests": [],
+        "native_evidence": "docs/validation/codex-0169.json#dynamic_native",
+        "phone_functional_evidence": "docs/validation/codex-0169.json#phone",
+        "final_evidence": "docs/validation/codex-0169.json#final_acceptance"
+      }
+    },
+    "acceptance_dependencies": {
+      "A01": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T31"
+      ],
+      "A02": [
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T18",
+        "T22",
+        "T33"
+      ],
+      "A03": [
+        "T09",
+        "T10",
+        "T33"
+      ],
+      "A04": [
+        "T08",
+        "T11",
+        "T14",
+        "T21",
+        "T23"
+      ],
+      "A05": [
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T33"
+      ],
+      "A06": [
+        "T19",
+        "T20",
+        "T23",
+        "T34"
+      ],
+      "A07": [
+        "T16",
+        "T17",
+        "T18",
+        "T23",
+        "T33"
+      ],
+      "A08": [
+        "T06",
+        "T14",
+        "T18",
+        "T25",
+        "T33"
+      ],
+      "A09": [
+        "T04",
+        "T26",
+        "T27",
+        "T35"
+      ],
+      "A10": [
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T29",
+        "T30"
+      ],
+      "A11": [
+        "T03",
+        "T04",
+        "T31",
+        "T32",
+        "T35"
+      ],
+      "A12": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T20",
+        "T21",
+        "T22",
+        "T23",
+        "T24",
+        "T25",
+        "T26",
+        "T27",
+        "T28",
+        "T29",
+        "T30",
+        "T31",
+        "T32"
+      ],
+      "A13": [
+        "T33",
+        "T34",
+        "T35",
+        "T36"
+      ],
+      "A14": [
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T26",
+        "T27",
+        "T28",
+        "T29"
+      ],
+      "A15": [
+        "G09",
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07"
+      ],
+      "A16": [
+        "G10",
+        "D08"
+      ]
+    },
+    "deliverable_paths": {
+      "D01": [
+        "docs/native-controls.md"
+      ],
+      "D02": [
+        "docs/product-design.md",
+        "docs/command-contract-proposal.md",
+        "README.md"
+      ],
+      "D03": [
+        "docs/architecture-design.md",
+        "docs/development-contracts.md",
+        "docs/technical-decisions.md",
+        "docs/diagrams/architecture-F03.svg"
+      ],
+      "D04": [
+        "docs/protocol-baseline.md",
+        "tests/fixtures/codex-contract.json",
+        "docs/validation/codex-0169.json"
+      ],
+      "D05": [
+        "docs/testing.md",
+        "docs/development.md",
+        "docs/requirements-traceability.md"
+      ],
+      "D06": [
+        "docs/state-schema.md",
+        "docs/operations.md",
+        "SECURITY.md"
+      ],
+      "D07": [
+        "docs/validation/native-controls.md",
+        "docs/validation/native-controls.json",
+        "goals/20261109-2349-native-control-commands.md",
+        "docs/README.md",
+        "ROADMAP.md"
+      ],
+      "D08": [
+        "docs/validation/codex-0169.md"
+      ]
+    },
+    "completion": "all_scoped_evidence_verified_actual_runtime_and_owner_phone_display_passed",
+    "scope_note": "索引只定位已检查源码与实跑记录，不能把测试名或文件存在当作完整产品验收。",
+    "acceptance_results": {
+      "A01": "passed_with_documented_scope",
+      "A02": "passed_with_documented_scope",
+      "A03": "passed_with_documented_scope",
+      "A04": "passed_with_documented_scope",
+      "A05": "passed_with_documented_scope",
+      "A06": "passed_with_documented_scope",
+      "A07": "passed_with_documented_scope",
+      "A08": "passed_with_documented_scope",
+      "A09": "passed_with_documented_scope",
+      "A10": "passed_with_documented_scope",
+      "A11": "passed_with_documented_scope",
+      "A12": "passed_with_documented_scope",
+      "A13": "passed_with_documented_scope",
+      "A14": "passed_with_documented_scope",
+      "A15": "passed_with_documented_scope",
+      "A16": "passed_with_documented_scope"
+    },
+    "deliverable_results": {
+      "D01": "verified_delivered_unpublished",
+      "D02": "verified_delivered_unpublished",
+      "D03": "verified_delivered_unpublished",
+      "D04": "verified_delivered_unpublished",
+      "D05": "verified_delivered_unpublished",
+      "D06": "verified_delivered_unpublished",
+      "D07": "verified_delivered_unpublished",
+      "D08": "verified_delivered_unpublished"
+    }
+  },
+  "idle_switch_watch": {
+    "phase": "completed_and_process_exited",
+    "process_liveness_verified": false,
+    "one_shot": true,
+    "timeout_seconds": 1200,
+    "native_terminal_and_ledger_idle_required": true,
+    "gate_checks_passed": 8,
+    "candidate_independently_installed": true,
+    "service_switch_success_proven": true,
+    "automatic_wechat_inputs": 0,
+    "automatic_replay": false,
+    "forced_stop": false,
+    "database_restore": false
+  },
+  "goal_control_last_observed_status": "complete",
+  "owner_explicitly_resumed_work": true,
+  "final_acceptance": {
+    "status": "passed",
+    "source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+    "wheel_sha256": "54e9ad5c4a553c6953cb4c5cd317db42b9ef8cb49dd130ec9afea112d9e68ac5",
+    "same_frozen_tests": {
+      "count": 932,
+      "seconds": 47.553,
+      "result": "passed"
+    },
+    "phone_commands": [
+      "/codex status",
+      "/model list",
+      "/help"
+    ],
+    "owner_screenshot_count": 4,
+    "api_accepted_receipts": 3,
+    "dedup_passed": true,
+    "complete_model_count": 8,
+    "help_all_sections_passed": true,
+    "switch": {
+      "phase": "temporary_target_label_candidate_running",
+      "source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+      "wheel_sha256": "54e9ad5c4a553c6953cb4c5cd317db42b9ef8cb49dd130ec9afea112d9e68ac5",
+      "schema": 6,
+      "normal_stop": true,
+      "exact_watched_native_terminal_verified": true,
+      "seconds_to_ready": 6.972,
+      "all_old_rows_preserved": true,
+      "all_control_records_unchanged": true,
+      "configuration_preserved": true,
+      "project_count": 12,
+      "database_restore": false,
+      "automatic_wechat_inputs": 0,
+      "formal_release": false
+    },
+    "independent_runtime_and_data_protection_audit": "passed",
+    "one_shot_process_exited": true,
+    "formal_release": false,
+    "new_setting_requests": 0,
+    "new_native_tasks": 0,
+    "automatic_wechat_inputs": 0
+  },
+  "goal_result": {
+    "status": "complete",
+    "tool_confirmed": true,
+    "tokens_used": 193159,
+    "time_used_seconds": 2221,
+    "recorded_at_beijing": "2026-11-14 13:47"
+  },
+  "subsequent_publication_record": "native-controls-release.json",
+  "historical_acceptance_metadata_preserved": true
+}

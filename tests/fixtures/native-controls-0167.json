@@ -1,0 +1,231 @@
+{
+  "version": "0.167.0",
+  "schema_count": 470,
+  "scope": "Matched static schemas, live catalog, owned loaded settings, settings updates and queue adoption; product writes remain gated",
+  "methods": {
+    "model/list": "bounded readonly catalog",
+    "thread/read": "metadata read, not a complete tier snapshot",
+    "thread/resume": "loaded-only existing subscription; never settings overrides or archive hydration",
+    "thread/settings/update": "write gate closed; empty object is not confirmation",
+    "account/rateLimits/read": "read-only runtime account quota; exclude reset-credit details; no auth or Reserve operations"
+  },
+  "schemas": {
+    "ModelListParams": {
+      "sha256": "de29a536c00a5b8f46f34dba417dabd93365305571a8ed200e33bea85db68b5a",
+      "type": "object",
+      "required": [],
+      "properties": [
+        "cursor",
+        "includeHidden",
+        "limit"
+      ]
+    },
+    "ModelListResponse": {
+      "sha256": "2fb387a2ed258fc74258828ea342d68f89ce4e8e22cd0329ca59d2b423f9108b",
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": [
+        "data",
+        "nextCursor"
+      ]
+    },
+    "ThreadReadResponse": {
+      "sha256": "4ee5071cf8c7245189e5bd0819e459b9d974d5949708372fee68b6fc5329f90d",
+      "type": "object",
+      "required": [
+        "thread"
+      ],
+      "properties": [
+        "readState",
+        "thread"
+      ]
+    },
+    "ThreadResumeParams": {
+      "sha256": "9642460eb42e9a6e8fa8e12b4381e8ed939d10b1ad8690e694d84467ea76d41a",
+      "type": "object",
+      "required": [
+        "threadId"
+      ],
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "baseInstructions",
+        "config",
+        "cwd",
+        "developerInstructions",
+        "excludeTurns",
+        "history",
+        "initialTurnsPage",
+        "model",
+        "modelProvider",
+        "path",
+        "permissions",
+        "personality",
+        "runtimeWorkspaceRoots",
+        "sandbox",
+        "serviceTier",
+        "threadId"
+      ]
+    },
+    "ThreadResumeResponse": {
+      "sha256": "9ab25f81ec27b83042c469fd031127c8eaf1a3ac8e2cdc53e76cb24f8e03ce28",
+      "type": "object",
+      "required": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "cwd",
+        "model",
+        "modelProvider",
+        "sandbox",
+        "thread"
+      ],
+      "properties": [
+        "activePermissionProfile",
+        "approvalPolicy",
+        "approvalsReviewer",
+        "collaborationMode",
+        "cwd",
+        "disabledPluginIds",
+        "initialTurnsPage",
+        "instructionSources",
+        "itemsBackwardsCursor",
+        "model",
+        "modelProvider",
+        "multiAgentMode",
+        "reasoningEffort",
+        "runtimeWorkspaceRoots",
+        "sandbox",
+        "serviceTier",
+        "thread",
+        "turnsBackwardsCursor"
+      ]
+    },
+    "ThreadSettingsUpdateParams": {
+      "sha256": "749419634bb7ed66216d72bf9d8734ecf0e6efaa8cd46fe51a117d1b42ed9657",
+      "type": "object",
+      "required": [
+        "threadId"
+      ],
+      "properties": [
+        "approvalPolicy",
+        "approvalsReviewer",
+        "collaborationMode",
+        "cwd",
+        "disabledPluginIds",
+        "effort",
+        "model",
+        "multiAgentMode",
+        "permissions",
+        "personality",
+        "sandboxPolicy",
+        "serviceTier",
+        "summary",
+        "threadId"
+      ]
+    },
+    "ThreadSettingsUpdateResponse": {
+      "sha256": "adb6c5232ff2474b61ac1811c9fe0faf8beae7f629c9bb2182190679d82bf0b1",
+      "type": "object",
+      "required": [],
+      "properties": []
+    },
+    "ThreadSettingsUpdatedNotification": {
+      "sha256": "5e0f512bcca5fbf3cfea9f13574928ad26e790d5bc765ea92cd024a7ac96f86e",
+      "type": "object",
+      "required": [
+        "threadId",
+        "threadSettings"
+      ],
+      "properties": [
+        "threadId",
+        "threadSettings"
+      ]
+    },
+    "ThreadTokenUsageUpdatedNotification": {
+      "sha256": "aba4f6c7e4a19b2b842c08ee793b57000c07dafd57b922ad0d8e7c76609108c2",
+      "type": "object",
+      "required": [
+        "threadId",
+        "tokenUsage",
+        "turnId"
+      ],
+      "properties": [
+        "threadId",
+        "tokenUsage",
+        "turnId"
+      ]
+    },
+    "TurnStartedNotification": {
+      "sha256": "628bc9c1b9dc14f2e33ab374cc6203ca1e405ec1e7b5426d110cfa7f26904592",
+      "type": "object",
+      "required": [
+        "threadId",
+        "turn"
+      ],
+      "properties": [
+        "threadId",
+        "turn"
+      ]
+    },
+    "GetAccountRateLimitsResponse": {
+      "sha256": "9c0def7f8ab2396122af939dffbf01b34b8d66082fe4129dd20917bfd4313fdc",
+      "type": "object",
+      "required": [
+        "rateLimits"
+      ],
+      "properties": [
+        "accountId",
+        "ordinaryUsageAllowed",
+        "rateLimitResetCredits",
+        "rateLimitUpsell",
+        "rateLimits",
+        "rateLimitsByLimitId"
+      ]
+    }
+  },
+  "candidate_admission": {
+    "catalog": "live_readonly_passed",
+    "effective_settings": "synthetic_peer_passed_native_pending",
+    "writes": "closed_pending_native_race_and_confirmation_proof",
+    "usage": "subscribed_event_only"
+  },
+  "live_catalog_summary": {
+    "models": 11,
+    "fast_entries": 5,
+    "fast_id_from_catalog": "priority",
+    "account_entitlement_proven": false
+  },
+  "owned_observations": {
+    "settings_requests": 8,
+    "queue_inputs": 3,
+    "clear_null_readback": "default",
+    "explicit_standard_tier": "default",
+    "busy_with_existing_queue_update": "accepted",
+    "active_turn_effort": "preserved",
+    "existing_queued_turn_effort": "new_value_at_start",
+    "fast_actual_request_tier_field": "not_exposed",
+    "all_inputs": "completed",
+    "owned_terminals": "cleaned",
+    "product_writes_enabled": false
+  },
+  "candidate_control_implementation": "same_frozen_controller_owned_native_passed_after_readonly_driver_recovery",
+  "accepted_boundary": {
+    "known_busy_refused": true,
+    "post_check_desktop_race_disclosed": true,
+    "fast_actual_request_tier_not_claimed": true
+  },
+  "owned_controller_observations": {
+    "settings_requests": 6,
+    "native_queue_inputs": 3,
+    "known_busy_setting_refused": true,
+    "same_value_no_extra_rpc": true,
+    "native_model_and_effort_adoption_verified": true,
+    "immediate_tui_model_display": "old",
+    "driver_idle_poll_issue_reproduced": true,
+    "readonly_recovery_no_replay": true,
+    "owned_terminals": "cleaned",
+    "phone_acceptance": "pending"
+  }
+}

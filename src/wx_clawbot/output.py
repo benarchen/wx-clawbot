@@ -16,6 +16,36 @@ RESULT_LIMIT = 480000
 COMPATIBILITY_NOTE = "〔样式兼容：中文斜体与删除线可能显示为普通字形，原文内容和标记已保留。〕\n\n"
 
 
+def inline_literal(value):
+    value = str(value).replace('\r', r'\r').replace('\n', r'\n')
+    fence = '`' * (max((len(m[0]) for m in re.finditer(r'`+', value)), default=0) + 1)
+    return fence + ' ' + value + ' ' + fence
+
+
+def markdown_literal(value):
+    return re.sub(r'([\\`*_\[\]<>])', r'\\\1', str(value))
+
+
+def bold_literal(value):
+    return '**' + markdown_literal(value) + '**'
+
+
+def target_description(target):
+    """Compact display only; routing always uses the full frozen identity."""
+    parts = [target.project_alias]
+    directory = target.cwd.name or str(target.cwd)
+    if directory != target.project_alias:
+        parts.append(directory)
+    return ' · '.join(inline_literal(v) for v in (*parts, target.session_id[-8:]))
+
+
+def task_state(value):
+    return {'received': '已接收', 'prepared': '等待执行', 'dispatching': '提交中',
+            'queued': '排队中', 'running': '执行中', 'waiting_interaction': '等待答复', 'stopping': '中断确认中',
+            'completed': '已完成', 'failed': '失败', 'interrupted': '已中断',
+            'cancelled': '已取消', 'unknown': '结果待核对'}.get(value, str(value))
+
+
 def split_text(text, limit=7000):
     if not isinstance(text, str) or not text or type(limit) is not int or not 100 <= limit <= 7000:
         raise ValueError("Text and a bounded transport segment size required")
@@ -842,6 +872,12 @@ async def render_in_worker(text, *, renderer=None, slots=None, **kwargs):
 
 
 def native_output(turn):
+    for item in turn.get("items", []):
+        moderation = item.get("moderation")
+        if item.get("type") == "agentMessage" and moderation is not None:
+            if (not isinstance(moderation, dict) or moderation.get("moderated") is not False
+                    or moderation.get("display") is not None):
+                return "原生结果包含当前桥接未支持的展示／审核指令，请在原生客户端查看。"
     body = "\n".join(item.get("text", "") for item in turn.get("items", [])
                      if item.get("type") == "agentMessage" and item.get("phase") != "commentary"
                      and isinstance(item.get("text"), str))

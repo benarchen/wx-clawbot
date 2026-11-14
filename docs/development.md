@@ -74,6 +74,8 @@ editable 仅用于开发；正式制品不依赖开发路径。构建后端精�
 
 ## 构建与协作入口
 
+NCM01 自 0.1.12 的入口是 `native_controls.py`／`control_journal.py`：锁序为注册 gate → changes → admission_gate，唯一事件消费者分发确认，JSON 短 lease 不跨 await。新增恢复测试含真实合成 Unix socket 与子进程崩溃；与真实 Codex／手机验收分开，见[测试指南](testing.md)和[控制专题](native-controls.md)。
+
 统一离线入口 `.venv/bin/python scripts/check.py`，结果仅放 `.tmp/check/`。构建 `scripts/build_release.py` 默认计划，`--apply` 才写全新制品目录；冻结安装与实际切换见[运维](operations.md#eng01独立运行制品与开发隔离)。无自动发布流水线承诺，不因构建成功自行 push／tag／部署。
 
 分支、中文 commit、规范与真实测试纪律见 AGENTS；安全和依赖变更见 [SECURITY](../SECURITY.md)。本页与测试指南已承担开发贡献说明，无需另建空的 CONTRIBUTING。

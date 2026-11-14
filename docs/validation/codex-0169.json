@@ -1,0 +1,606 @@
+{
+  "baseline_version": "0.167.0",
+  "version": "0.169.0",
+  "source": "Exact official daemon version managed executable, local experimental schema generation",
+  "generated_schemas": 479,
+  "schema_count": 43,
+  "changed_schema_count": 18,
+  "scope": "0.169.0 static/readonly, dedicated native, owner phone functional and final display acceptance completed within documented boundaries. Image and async input remain disabled. Verified compatible candidate temporarily running; no formal release.",
+  "reviewed_changes": [
+    "modelProvider catalog selector preserves native provider; legacy versions keep their original parameters.",
+    "currentAccountOnly and includeAttachedThreads constrain discovery; attached direct identities rejected.",
+    "AgentMessage moderation/display treated conservatively; unsupported instructions suppress forwarding and direct owner to native client.",
+    "Optional environments omitted to preserve selection; no environment management.",
+    "Optional responsesapiClientMetadata remains omitted; existing client-id queue semantics unchanged.",
+    "Optional attachedToThreadId and inferenceHookDenied do not authorize new session types or automatic replay.",
+    "Additional tool-output content and contentTokenCount do not create new input modes or context percentage estimation."
+  ],
+  "schemas": {
+    "CommandExecutionRequestApprovalParams.json": {
+      "baseline_sha256": "799abbf1875b3e774d6da16f277032025a03d6717cba0e67fdd89446666d0610",
+      "sha256": "799abbf1875b3e774d6da16f277032025a03d6717cba0e67fdd89446666d0610",
+      "structural_changes": []
+    },
+    "CommandExecutionRequestApprovalResponse.json": {
+      "baseline_sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7",
+      "sha256": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7",
+      "structural_changes": []
+    },
+    "ToolRequestUserInputParams.json": {
+      "baseline_sha256": "fda15b62e7446105b59c8ed85c908abed2a47db70653e57c92c47a2f204fa77a",
+      "sha256": "fda15b62e7446105b59c8ed85c908abed2a47db70653e57c92c47a2f204fa77a",
+      "structural_changes": []
+    },
+    "ToolRequestUserInputResponse.json": {
+      "baseline_sha256": "5073b245f741fa8ce62ec52e4dd1809b7831f9c4284c279a78abc9b171f8e3f2",
+      "sha256": "5073b245f741fa8ce62ec52e4dd1809b7831f9c4284c279a78abc9b171f8e3f2",
+      "structural_changes": []
+    },
+    "v1/InitializeParams.json": {
+      "baseline_sha256": "c608ff6bdd94e661423dca9b44cd1dcea7eac610f74e1310284c61eab64280bc",
+      "sha256": "c608ff6bdd94e661423dca9b44cd1dcea7eac610f74e1310284c61eab64280bc",
+      "structural_changes": []
+    },
+    "v1/InitializeResponse.json": {
+      "baseline_sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+      "sha256": "62ad689c2cb6379913c1d72749cfd8de5089d35760214123518eb92eef11acc9",
+      "structural_changes": []
+    },
+    "v2/GetAccountRateLimitsResponse.json": {
+      "baseline_sha256": "9c0def7f8ab2396122af939dffbf01b34b8d66082fe4129dd20917bfd4313fdc",
+      "sha256": "9c0def7f8ab2396122af939dffbf01b34b8d66082fe4129dd20917bfd4313fdc",
+      "structural_changes": []
+    },
+    "v2/ItemCompletedNotification.json": {
+      "baseline_sha256": "0bbb11679b32e39a58546d3b532ccae2c1f8f9051a20ce2b4947edb84fc35f08",
+      "sha256": "528e21e0d9b2679ba4e5c55d95fdfd23f396977536cae51480fd833acd3061b4",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/ThreadItem/oneOf",
+        "/properties/contentTokenCount"
+      ]
+    },
+    "v2/ItemStartedNotification.json": {
+      "baseline_sha256": "34e217d7596d9dad92a58ed7791bc082655d17d249a30a4133c4ad39f2603ecd",
+      "sha256": "8e7607fcf44ec5a6f29a711d30ed7614431e053ac6b991d96029401a7bb0770f",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/ThreadItem/oneOf"
+      ]
+    },
+    "v2/ModelListParams.json": {
+      "baseline_sha256": "de29a536c00a5b8f46f34dba417dabd93365305571a8ed200e33bea85db68b5a",
+      "sha256": "3f48937b1e0348ede28d539011c571909fd79cb9f05d2343fe484839633cfdf7",
+      "structural_changes": [
+        "/properties/modelProvider"
+      ]
+    },
+    "v2/ModelListResponse.json": {
+      "baseline_sha256": "2fb387a2ed258fc74258828ea342d68f89ce4e8e22cd0329ca59d2b423f9108b",
+      "sha256": "2fb387a2ed258fc74258828ea342d68f89ce4e8e22cd0329ca59d2b423f9108b",
+      "structural_changes": []
+    },
+    "v2/ServerRequestResolvedNotification.json": {
+      "baseline_sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+      "sha256": "4f03d586a5af04edd912cad08cc97eceb658e7e06744565e6d41a93e04a55966",
+      "structural_changes": []
+    },
+    "v2/ThreadBackgroundTerminalsListResponse.json": {
+      "baseline_sha256": "b56b1cbcb1d60079ee9f9caaeef29cad869a25b4a6d356566f7c9f672faa7bf4",
+      "sha256": "b56b1cbcb1d60079ee9f9caaeef29cad869a25b4a6d356566f7c9f672faa7bf4",
+      "structural_changes": []
+    },
+    "v2/ThreadListParams.json": {
+      "baseline_sha256": "1781b1778cb08619f0bf12528b128e55648b86569114196b1b5ec565b9b7935d",
+      "sha256": "3c54429c202b25ab3df5c5d27aad6b13bf1203fd410b99b0a838d27ad48f9787",
+      "structural_changes": [
+        "/properties/currentAccountOnly",
+        "/properties/includeAttachedThreads"
+      ]
+    },
+    "v2/ThreadListResponse.json": {
+      "baseline_sha256": "b57fafd7a25fca12c4b3c3e3a6e9775c1473583ea95df66b4a7727b921cfd898",
+      "sha256": "b81cf2ac844a39731f380105a8f960d8444e116519c7d6cfb6f1f9a190f93c39",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/CodexErrorInfo/anyOf",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/Thread/properties/attachedToThreadId",
+        "/definitions/ThreadItem/oneOf"
+      ]
+    },
+    "v2/ThreadLoadedListParams.json": {
+      "baseline_sha256": "42c2d124ab2b2998d84f0126daae2d32b0bf9c5a7ea7266e3a0814e5e37cf00d",
+      "sha256": "42c2d124ab2b2998d84f0126daae2d32b0bf9c5a7ea7266e3a0814e5e37cf00d",
+      "structural_changes": []
+    },
+    "v2/ThreadLoadedListResponse.json": {
+      "baseline_sha256": "1ea02c4710083e552b2a3a89b931b9049d5bf05b7db46278b8352cf9fd80cd52",
+      "sha256": "1ea02c4710083e552b2a3a89b931b9049d5bf05b7db46278b8352cf9fd80cd52",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueAddParams.json": {
+      "baseline_sha256": "f6466a8f06cd4e68ec1999d06a0d70a1ddc339c0cb1baf12ee966a999fead17c",
+      "sha256": "240db55be5b3f82f85ee5392c1515f34aa3987e81ab817381f7271cbb8c9434d",
+      "structural_changes": [
+        "/properties/responsesapiClientMetadata"
+      ]
+    },
+    "v2/ThreadQueueAddResponse.json": {
+      "baseline_sha256": "896a82716b432a8aa4d190591bcfa86adacdacb91ec5ec2c9c75ff6562561256",
+      "sha256": "692d4b31515d03823a451d966b3340b81815c4fbf0b34e4f0b3a2c7da95fd7f7",
+      "structural_changes": [
+        "/definitions/QueuedSubmission/properties/responsesapiClientMetadata"
+      ]
+    },
+    "v2/ThreadQueueDeleteParams.json": {
+      "baseline_sha256": "35d17cc17897a7f560250d0148ec9df0482ba3d33bdcca039dde8391d3b4edbe",
+      "sha256": "35d17cc17897a7f560250d0148ec9df0482ba3d33bdcca039dde8391d3b4edbe",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueDeleteResponse.json": {
+      "baseline_sha256": "5983c0a94e89f93340caecfe96e16d8f535edca39142920bc0ba60ec90a52919",
+      "sha256": "5983c0a94e89f93340caecfe96e16d8f535edca39142920bc0ba60ec90a52919",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueListParams.json": {
+      "baseline_sha256": "b4c889089eee8a0f785ff85e0128a4d3f347353870fa848221096a472223773b",
+      "sha256": "b4c889089eee8a0f785ff85e0128a4d3f347353870fa848221096a472223773b",
+      "structural_changes": []
+    },
+    "v2/ThreadQueueListResponse.json": {
+      "baseline_sha256": "7a320613604095eef93247b395dafeeb6d05b26256c4055b6a5bad05eff74ab5",
+      "sha256": "d99b8f148e5551e9a0c9cce9df73ca6c51486b1e184940ea0adb0c2bc66b2081",
+      "structural_changes": [
+        "/definitions/QueuedSubmission/properties/responsesapiClientMetadata"
+      ]
+    },
+    "v2/ThreadReadParams.json": {
+      "baseline_sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+      "sha256": "dfe040c6ac71d30795b8be3f3ff232e66f362a37f883b491e5d1ea367f470db4",
+      "structural_changes": []
+    },
+    "v2/ThreadReadResponse.json": {
+      "baseline_sha256": "4ee5071cf8c7245189e5bd0819e459b9d974d5949708372fee68b6fc5329f90d",
+      "sha256": "8495e7e6fa2dc85499bf9937b21224b52174b5ef11c7c53974eee375215b4c11",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/CodexErrorInfo/anyOf",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/Thread/properties/attachedToThreadId",
+        "/definitions/ThreadItem/oneOf"
+      ]
+    },
+    "v2/ThreadResumeParams.json": {
+      "baseline_sha256": "9642460eb42e9a6e8fa8e12b4381e8ed939d10b1ad8690e694d84467ea76d41a",
+      "sha256": "462e7749c0ba1d3355850f495d9a7fb7763edae624ab185dbc9bc59aaf799655",
+      "structural_changes": [
+        "/definitions/FunctionCallOutputContentItem/oneOf"
+      ]
+    },
+    "v2/ThreadResumeResponse.json": {
+      "baseline_sha256": "9ab25f81ec27b83042c469fd031127c8eaf1a3ac8e2cdc53e76cb24f8e03ce28",
+      "sha256": "f7da5518a7a5d527b62d8752b0673d5eda6791245855f197e46d1e42cbd01ebe",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/CodexErrorInfo/anyOf",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/Thread/properties/attachedToThreadId",
+        "/definitions/ThreadItem/oneOf"
+      ]
+    },
+    "v2/ThreadSettingsUpdateParams.json": {
+      "baseline_sha256": "749419634bb7ed66216d72bf9d8734ecf0e6efaa8cd46fe51a117d1b42ed9657",
+      "sha256": "e90e03c54514222d6c3a21411b70abeab33d294cfe243da0bffc1988aaa5e8f4",
+      "structural_changes": [
+        "/definitions/LegacyAppPathString",
+        "/definitions/TurnEnvironmentParams",
+        "/properties/environments"
+      ]
+    },
+    "v2/ThreadSettingsUpdateResponse.json": {
+      "baseline_sha256": "adb6c5232ff2474b61ac1811c9fe0faf8beae7f629c9bb2182190679d82bf0b1",
+      "sha256": "adb6c5232ff2474b61ac1811c9fe0faf8beae7f629c9bb2182190679d82bf0b1",
+      "structural_changes": []
+    },
+    "v2/ThreadSettingsUpdatedNotification.json": {
+      "baseline_sha256": "5e0f512bcca5fbf3cfea9f13574928ad26e790d5bc765ea92cd024a7ac96f86e",
+      "sha256": "110695cd34ab107b29ccbcc97ead5e87417d31918d2f6c6b61f075a962c97850",
+      "structural_changes": [
+        "/definitions/LegacyAppPathString",
+        "/definitions/ThreadEnvironment",
+        "/definitions/ThreadSettings/properties/environments"
+      ]
+    },
+    "v2/ThreadTokenUsageUpdatedNotification.json": {
+      "baseline_sha256": "aba4f6c7e4a19b2b842c08ee793b57000c07dafd57b922ad0d8e7c76609108c2",
+      "sha256": "aba4f6c7e4a19b2b842c08ee793b57000c07dafd57b922ad0d8e7c76609108c2",
+      "structural_changes": []
+    },
+    "v2/ThreadTurnsListParams.json": {
+      "baseline_sha256": "2a8b93d7d4437cc25e16a1dde16d8db3c338d39e16c5eece2a56e943a21577d7",
+      "sha256": "2a8b93d7d4437cc25e16a1dde16d8db3c338d39e16c5eece2a56e943a21577d7",
+      "structural_changes": []
+    },
+    "v2/ThreadTurnsListResponse.json": {
+      "baseline_sha256": "bccb5eb4fcde318825e4e92cadb85cda57315fceb9e46a3b6dc0582f91c2c72b",
+      "sha256": "1771280212d97d8f5c745dfd8b95280cd2c4927ea58d4e3d6de6f6a0326dd1d0",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/CodexErrorInfo/anyOf",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/ThreadItem/oneOf"
+      ]
+    },
+    "v2/ThreadUnsubscribeParams.json": {
+      "baseline_sha256": "77c67e0dc0a729af2d4612f30ed63f1297160232e96cd32b7cb9cc3e7fff0233",
+      "sha256": "77c67e0dc0a729af2d4612f30ed63f1297160232e96cd32b7cb9cc3e7fff0233",
+      "structural_changes": []
+    },
+    "v2/ThreadUnsubscribeResponse.json": {
+      "baseline_sha256": "9cad5e71a589c3c20e0980ce34a894a29e2898a075b10b1493bc87f32500081a",
+      "sha256": "9cad5e71a589c3c20e0980ce34a894a29e2898a075b10b1493bc87f32500081a",
+      "structural_changes": []
+    },
+    "v2/TurnCompletedNotification.json": {
+      "baseline_sha256": "00b691508bb0187ecc5f080bb1608add7137672698daed6922967ad90bcb16e1",
+      "sha256": "c4a22a9a8c1fad4c2dceda0d4d1593ce7f2435107d6219fb678925d18f915f6b",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/CodexErrorInfo/anyOf",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/ThreadItem/oneOf"
+      ]
+    },
+    "v2/TurnInterruptParams.json": {
+      "baseline_sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b",
+      "sha256": "6dff382dae73d1dbc58406ed045605f647e7a49660e2540fbd2c6c24d60c5f2b",
+      "structural_changes": []
+    },
+    "v2/TurnInterruptResponse.json": {
+      "baseline_sha256": "531de6be06fe979b5963f249bab82498a175e614bf65ac12fb2e849dfe60bcf1",
+      "sha256": "531de6be06fe979b5963f249bab82498a175e614bf65ac12fb2e849dfe60bcf1",
+      "structural_changes": []
+    },
+    "v2/TurnStartParams.json": {
+      "baseline_sha256": "d13cb408b906669e8d3e8694b42148a75180d4dcd0eeac6867271add8dfa1864",
+      "sha256": "b64078d4310cb1fa591c7f63344bed6b8c08d216f9f81d86c00045136187a2b6",
+      "structural_changes": [
+        "/definitions/FunctionCallOutputContentItem/oneOf"
+      ]
+    },
+    "v2/TurnStartResponse.json": {
+      "baseline_sha256": "b75b88c2f507685b948d06166b5436678fd320c9878883d97f5a17f620a25116",
+      "sha256": "e08d29ed53ac18395874d68c1b35c41e77dfc815a8aee09950462ff8098c240d",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/CodexErrorInfo/anyOf",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/ThreadItem/oneOf"
+      ]
+    },
+    "v2/TurnStartedNotification.json": {
+      "baseline_sha256": "628bc9c1b9dc14f2e33ab374cc6203ca1e405ec1e7b5426d110cfa7f26904592",
+      "sha256": "b386381e73a8f75578310d53cba3a9384ab728f219801284d948bd9a82fc772c",
+      "structural_changes": [
+        "/definitions/AgentMessageDisplay",
+        "/definitions/AgentMessageModeration",
+        "/definitions/CodexErrorInfo/anyOf",
+        "/definitions/FunctionCallOutputContentItem/oneOf",
+        "/definitions/ThreadItem/oneOf"
+      ]
+    },
+    "v2/TurnSteerParams.json": {
+      "baseline_sha256": "ba7034e96620c999cf0164f08bc753f58ff2b214f2025ab409f8ce42dc4cc708",
+      "sha256": "ba7034e96620c999cf0164f08bc753f58ff2b214f2025ab409f8ce42dc4cc708",
+      "structural_changes": []
+    },
+    "v2/TurnSteerResponse.json": {
+      "baseline_sha256": "866ba9a77c12b5d570c837d58f73bf40b24e50fa93404bdf792dd984d313b1aa",
+      "sha256": "866ba9a77c12b5d570c837d58f73bf40b24e50fa93404bdf792dd984d313b1aa",
+      "structural_changes": []
+    }
+  },
+  "frozen_source_sha256": "cd94a13f759175ec82e407fc1f95af75030a2205f96542c5140886d112066a26",
+  "frozen_wheel_sha256": "a78cfebc49f2adc1c8e94a60f83f76ae012ad0fc7ff1a014e8b70133de9bbe7d",
+  "frozen_tests": {
+    "count": 924,
+    "seconds": 47.652,
+    "result": "passed"
+  },
+  "readonly_same_frozen_package": {
+    "version": "0.169.0",
+    "model_count": 8,
+    "account_quota": "passed",
+    "thread_reads": 0,
+    "subscriptions": 0,
+    "settings_writes": 0,
+    "task_submissions": 0
+  },
+  "dynamic_native": {
+    "result": "passed_and_owned_terminals_cleaned",
+    "settings_requests": 5,
+    "setting_operations": 6,
+    "unchanged_operations": 1,
+    "inputs": 3,
+    "busy_rejected_before_rpc": true,
+    "adoption": [
+      {
+        "test": "NCM01-BRIDGE-MODEL",
+        "model": "gpt-6-luna",
+        "effort": "medium"
+      },
+      {
+        "test": "NCM01-BRIDGE-BUSY",
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      {
+        "test": "NCM01-BRIDGE-QUEUED",
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      }
+    ],
+    "a_restored": true,
+    "b_unchanged": true,
+    "active_occupancy": 0,
+    "configuration_preserved": true,
+    "owned_windows": 1,
+    "owned_terminals": 2,
+    "cleanup": "absence_confirmed",
+    "wechat_sends": 0,
+    "production_service_changes": 0
+  },
+  "phone": {
+    "phase": "functional_passed_owned_terminals_cleaned_compatible_candidate_held",
+    "authorized": true,
+    "seconds_to_ready": 8.26,
+    "schema": 6,
+    "old_rows_preserved": true,
+    "five_previous_control_records_unchanged": true,
+    "config_unchanged": true,
+    "project_count": 12,
+    "automatic_wechat_inputs": 0,
+    "passed_phone_acceptance": true,
+    "approved_final_policy": "hold_verified_compatible_candidate_pending_separate_release",
+    "first_group": {
+      "passed": true,
+      "owned_windows": 1,
+      "owned_terminals": 2,
+      "both_original_model": "gpt-6.1-sol",
+      "both_original_effort": "high",
+      "both_original_tier": "default",
+      "a_reused_after_b": true,
+      "account_quota_screenshot_passed": true,
+      "accurate_identities_and_boot_verified": true,
+      "configuration_unchanged": true,
+      "settings_writes": 0,
+      "normal_tasks": 0
+    },
+    "setting_group": {
+      "passed": true,
+      "actual_setting_changes": 4,
+      "unchanged_operations": 1,
+      "default_model_effort": "gpt-6.1-sol/low",
+      "explicit_model_effort": "gpt-6-luna/medium",
+      "fast_on_off_confirmed": true,
+      "provider_and_tier_preserved": true,
+      "invalid_model_no_task": true,
+      "ordinary_tasks": 1,
+      "task_completed_once": true,
+      "native_task_model": "gpt-6-luna",
+      "native_task_effort": "medium",
+      "b_and_configuration_unchanged": true,
+      "private_journal_event_after_and_exact_turn_checked": true
+    },
+    "remaining": [],
+    "final_group": {
+      "passed": true,
+      "test_inputs": 3,
+      "all_completed_once": true,
+      "actual_model": "gpt-6-luna",
+      "actual_effort": "medium",
+      "settings_confirmed": 5,
+      "unchanged_no_rpc": 1,
+      "busy_rejected_before_intent": true,
+      "a_restored": true,
+      "b_unchanged": true,
+      "configuration_preserved": true,
+      "input_and_observer_cleared": true,
+      "occupancy_released": true,
+      "owned_terminal_cleanup": "absence_confirmed"
+    }
+  },
+  "production_deployed": false,
+  "updated_at_beijing": "2026-11-14 13:47",
+  "temporary_candidate_running": true,
+  "display_candidate": {
+    "source_sha256": "7e6b28ec7568d3ff40aa7ab5d24a365820b6b60cb53463db3a88c757cdb880de",
+    "wheel_sha256": "4840feb4fa8acb33b6b33ae8e9ba7742b33df72d1a0eca38d363e8d011211a49",
+    "frozen_checks": {
+      "status": "passed",
+      "checks": [
+        {
+          "check": "unittest",
+          "exit_code": 0,
+          "seconds": 48.57257570800721
+        },
+        {
+          "check": "compile",
+          "exit_code": 0,
+          "seconds": 0.09057341700827237
+        },
+        {
+          "check": "dependencies",
+          "exit_code": 0,
+          "seconds": 0.21015225000155624
+        },
+        {
+          "check": "diff",
+          "exit_code": 0,
+          "seconds": 0.023952542003826238
+        },
+        {
+          "check": "documents",
+          "exit_code": 0
+        }
+      ],
+      "wechat_sends": 0,
+      "native_submissions": 0,
+      "production_writes": 0
+    },
+    "full_tests": {
+      "count": 931,
+      "seconds": 47.451,
+      "result": "passed"
+    },
+    "local_preview": {
+      "width_px": 360,
+      "output_types": 4,
+      "horizontal_overflow": false,
+      "visual_review": "passed",
+      "synthetic_data": true,
+      "wechat_client": false
+    },
+    "phone_receipt": "historical_display_received_then_duplicate_label_fixed_in_final_candidate",
+    "temporary_runtime": {
+      "phase": "temporary_display_candidate_running",
+      "source_sha256": "7e6b28ec7568d3ff40aa7ab5d24a365820b6b60cb53463db3a88c757cdb880de",
+      "wheel_sha256": "4840feb4fa8acb33b6b33ae8e9ba7742b33df72d1a0eca38d363e8d011211a49",
+      "schema": 6,
+      "normal_stop": true,
+      "seconds_to_ready": 7.545,
+      "all_old_rows_preserved": true,
+      "all_control_records_unchanged": true,
+      "configuration_preserved": true,
+      "project_count": 12,
+      "database_restore": false,
+      "automatic_wechat_inputs": 0,
+      "formal_release": false
+    },
+    "scope": "presentation_only; no parser, native RPC, routing, journal format or dispatch semantics changes",
+    "remaining_phone_review": []
+  },
+  "target_label_fix": {
+    "source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+    "wheel_sha256": "54e9ad5c4a553c6953cb4c5cd317db42b9ef8cb49dd130ec9afea112d9e68ac5",
+    "frozen_checks": {
+      "status": "passed",
+      "checks": [
+        {
+          "check": "unittest",
+          "exit_code": 0,
+          "seconds": 48.80209899999318
+        },
+        {
+          "check": "compile",
+          "exit_code": 0,
+          "seconds": 0.07240366699988954
+        },
+        {
+          "check": "dependencies",
+          "exit_code": 0,
+          "seconds": 0.18292629200732335
+        },
+        {
+          "check": "diff",
+          "exit_code": 0,
+          "seconds": 0.020017667004140094
+        },
+        {
+          "check": "documents",
+          "exit_code": 0
+        }
+      ],
+      "wechat_sends": 0,
+      "native_submissions": 0,
+      "production_writes": 0
+    },
+    "tests": {
+      "count": 932,
+      "seconds": 47.553,
+      "result": "passed"
+    },
+    "changed_behavior": "omit directory basename only when exactly equal to project alias",
+    "running": true,
+    "switch_pending": null,
+    "native_mutations": 0,
+    "phone_receipt": "passed_final_four_owner_screenshots",
+    "independent_runtime_audit": "passed"
+  },
+  "idle_switch_watch": {
+    "phase": "completed_and_process_exited",
+    "process_liveness_verified": false,
+    "one_shot": true,
+    "timeout_seconds": 1200,
+    "native_terminal_and_ledger_idle_required": true,
+    "gate_checks_passed": 8,
+    "candidate_independently_installed": true,
+    "service_switch_success_proven": true,
+    "automatic_wechat_inputs": 0,
+    "automatic_replay": false,
+    "forced_stop": false,
+    "database_restore": false
+  },
+  "final_acceptance": {
+    "status": "passed",
+    "source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+    "wheel_sha256": "54e9ad5c4a553c6953cb4c5cd317db42b9ef8cb49dd130ec9afea112d9e68ac5",
+    "same_frozen_tests": {
+      "count": 932,
+      "seconds": 47.553,
+      "result": "passed"
+    },
+    "phone_commands": [
+      "/codex status",
+      "/model list",
+      "/help"
+    ],
+    "owner_screenshot_count": 4,
+    "api_accepted_receipts": 3,
+    "dedup_passed": true,
+    "complete_model_count": 8,
+    "help_all_sections_passed": true,
+    "switch": {
+      "phase": "temporary_target_label_candidate_running",
+      "source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+      "wheel_sha256": "54e9ad5c4a553c6953cb4c5cd317db42b9ef8cb49dd130ec9afea112d9e68ac5",
+      "schema": 6,
+      "normal_stop": true,
+      "exact_watched_native_terminal_verified": true,
+      "seconds_to_ready": 6.972,
+      "all_old_rows_preserved": true,
+      "all_control_records_unchanged": true,
+      "configuration_preserved": true,
+      "project_count": 12,
+      "database_restore": false,
+      "automatic_wechat_inputs": 0,
+      "formal_release": false
+    },
+    "independent_runtime_and_data_protection_audit": "passed",
+    "one_shot_process_exited": true,
+    "formal_release": false,
+    "new_setting_requests": 0,
+    "new_native_tasks": 0,
+    "automatic_wechat_inputs": 0
+  },
+  "goal_result": {
+    "status": "complete",
+    "tool_confirmed": true,
+    "tokens_used": 193159,
+    "time_used_seconds": 2221,
+    "recorded_at_beijing": "2026-11-14 13:47"
+  },
+  "subsequent_publication_record": "native-controls-release.json",
+  "historical_acceptance_metadata_preserved": true
+}

@@ -11,7 +11,7 @@ from .rpc import JsonRpc, ConnectionLost
 from .base import Capabilities, SubmissionReceipt, thread_is_loaded
 from .. import __version__
 
-SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0", "0.165.0", "0.166.0", "0.167.0"})
+SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0", "0.165.0", "0.166.0", "0.167.0", "0.169.0"})
 
 
 class CodexConnection:
@@ -82,6 +82,8 @@ class CodexConnection:
         result = await self.rpc.request("thread/read", {"threadId": thread_id, "includeTurns": False})
         self._check_runtime()
         thread = result.get("thread", {})
+        if self.server_version == "0.169.0" and thread.get("attachedToThreadId") is not None:
+            raise ValueError("Attached native threads are outside the supported session scope")
         if thread.get("id") != thread_id:
             raise ValueError("Native thread identity mismatch")
         return thread
@@ -92,6 +94,8 @@ class CodexConnection:
         if not project.is_dir():
             raise ValueError("Existing project directory required")
         params = {"cwd": str(project), "useStateDbOnly": True, "limit": 100}
+        if self.server_version == "0.169.0":
+            params.update(currentAccountOnly=True, includeAttachedThreads=False)
         if cursor is not None:
             params["cursor"] = cursor
         result = await self.rpc.request("thread/list", params)
@@ -153,6 +157,41 @@ class CodexConnection:
         if not await thread_is_loaded(self, after):
             raise ValueError("Original thread unloaded during subscription")
         return after
+
+    async def read_settings(self, thread_id: str, project: Path) -> dict:
+        """Read effective values only for an already loaded, subscribed thread.
+
+        Uses the existing loaded-only subscription path, with no settings
+        overrides. The caller must own an existing route subscription.
+        """
+        if self.server_version not in {"0.167.0", "0.169.0"}:
+            raise ValueError("Native settings schema is not verified for this version")
+        before = await self.inspect(thread_id)
+        if not isinstance(before.get("modelProvider"), str) or not before["modelProvider"]:
+            raise ValueError("Original native provider is not verifiable")
+        if Path(before["cwd"]).resolve() != project.resolve(strict=True) or not await self.is_loaded(thread_id):
+            raise ValueError("Original native thread is not loaded in the selected project")
+        result = await self.rpc.request("thread/resume", {"threadId": thread_id, "excludeTurns": True})
+        if not isinstance(result, dict) or not isinstance(result.get("thread"), dict):
+            raise ValueError("Native settings snapshot missing")
+        after = await self.inspect(thread_id)
+        resumed = result["thread"]
+        for field in ("id", "sessionId", "cwd", "modelProvider"):
+            if before.get(field) != after.get(field) or before.get(field) != resumed.get(field):
+                raise ValueError("Native settings identity changed")
+        if not await self.is_loaded(thread_id):
+            raise ValueError("Original native thread unloaded during settings read")
+        for field, effective in (("model", "model"), ("reasoningEffort", "reasoningEffort")):
+            if before.get(field) != after.get(field):
+                raise ValueError("Native settings changed during snapshot")
+            if after.get(field) is not None and result.get(effective) != after[field]:
+                raise ValueError("Native settings snapshot conflicts with thread metadata")
+            if resumed.get(field) is not None and result.get(effective) != resumed[field]:
+                raise ValueError("Native settings snapshot conflicts with resumed metadata")
+        if result.get("cwd") != str(project.resolve(strict=True)) or result.get("modelProvider") != before.get("modelProvider"):
+            raise ValueError("Effective settings escaped selected project or provider")
+        self._check_runtime()
+        return {key: result[key] for key in ("model", "modelProvider", "reasoningEffort", "serviceTier") if key in result}
 
     async def read_turns(self, thread_id: str, *, cursor: str | None = None, limit: int = 20) -> dict:
         if type(limit) is not int or not 1 <= limit <= 20:

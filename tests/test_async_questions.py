@@ -509,7 +509,7 @@ class AsyncQuestionTests(AsyncFixture):
         text = await self.engine.control(parse_command('/status '+self.task['id']))
         self.assertIn('异步待答：1',text)
         self.assertIn(row['public_id'],text)
-        self.assertIn('running',text)
+        self.assertIn('执行中',text)
         for command in ['approve','deny']:
             with self.assertRaises(CommandError):
                 await self.engine.control(parse_command('/'+command+' '+row['public_id']))

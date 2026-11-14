@@ -19,6 +19,12 @@
 
 PRJ01 专项入口为 `tests/test_project_registry.py`、`tests/test_project_runtime.py`，覆盖真实目录、配置原子写、真实子进程落盘后退出／启动锁、Unix socket 成功回执丢失／提前断开／资源上限、双端一致性、取消注册竞争和崩溃收敛；未处理回调异常也必须令用例失败。显式真实原生入口 `tests/integration/project_management_native.py` 的 prepare 不运行任务，run／cleanup 须有专用资源授权；两个临时项目／一个窗口／两个标签，无真实微信发送。逐 T／A 状态及手机范围见[PRJ01 清单](../goals/20261108-2048-project-management.md)。
 
+项目列表展示另由 `tests/test_project_display.py` 覆盖：正常／异常、别名与目录不同、旧格式／空清单、Markdown 字面值及 256 项分段；`test_project_runtime.py` 核验三个列表入口输出一致、check 保留详情且查询不写注册或路由。渲染器和 Markdown 解析验证不等于微信手机实收，实际手机显示与部署范围在 ROADMAP 分别记录。
+
+NCM01 的 `tests/test_native_controls.py`、连接／控制器专项核语法、准确 route、loaded-only 查询与用量；`test_native_control_writes.py` 核联合模型／推理及单字段 Fast 设置、早到／缺失／冲突通知、忙碌与未知，`test_control_journal.py` 核持久化／权限／容量，`test_native_control_process.py` 用真实合成 Unix socket 和崩溃子进程证明最多一次写入。历史单字段 903 项及原生结果保留原范围；现行联合命令／展示去重候选已通过同包 932 项，0.169.0 专用原生和本人手机功能关卡另有准确设置／turn／清理证据。驱动空闲轮询缺陷已复现修正，恢复只读对账不重放；离线不能替代手机实收，逐项验收与历史展示缺口见[验证记录](validation/native-controls.md)。
+
+`tests/integration/native_controls_probe.py prepare` 只建专用夹具；`bridge-run` 使用 `native_control_bridge.py`，通过实际 Controller／Execution／RuntimeState 接入真实原生，全部微信输入为本机合成，本人客户端不被操作。新一轮 run／bridge-run／cleanup 须取得具体授权；`test_native_controls_probe.py` 验证重复执行、换代与精确 sleep 包装保护。候选原生／手机层级和具体操作卡见[阶段记录](validation/native-controls.md)。
+
 在项目根和项目 venv 执行：
 
 ```sh
@@ -93,3 +99,9 @@ documents 当前验证 JSON、本地链接／标题锚点、包版本、README �
 每轮记录：需求／关卡 ID、时间、准确代码／制品／原生／客户端版本、前置、动作意图、预期、实际、结果、证据位置和限制。失败应保存原始私有 case，公开报告只保留脱敏摘要及关联方法，不公开身份、路径、正文或私人截图。
 
 关键验收通过要求：无错误目标、无未知自动重投、无伪造原生成功；适用版本的动态／手机关卡完成；必要离线检查通过；运行切换另核旧数据与实际制品。无法验证标未验证；经本人明确后置的项目保留范围，不把它补成通过。纯文档完成不代表产品全部专项重验。
+
+统一 model set 的目录默认、联合字段确认、部分应用 unknown 和崩溃不重放均有离线覆盖；0.169.0 专用原生及本人手机联合设置／桌面后续采用／busy／清理已核验，旧单字段结果只限原候选。展示优化增加 `test_command_display.py`：默认字段、中文状态、未知／队列、多桶／北京时间、模型分段／字面值、同名去重及完整操作编号。最终冻结包 932 项／47.553 秒及编译／依赖／文档／diff 通过，已核源码与实际加载一致；本地 360 px 预览和本人微信实收分别验收，末轮四图及三个准确命令回执补齐去重、8 个模型和完整帮助。分层结果见 [NCM01 记录](validation/native-controls.md)。
+
+账号额度由 test_native_control_quota.py 核剩余比例／原生时长／重置、缺失／非法／多桶／身份脱敏、失败与代次；test_native_controls.py 核 status 真实调用路径及其他查询不访问账号。真实同运行时只读快照、手机截图和任务实际采用分别记录，账号额度不作为某模型或本会话专属指标。
+
+0.169.0 衔接由 test_codex_connection.py 核当前账号范围、附属 thread 拒绝、无环境覆盖的 loaded-only 读；test_native_controls.py／test_native_control_writes.py 核 provider 目录及联合写字段保持；test_native_0169_output.py 核审核／展示指令不透传正文或错误。真实原生与手机仍独立验收，版本静态证据见 [比较](validation/codex-0169.json)。

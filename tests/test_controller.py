@@ -449,7 +449,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(host.state, "ready")
         self.queue.add.assert_not_awaited()
         texts = await self.state._call(lambda: [row[0] for row in self.state.db.execute("SELECT text FROM outbox")])
-        self.assertEqual(sum("可见会话已就绪" in text for text in texts), 1)
+        self.assertEqual(sum("会话已就绪并选中" in text for text in texts), 1)
         self.assertFalse(any("API 连接不可用" in text for text in texts))
 
     async def approval(self):
@@ -561,14 +561,15 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         for session in self.sessions:
             self.assertIn(session.target.session_id, reply["text"])
             self.assertIn(str(session.target.cwd), reply["text"])
-        self.assertIn("受管会话", reply["text"])
+        self.assertIn("会话列表 · 2 个", reply["text"])
 
     async def test_projects_reports_disappeared_directory_without_routing_or_native_actions(self):
         self.sessions[0].target.cwd.rename(self.root / "moved-one")
         await self.command("/projects")
         reply = await self.state.claim_reply()
-        self.assertIn("one：不可访问", reply["text"])
-        self.assertIn("two：可用", reply["text"])
+        self.assertIn("**one** · ⚠️ 目录不可访问", reply["text"])
+        self.assertIn("**two**", reply["text"])
+        self.assertNotIn("可用", reply["text"])
         self.assertIsNone(self.controller.routes.target)
         self.catalog.require.assert_not_awaited()
 
@@ -608,7 +609,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
             "items": [{"type": "userMessage", "clientId": task["client_id"]}]})
         reply = await self.state.claim_reply()
         self.assertIn("Fixture usage limit reached", reply["text"])
-        self.assertIn("failed", reply["text"])
+        self.assertIn("任务失败", reply["text"])
         self.assertEqual((await self.state.tasks(task_id=task["id"]))["state"], "failed")
 
     async def test_recovery_keeps_external_merged_turn_unknown_without_stopping_service(self):
@@ -1144,7 +1145,7 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
             "SELECT id,text FROM outbox ORDER BY rowid LIMIT -1 OFFSET ?", (before,))))
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0][0], task["id"] + "-final-1")
-        self.assertIn("interrupted", rows[0][1])
+        self.assertIn("任务中断", rows[0][1])
         self.assertNotIn("still running", rows[0][1])
         self.assertIn("没有最终文本结果", rows[0][1])
         self.assertEqual(self.engine.observed_turns, set())
@@ -1262,3 +1263,99 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         reply = await self.state.claim_reply()
         self.assertIn("interrupted", reply["text"])
         self.assertNotIn("操作未确认", reply["text"])
+
+    async def test_native_model_list_does_not_need_focus_or_create_tasks(self):
+        self.agent.server_version='0.167.0'
+        self.agent.rpc.request.return_value={'data':[{'model':'fixture-model'}]}
+        before=await self.state.load_routes()
+        await self.command('/model list')
+        reply=await self.state.claim_reply()
+        self.assertIn('fixture-model',reply['text'])
+        self.assertEqual(await self.state.tasks(),[])
+        self.assertEqual(await self.state.load_routes(),before)
+        self.catalog.require.assert_not_awaited();self.agent.observe_loaded.assert_not_awaited()
+        self.agent.rpc.request.assert_awaited_once_with('model/list',{'limit':100,'includeHidden':False})
+
+    async def test_native_queries_freeze_target_and_writes_do_not_enter_task_queue(self):
+        await self.select()
+        self.agent.server_version='0.167.0'
+        self.agent.read_settings=AsyncMock(return_value={'model':'fixture-model','reasoningEffort':'high'})
+        self.agent.rpc.request.return_value={'data':[{'model':'fixture-model'}]}
+        before=await self.state.load_routes()
+        await self.command('/model')
+        await self.command('/model set other-model high')
+        texts=await self.state._call(lambda:[r[0] for r in self.state.db.execute('SELECT text FROM outbox')])
+        self.assertTrue(any('fixture-model' in t for t in texts))
+        self.assertTrue(any('当前设置或模型目录缺失' in t for t in texts))
+        self.assertEqual(await self.state.tasks(),[])
+        self.assertEqual(await self.state.load_routes(),before)
+        self.queue.add.assert_not_awaited()
+
+    async def test_received_task_reservation_blocks_setting_before_task_intent(self):
+        await self.select()
+        self.agent.server_version='0.167.0'
+        values={'model':'fixture-model','modelProvider':'fixture-provider','reasoningEffort':'high','serviceTier':'default'}
+        self.agent.read_settings=AsyncMock(return_value=values)
+        self.agent.inspect.return_value={'status':{'type':'idle'},'canAcceptDirectInput':True}
+        self.agent.rpc.request.return_value={'data':[{'model':'fixture-model',
+            'supportedReasoningEfforts':[{'reasoningEffort':'medium'},{'reasoningEffort':'high'}]}]}
+        self.engine.native_controls.confirm_seconds=.02
+        pending=self.controller.prepare(await self.incoming('pending task'))
+        self.assertTrue(self.controller.task_reservations)
+        await self.command('/model set fixture-model medium')
+        self.assertTrue(all(call.args[0]!='thread/settings/update' for call in self.agent.rpc.request.call_args_list))
+        self.assertEqual(await self.state.tasks(),[])
+        await pending
+        self.assertFalse(self.controller.task_reservations)
+
+    async def test_setting_and_normal_dispatch_share_admission_gate(self):
+        await self.select()
+        self.agent.server_version='0.167.0'
+        values={'model':'fixture-model','modelProvider':'fixture-provider','reasoningEffort':'high','serviceTier':'default'}
+        self.agent.read_settings=AsyncMock(side_effect=lambda *a:values.copy())
+        self.agent.inspect.return_value={'status':{'type':'idle'},'canAcceptDirectInput':True}
+        entered,release=asyncio.Event(),asyncio.Event()
+        async def rpc(method,params):
+            if method=='model/list':return {'data':[{'model':'fixture-model',
+                'supportedReasoningEfforts':[{'reasoningEffort':'medium'},{'reasoningEffort':'high'}]}]}
+            self.assertEqual(method,'thread/settings/update');entered.set();await release.wait()
+            values['reasoningEffort']='medium'
+            self.engine.native_controls.event('thread/settings/updated',{'threadId':'thread-two',
+                'threadSettings':{'model':'fixture-model','modelProvider':'fixture-provider','effort':'medium',
+                                  'serviceTier':'default','cwd':str(self.sessions[1].target.cwd)}})
+            return {}
+        self.agent.rpc.request.side_effect=rpc
+        key=patch('wx_clawbot.native_controls.repository_key',new=AsyncMock(return_value='repository'))
+        with key:
+            writer=asyncio.create_task(self.command('/model set fixture-model medium'))
+            await asyncio.wait_for(entered.wait(),1)
+            submit=asyncio.create_task(self.command('after setting'))
+            await asyncio.sleep(.01);self.queue.add.assert_not_awaited()
+            release.set();await writer;await submit
+        self.queue.add.assert_awaited_once()
+        texts=await self.state._call(lambda:[r[0] for r in self.state.db.execute('SELECT text FROM outbox')])
+        self.assertTrue(any('设置已确认' in text for text in texts))
+        self.assertFalse(self.controller.project_reservations)
+
+    async def test_control_active_interactions_cannot_hide_behind_recent_resolved_history(self):
+        from wx_clawbot.channels.http import ProtocolError
+        target={'thread_id':'thread-two','project_alias':'two','cwd':str(self.sessions[1].target.cwd)}
+        for i in range(257):
+            record=SimpleNamespace(public_id='fixture-'+str(i),thread_id='thread-two',turn_id='turn',
+                                   method=APPROVAL,native_id=i,params={},state='pending' if i==0 else 'resolved')
+            await self.state.record_interaction(record,generation='g',target=target,expires_at=1000)
+        rows=await self.state.interaction_rows(active_only=True)
+        self.assertEqual([v['public_id'] for v in rows],['fixture-0'])
+        self.assertEqual(len(await self.state.interaction_rows()),256)
+        await self.state._call(lambda:self.state.db.execute("UPDATE interactions SET state='pending'"))
+        with self.assertRaises(ProtocolError):await self.state.interaction_rows(active_only=True)
+
+    async def test_native_query_received_before_unfocus_never_uses_new_selection(self):
+        await self.select()
+        self.agent.server_version='0.167.0'
+        self.agent.read_settings=AsyncMock()
+        work=self.controller.prepare(await self.incoming('/model'))
+        await self.command('/unfocus')
+        await work
+        self.agent.read_settings.assert_not_awaited()
+        self.assertFalse(self.controller.project_reservations)

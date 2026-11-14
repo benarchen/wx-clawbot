@@ -15,13 +15,14 @@ from .controller import target_record
 from .interactions import APPROVAL, QUESTION, InteractionBroker
 from .routing import Target
 from .sessions import SessionUnbound
-from .output import native_output, render_segments, render_in_worker
+from .output import native_output, render_segments, render_in_worker, inline_literal, target_description, task_state
 from .channels.media import ImageError
 from .images import ImagePreparer
 from .hosts.lifecycle import HostUnavailable
 from .results import ResultWork
 from .admission_recovery import AdmissionRecovery
 from .async_questions import AsyncQuestions
+from .native_controls import NativeControls
 
 
 TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
@@ -53,6 +54,7 @@ class Execution:
         self.recovery = AdmissionRecovery(self)
         self.history_cursor = ''
         self.async_questions = AsyncQuestions(self)
+        self.native_controls = NativeControls(self)
 
     def start_image_preparation(self, task):
         if task["id"] in self.image_jobs:
@@ -201,7 +203,7 @@ class Execution:
             if current["state"] not in TERMINAL:
                 await self.state.task_update(task_id, "queued", queue_id=receipt["id"])
             await self.state.queue_reply(task_id + "-accepted",
-                f"已进入原生队列：{target.project_alias}｜{task_id}。",
+                f"**任务已排队**\n\n项目：{inline_literal(target.project_alias)}\n\n任务：{inline_literal(task_id)}",
                 priority=4, task_id=task_id, kind="accepted")
         except QueueFull:
             await self.state.task_finish(task_id, "failed", f"原生队列已满，任务未提交：{task_id}；请等待队列空位。")
@@ -488,7 +490,7 @@ class Execution:
         output = native_output(turn)
         task_result = task and (task["target"].get("source") != "external" or task["state"] == "stopping")
         if task:
-            text = f"{task['target']['project_alias']}｜{task['id']}｜{status}\n" + output
+            text = f"**任务{task_state(status).removeprefix('已')}**\n\n项目：{inline_literal(task['target']['project_alias'])}\n\n任务：{inline_literal(task['id'])}\n\n" + output
             await self.state.task_finish(task["id"], status, text, turn_id=turn["id"],
                                          deliver=bool(task_result))
             await self.controller.subscriptions.release(restore_target(task["target"]), "task-" + task["id"])
@@ -497,7 +499,7 @@ class Execution:
             session = self.controller.subscriptions.bound.get(observer.session_id) if observer else None
             if session and session.binding.thread_id == thread_id:
                 key = hashlib.sha256((thread_id + turn["id"]).encode()).hexdigest()
-                text = f"观察：{observer.project_alias}｜{status}\n" + output
+                text = f"**观察任务 · {task_state(status)}**\n\n项目：{inline_literal(observer.project_alias)}\n\n" + output
                 # Observation output uses the same bounded transport segmentation.
                 chunks = await render_in_worker(text, renderer=render_segments, slots=self.state.render_slots,
                     prefix=lambda i, n: f"〔观察：{observer.project_alias} {i}/{n}〕\n\n" if n > 1 else "")
@@ -527,6 +529,7 @@ class Execution:
             self.recovery.trigger(thread_id)
         if not any(s.binding.thread_id == thread_id for s in self.controller.subscriptions.bound.values()):
             return  # Never read turns for unrelated runtime-wide notifications.
+        self.native_controls.event(method, params)
         if method == "turn/started":
             turn_id = params.get("turn", {}).get("id")
             if turn_id and self.observed(thread_id):
@@ -545,7 +548,7 @@ class Execution:
                 if task["target"].get("source") != "external":
                     self.observed_turns.discard((thread_id, turn_id))
                     await self.state.queue_reply(task["id"] + "-running",
-                        f"任务正在原生会话执行：{task['target']['project_alias']}｜{task['id']}。",
+                        f"**任务执行中**\n\n项目：{inline_literal(task['target']['project_alias'])}\n\n任务：{inline_literal(task['id'])}",
                         priority=3, task_id=task["id"], kind="progress")
         elif method == "turn/completed":
             turn_id = params.get("turn", {}).get("id")
@@ -744,21 +747,21 @@ class Execution:
             return f"答复已发送，等待原生处理确认：{record.public_id}。"
         if name == "status" and not command.argument:
             routes = self.controller.routes
-            describe = lambda t: f"{t.project_alias}｜{t.session_id}" if t else "未选择"
+            describe = lambda t: target_description(t) if t else "未选择"
             tasks = await self.state.tasks(active_only=True)
-            active = [f"{'桌面任务 ' if t['target'].get('source') == 'external' else ''}{t['id']}：{t['state']}"
+            active = [f"{'桌面任务 ' if t['target'].get('source') == 'external' else '任务：'}{inline_literal(t['id'])} · {task_state(t['state'])}"
                       for t in tasks if t["state"] not in TERMINAL]
             interactions = [f"待处理交互：{r.public_id}（剩余 {max(0, int(r.deadline-b.clock()))} 秒）"
                             for b in self.brokers.values() for r in b.records.values()
                             if r.state == "pending" and b.clock() < r.deadline]
             delivery = await self.state.delivery_counts()
             occupancy = await self.state.occupancy_counts()
-            return (f"执行目标：{describe(routes.target)}\n观察订阅：{describe(routes.observer)}\n"
-                    + ("\n".join(active[:20]) or "暂无未结束任务。")
-                    + ("\n" + "\n".join(interactions[:20]) if interactions else "")
-                    + ('\n' + await self.async_questions.status())
-                    + f"\n历史未知且已释放占用：{occupancy.get('released_unknown', 0)} 条；结果未改写。"
-                    + f"\n回执：待发 {delivery.get('pending', 0)}，投递未知 {delivery.get('unknown', 0)}，拒绝 {delivery.get('rejected', 0)}。")
+            return (f"**任务总览**\n\n输入会话：{describe(routes.target)}\n\n观察会话：{describe(routes.observer)}\n\n"
+                    + ("\n\n".join(active[:20]) or "暂无未结束任务。")
+                    + ("\n\n" + "\n\n".join(interactions[:20]) if interactions else "")
+                    + ('\n\n' + await self.async_questions.status())
+                    + f"\n\n历史未知且已释放占用：{occupancy.get('released_unknown', 0)} 条；结果未改写。"
+                    + f"\n\n回执：待发 {delivery.get('pending', 0)}，投递未知 {delivery.get('unknown', 0)}，拒绝 {delivery.get('rejected', 0)}。")
         if command.argument:
             task = await self.state.tasks(task_id=command.argument)
         else:
@@ -771,8 +774,8 @@ class Execution:
         if task is None:
             raise CommandError("任务不存在。")
         if name == "status":
-            return (f"{task['target']['project_alias']}｜{task['id']}：{task['state']}。\n"
-                    + await self.state.describe_admission(task) + '\n' + await self.async_questions.status(task['id']))
+            return (f"**任务状态 · {task_state(task['state'])}**\n\n项目：{inline_literal(task['target']['project_alias'])}\n\n任务：{inline_literal(task['id'])}\n\n"
+                    + await self.state.describe_admission(task) + '\n\n' + await self.async_questions.status(task['id']))
         if task["state"] in TERMINAL:
             return f"任务已结束：{task['id']}｜{task['state']}。"
         if task['state'] == 'unknown':

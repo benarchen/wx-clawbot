@@ -1,6 +1,6 @@
 # 协议、依赖与兼容基线
 
-适用应用 0.1.11。这里集中维护原生版本／能力／证据范围，其他页面引用本表；实际部署进度只见 [ROADMAP](../ROADMAP.md)。CLI 版本、daemon 的 initialize 版本、应用版本、SQLite schema 和路由快照不是同一对象。未知 server 版本拒绝，不能仅扩大白名单。
+适用应用 0.1.12。这里集中维护原生版本／能力／证据范围，其他页面引用本表；实际部署进度只见 [ROADMAP](../ROADMAP.md)。CLI 版本、daemon 的 initialize 版本、应用版本、SQLite schema 和路由快照不是同一对象。未知 server 版本拒绝，不能仅扩大白名单。
 
 ## 当前能力矩阵
 
@@ -13,10 +13,17 @@
 | 0.165.0 | 允许，[33 份契约比较](validation/codex-0165.json) | IMG01／HOST01 相关原生任务与恢复 | 开放；[IMG01](validation/image-input.md)有单图手机闭环；同消息图文未验收 | 不开放 |
 | 0.166.0 | 允许，[36 份比较](validation/codex-0166.json) | [HOST01](validation/host-lifecycle-recovery.md)、[ASK01](validation/async-questions.md)、[ENG01](validation/engineering-hardening.md)各自范围 | 开放；HOST01 2026-10-30 07:43／07:46 有原图唯一 turn 及本人收件，MD01 有单图真实任务 | 仅此版本开放；原生反例、补充模式与手机证据见 ASK01，不承诺首答独占 |
 | 0.167.0 | 允许，[38 份比较](validation/codex-0167.json) | [真实冷启动](validation/iterm-cold-start-live.md)、[TGT01](validation/wechat-independent-target.md)、[TGT02](validation/native-session-no-footer.md)：各自身份、选择、创建、恢复范围；[0.1.6 发布](validation/codex-0167-release.md)后核心已交付 | 代码／schema 开放；新版图片手机整链路仍未验收，不借旧版通过填补 | 结构化入口不开放，专项动态验证未完成；核心同步协议准入不等于该能力开放 |
+| 0.169.0 | 0.1.12 代码准入，[43 份契约比较](validation/codex-0169.json)，准确 managed 生成 479 份；真实只读握手／目录／额度已过 | 专用 Controller 5 次设置／3 任务及清理、本人微信统一设置／Fast／额度／桌面采用／busy 拒绝／清理及最终展示实收通过；源码纳入 0.1.12，实际运行见 ROADMAP | 本版关闭；不据结构相近开放 | 本版关闭 |
 
 表格表示实际覆盖，没有声称每个已允许版本都重跑全部动态关卡。0.167.0 新增的可选 requiredHumanApproval／humanCommand 未声明支持；音频等新增 schema 字段也不构成本项目能力。图片仍要求当前模型支持，不自动换模型或去图重试。
 
 维护源为 [CodexConnection](../src/wx_clawbot/agents/codex.py) 的 SUPPORTED_SERVER_VERSIONS／image_input 和 [AsyncQuestions](../src/wx_clawbot/async_questions.py) 的独立门禁。协议结构不能推导服务端幂等、两端竞争、显示或手机送达。同步／异步区别见[交互契约](async-questions.md)。
+
+## NCM01：原生命令独立门禁
+
+新控制入口仅允许 0.167.0／0.169.0；0.163 至 0.166 不开放。loaded-only 设置快照、联合 model／effort、Fast、事件加回读、准确任务采用和已知 busy／queued 拒绝分别已有离线及真实证据。0.169.0 的专用原生与本人手机功能验收、桌面后续采用、原设置／B／配置保护及自有终端清理通过；源码纳入 0.1.12，Git 交付与实际运行见 ROADMAP。即时 TUI 旧显示限制保留，不强制刷新；桌面竞争不承诺原子保护，Fast 不证明实际请求档位、提速或计费。
+
+账号额度从同运行时 account/rateLimits/read 取得主次窗口和多桶，只请求 excludeResetCreditDetails=true，不传 Reserve 能力、不切账号或刷新认证；两版只读与本人手机额度实收均有证据。默认 status 按本人要求隐藏内部 token 统计，保留账号范围、未知值与北京时间查询时点；展示优化的同包检查、窄屏渲染及本人微信实收均已完成，分层证据见[专题](native-controls.md)及[0.169.0 记录](validation/codex-0169.md)。
 
 ## 版本与重建
 
@@ -67,3 +74,7 @@ iTerm2 未运行时后台不反复拉起；显式合法会话命令可按需连�
 | 2026-11-07 兼容 0.167.0 | 470 份生成、38 份核对；核心／图片 schema／异步专项区分如上 |
 
 原维护抽样链接、完整叙述和当时测试数量保存在[整理前基线](https://github.com/benarchen/wx-clawbot/blob/8278de5645a57f2fc0348b746d59899bfe0bdadd/docs/protocol-baseline.md)及各阶段证据；本次文档整理没有重新连接或执行原生任务。
+
+## 0.169.0 衔接核验
+
+会话列表指定 currentAccountOnly=true／includeAttachedThreads=false，准确读取拒绝 attached 对象；模型目录的 modelProvider 使用已选原生 provider，未指定的目录查询保持运行时默认。新增结果 moderation／display 指令保守提示由原生客户端处理，不能直接透传正文；可选 environments／responsesapiClientMetadata 不发送，不管理新环境或元数据。图片和异步仍按本版门禁关闭。完整范围、失败记录及具体动态操作卡见 [0.169.0 记录](validation/codex-0169.md)。

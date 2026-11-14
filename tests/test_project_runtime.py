@@ -167,6 +167,28 @@ class ProjectRuntimeTests(RegistryFixture, unittest.IsolatedAsyncioTestCase):
         await self.command('/project add two')
         self.assertEqual(set(self.runtime.controller.routes.projects),{'one','two'})
 
+    async def test_project_list_aliases_share_compact_rendering_and_check_keeps_details(self):
+        before = self.config.read_bytes()
+        routes = await self.state.load_routes()
+        for command in ('/project', '/project list', '/projects', '/project check'):
+            await self.command(command)
+        texts = await self.state._call(lambda: [r[0] for r in self.state.db.execute(
+            'SELECT text FROM outbox ORDER BY created_at')])
+        self.assertEqual(len(texts), 4)
+        self.assertEqual(texts[0], texts[1])
+        self.assertEqual(texts[0], texts[2])
+        self.assertIn('**one**', texts[0])
+        self.assertIn('**two**', texts[0])
+        self.assertEqual(texts[0].count(str(self.workspace)), 1)
+        self.assertNotIn(str(self.a), texts[0])
+        self.assertIn(str(self.a), texts[3])
+        self.assertIn(str(self.b), texts[3])
+        self.assertIn('检查通过', texts[3])
+        self.assertEqual(self.config.read_bytes(), before)
+        self.assertEqual(await self.state.load_routes(), routes)
+        self.starter.start.assert_not_awaited()
+        self.host.backend.launch.assert_not_awaited()
+
     async def test_real_socket_cli_and_wechat_edits_share_live_registry(self):
         await self.server()
         result=await project_operation(self.config,self.private,'remove',name='two',request='ipc-remove')

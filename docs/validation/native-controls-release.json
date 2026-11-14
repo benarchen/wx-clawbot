@@ -1,0 +1,138 @@
+{
+  "status": "checked_ready_for_git",
+  "version": "0.1.12",
+  "schema": 6,
+  "route_snapshot_version": 2,
+  "authorized": true,
+  "git_published": false,
+  "local_deployed": false,
+  "updated_at_beijing": "2026-11-14 14:22",
+  "base_commit": "e2f9d69c715dae1b7e549bea0d889663a7e5e6ad",
+  "accepted_candidate": {
+    "version": "0.1.11_internal_unpublished_candidate",
+    "source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+    "wheel_sha256": "54e9ad5c4a553c6953cb4c5cd317db42b9ef8cb49dd130ec9afea112d9e68ac5"
+  },
+  "acceptance_records": [
+    "native-controls.json",
+    "codex-0169.json"
+  ],
+  "capability_boundaries": {
+    "image_input_0169": false,
+    "structured_async_input_0169": false,
+    "fast_proves_setting_only": true,
+    "desktop_atomic_protection_promised": false
+  },
+  "production_switches": 0,
+  "wechat_sends": 0,
+  "native_submissions": 0,
+  "source_sha256": "3dc042e197eea534603717bb6c97a2629570136a55fd53479f61fc769c1c6460",
+  "wheel_sha256": "a7231f20f1329cbfe0d039c516015202f8cf3533f3c5a3a9098b121ddd2f2418",
+  "lock_sha256": "0bea01a999e40181a487494415f90ce0ce198a0d6e7df4b99cb0f18ccb78db96",
+  "frozen_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 48.86736699999892
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.0899758750165347
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.21039287498570047
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.023953083000378683
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "unittest_count": 932,
+  "unittest_seconds": 47.572,
+  "accepted_candidate_comparison": {
+    "only_version_changed": true,
+    "changed_files": [
+      "__init__.py"
+    ],
+    "other_package_files_identical": 60,
+    "accepted_source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+    "release_source_sha256": "3dc042e197eea534603717bb6c97a2629570136a55fd53479f61fc769c1c6460"
+  },
+  "privacy_audit": {
+    "status": "passed",
+    "public_files": 342,
+    "private_values_compared": 4235,
+    "private_matches": 0,
+    "reachable_objects": {
+      "blob": 1061,
+      "tree": 431,
+      "commit": 63,
+      "tag": 10
+    },
+    "archives": [
+      {
+        "name": "wx_clawbot-0.1.12-py3-none-any.whl",
+        "sha256": "a7231f20f1329cbfe0d039c516015202f8cf3533f3c5a3a9098b121ddd2f2418"
+      },
+      {
+        "name": "wx_clawbot-0.1.12.tar.gz",
+        "sha256": "5fc995f71192d34f836ce1064ac72ff0d9a38b751f1f396d54aa1232dd7adf98"
+      }
+    ],
+    "workspace_matches_manifest": true,
+    "accepted_candidate_comparison": {
+      "only_version_changed": true,
+      "changed_files": [
+        "__init__.py"
+      ],
+      "other_package_files_identical": 60,
+      "accepted_source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369",
+      "release_source_sha256": "3dc042e197eea534603717bb6c97a2629570136a55fd53479f61fc769c1c6460"
+    },
+    "runtime_preserved": true,
+    "production_configuration_preserved": true,
+    "local_deployed": false,
+    "running_version": "0.1.11",
+    "running_source_sha256": "b38002670460cf85b27a04b1ee4af7074663c3a19fe9bbebe7dea26fd033c369"
+  },
+  "manifest_verified": true,
+  "diagram": {
+    "source_sha256": "cc83ab2a0b5afabfa32efccd2b031e3b235fd857b0f9a7da9dad9cc2fc9ee11f",
+    "svg_sha256": "54c4cc907070f2c6cea3fd3fa0a9bf40058f2576b4eb07721e50299749df5892",
+    "png_sha256": "8685387e91d8b8b6315564b7c35bd130cd50bebaca1908990679a960b6c386f3",
+    "embedded_fonts": false,
+    "visually_inspected": true,
+    "inspection": "Readable labels, complete nodes and arrows, no clipping or embedded fonts."
+  },
+  "documentation_review": {
+    "status": "passed",
+    "topics": [
+      "version_and_delivery",
+      "native_controls",
+      "0169_capability_gates",
+      "display_and_help",
+      "protocol_client_version",
+      "schema_and_control_journal",
+      "architecture",
+      "security_and_operations",
+      "historical_acceptance_and_runtime"
+    ],
+    "current_consumers_reviewed": true,
+    "historical_evidence_preserved": true,
+    "new_native_or_phone_tests": false
+  }
+}

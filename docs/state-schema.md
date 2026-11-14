@@ -2,7 +2,7 @@
 
 本文件说明程序自有私有账本，状态以 [ROADMAP](../ROADMAP.md) 为准。真实业务项目数据库与 Codex 历史不属于升级对象。
 
-当前代码 `0.1.11` 使用 schema 6，延续 ASK01 已备份并显式升级的结构；具体本机加载状态见[部署证据](validation/local-release.md)。路由 JSON 快照 version 2 是独立格式，不是 SQLite schema 版本，见[身份契约](native-session-identity.md)。升级链支持 1／2／3／4／5→6；下方带旧版本的章节保存历史演进，不能当作当前部署版本或重复执行操作卡。
+当前代码 `0.1.12` 使用 schema 6，延续 ASK01 已备份并显式升级的结构；具体本机加载状态见[部署证据](validation/local-release.md)。路由 JSON 快照 version 2 是独立格式，不是 SQLite schema 版本，见[身份契约](native-session-identity.md)。升级链支持 1／2／3／4／5→6；下方带旧版本的章节保存历史演进，不能当作当前部署版本或重复执行操作卡。
 
 ## 当前结构总览
 
@@ -126,3 +126,17 @@ migrate-state 默认只读。升级 1 或 2 时，先停止前台并取得原消
 ## ASK01 已确认施工契约
 
 ASK01 的 schema 6 新增 async_questions 及 async_turn／async_active／async_task 索引，字段与唯一约束见[异步答复契约](async-questions.md)，DDL 以 schema.py 的 ASYNC_UPGRADE／ASYNC_INDEXES 为准。本机 5→6 升级已验证私有备份、旧 12 表逐行摘要、完整性和外键；旧库启动不隐式升级。sending 答案重启后变 unknown，pending 变 stale，准确输入关联证据保留；维护只清已关闭且允许处置的记录，未结／unknown 及活动任务所需证据不清除。
+
+## NCM01 控制意图文件（开发候选）
+
+标题保留既有链接；此数据格式自 0.1.12 纳入源码，部署状态见 ROADMAP。
+
+保持 schema 6 和既有表结构。`<state-dir>/native-controls/<sha256(message_id)>.json` 是私有设置操作记录，不是 SQLite 表、Agent 任务或原生设置缓存。format 1 包含 key／fingerprint、准确 target（桥接会话／原生 thread／native session／cwd／代次）、before、显式字段映射 setting、reasoning_source、phase、时间及终态冻结 reply；成功还记录 after 和 settings_event。该记录只用于至多一次发送及核对，不覆盖任何原生值。
+
+phase 为 intent／unknown／confirmed／unchanged／rejected。intent 在 RPC 前落盘；崩溃遗留 intent 仍须按待核对处理，不能推断未发送。重复源消息命中任何 phase 均不再次写入；终态回执复用原文，不拿当前读值改写历史成功。读取时核 0700 目录、0600 普通文件和身份／大小；每条上限 16 KiB、最多 2048 条，达到上限或记录损坏就拒绝新增设置。记录只在短 lease 下创建或原子替换，并同步文件与目录；任何锁均不跨原生 await。
+
+不会自动删除、轮转或恢复旧版本文件。普通账本维护不清理这些去重证据，备份及兼容回退须保留整个目录；见[运维](operations.md#ncm01开发候选的控制记录与回退)。查询与手动明确下达的新命令不等于恢复重放；unknown 的原操作和时间保持历史事实。
+
+NCM01 模型设置的 setting 为 model／effort 映射，reasoning_source 区分 model_default／explicit；Fast 为 serviceTier 映射。旧候选 format 1 的 field／value 及旧 fingerprint 保留作历史去重证据，不改写、不重放；重送形态不匹配明确拒绝。无数据库迁移。
+
+账号额度查询不新增表、文件或持久缓存；仅当前原生快照在本次回执中作为账号级信息展示，身份及余额／重置券等元数据不进入正文。已投递回执保持既有冻结语义，不能当后续当前额度。

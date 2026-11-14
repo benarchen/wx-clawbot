@@ -232,17 +232,21 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
             return state
         return await self._call(save)
 
-    async def interaction_rows(self, *, generation=None):
+    async def interaction_rows(self, *, generation=None, active_only=False):
         def read():
             query = "SELECT public_id,generation,thread_id,turn_id,method,target,deadline,state FROM interactions"
             values = ()
+            conditions=[]
             if generation is not None:
-                query += " WHERE generation=?"
-                values = (generation,)
+                conditions.append('generation=?');values=(generation,)
+            if active_only:conditions.append("state NOT IN ('resolved','stale')")
+            if conditions:query+=' WHERE '+' AND '.join(conditions)
             keys = ("public_id", "generation", "thread_id", "turn_id", "method", "target", "deadline", "state")
             result = []
-            for row in self.db.execute(query + " ORDER BY created_at DESC LIMIT 256", values):
+            limit = 257 if active_only else 256
+            for row in self.db.execute(query + f" ORDER BY created_at DESC LIMIT {limit}", values):
                 item = dict(zip(keys, row));item["target"] = json.loads(item["target"]);result.append(item)
+            if len(result)>256:raise ProtocolError('Interaction view exceeds its bound')
             return result
         return await self._call(read)
 
