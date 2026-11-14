@@ -261,10 +261,10 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         await self.select()
         entered, release = asyncio.Event(), asyncio.Event()
         save_routes = self.state.save_routes
-        async def delayed(snapshot):
+        async def delayed(snapshot, **kwargs):
             entered.set()
             await release.wait()
-            await save_routes(snapshot)
+            await save_routes(snapshot, **kwargs)
         with patch.object(self.state, "save_routes", side_effect=delayed):
             work = asyncio.create_task(self.command("/focus 1"))
             await entered.wait()
@@ -746,10 +746,10 @@ class ControllerTests(unittest.IsolatedAsyncioTestCase):
         await self.select()
         entered, release = asyncio.Event(), asyncio.Event()
         save = self.state.save_routes
-        async def delayed(snapshot):
+        async def delayed(snapshot, **kwargs):
             entered.set()
             await release.wait()
-            await save(snapshot)
+            await save(snapshot, **kwargs)
         with patch.object(self.state, "save_routes", side_effect=delayed):
             work = asyncio.create_task(self.controller.prepare(await self.incoming("/focus 1")))
             await entered.wait()

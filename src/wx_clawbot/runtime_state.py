@@ -22,6 +22,11 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
     APPLICATION_ID = schema.APPLICATION_ID
     parse_message = staticmethod(parse_message)
 
+    def __init__(self, path, credentials):
+        super().__init__(path, credentials)
+        from .session_notifications import SessionNotifications
+        self.session_notifications = SessionNotifications(self)
+
     def _open(self):
         new = self._open_database()
         self.db.execute("PRAGMA foreign_keys=ON")
@@ -176,14 +181,60 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
                     "unsettled_replies": count, "unsettled_bytes": size}
         return await self._call(read)
 
-    async def save_routes(self, snapshot):
+    async def save_routes(self, snapshot, *, notice_state=None, replies=(), reset_notice_roles=()):
         if not isinstance(snapshot, dict):
             raise ValueError("Explicit route snapshot required")
-        encoded = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, allow_nan=False)
-        if len(encoded.encode()) > 65536:
-            raise ValueError("Route snapshot exceeds its bound")
-        await self._call(lambda: self.db.execute("""INSERT INTO routes VALUES(1,?,?)
-            ON CONFLICT(id) DO UPDATE SET snapshot=excluded.snapshot,updated_at=excluded.updated_at""", (encoded, time.time())))
+        await self._save_route_notice(snapshot, notice_state, replies, reset_notice_roles)
+
+    async def save_notice_state(self, notice_state, replies=(), *, close_outage=None):
+        await self._save_route_notice(None, notice_state, replies, (), close_outage=close_outage)
+
+    async def _save_route_notice(self, snapshot, notice_state, replies, reset_roles, *, close_outage=None):
+        # Render before BEGIN; notification state, frozen text and routing commit together.
+        rendered = []
+        for event_id, text in replies:
+            chunks = await render_in_worker(text, renderer=render_segments, slots=self.render_slots)
+            rendered.extend((event_id if len(chunks) == 1 else f"{event_id}-part-{i}", chunk.text)
+                            for i, chunk in enumerate(chunks))
+        def save():
+            self.db.execute("BEGIN IMMEDIATE")
+            try:
+                row = self.db.execute("SELECT snapshot FROM routes WHERE id=1").fetchone()
+                previous = json.loads(row[0]) if row else {}
+                value = dict(snapshot) if snapshot is not None else previous.copy()
+                if not value:
+                    value = {"version": 2, "revision": 0, "mode": "unbound", "project": None,
+                             "cwd": None, "target": None, "observer": None, "last_managed": []}
+                notices = notice_state if notice_state is not None else previous.get("session_notifications")
+                if notices is not None:
+                    notices = json.loads(json.dumps(notices, allow_nan=False))
+                    for role in reset_roles:
+                        notices.get("issues", {}).pop(role, None)
+                    value["session_notifications"] = notices
+                encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, allow_nan=False)
+                if len(encoded.encode()) > 65536:
+                    raise ValueError("Route snapshot exceeds its bound")
+                self.db.execute("""INSERT INTO routes VALUES(1,?,?)
+                    ON CONFLICT(id) DO UPDATE SET snapshot=excluded.snapshot,updated_at=excluded.updated_at""",
+                    (encoded, time.time()))
+                observed = True
+                if close_outage is not None:
+                    prefix = 'session-outage-' + close_outage + '-'
+                    # Atomically inspect sending state and supersede only unsent
+                    # obsolete faults; never retract an uncertain HTTP send.
+                    states = self.db.execute("SELECT state FROM outbox WHERE substr(id,1,?)=?",
+                                             (len(prefix), prefix)).fetchall()
+                    observed = any(row[0] in {'sending', 'accepted', 'unknown'} for row in states)
+                    self.db.execute("UPDATE outbox SET state='superseded' WHERE state='pending' AND substr(id,1,?)=?",
+                                    (len(prefix), prefix))
+                for event_id, text in rendered:
+                    if observed:
+                        self._queue_reply(event_id, text, 0)
+                self.db.execute("COMMIT")
+            except BaseException:
+                self.db.execute("ROLLBACK")
+                raise
+        await self._call(save, wake=bool(rendered))
 
     async def load_routes(self):
         def read():

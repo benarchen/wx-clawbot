@@ -94,6 +94,7 @@ class BridgeRuntime:
         self.host_generation = None
         self.transition = asyncio.Lock()
         self.project_manager = None
+        self.notices_ready = False
 
     def offline_controller(self):
         catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), UnavailableNative())
@@ -104,7 +105,7 @@ class BridgeRuntime:
         controller.project_manager = getattr(self, "project_manager", None)
         return controller
 
-    async def initialize(self):
+    async def initialize(self, *, notice_reason="connection_lost"):
         snapshot = await self.state.load_routes()
         if self.project_manager is not None:
             from .project_registry import sanitize_routes
@@ -118,6 +119,8 @@ class BridgeRuntime:
                     self.controller.routes.revision = revision + 1
             except RouteError:
                 pass
+        if not self.controller.native_ready and notice_reason is not None:
+            await self.state.session_notifications.begin(notice_reason, snapshot=snapshot)
 
     def prepare(self, message):
         if not getattr(message, "content", ()) and not getattr(message, "error", None):
@@ -203,6 +206,12 @@ class BridgeRuntime:
                 self.emit({"status": "capabilities", **self.report()})
             await asyncio.sleep(delay if self.host.state != "ready" else 5)
 
+    async def watch_notifications(self):
+        while True:
+            if not self.notices_ready:
+                await self.state.session_notifications.tick()
+            await asyncio.sleep(1)
+
     async def connect_native(self):
         socket, executable = self.socket, self.executable
         if socket is None or executable is None:
@@ -221,6 +230,7 @@ class BridgeRuntime:
         while True:
             native = engine = None
             controller = None
+            notice_reason = None
             try:
                 self.native_state = "connecting"
                 native, executable = await self.connect_native()
@@ -240,6 +250,8 @@ class BridgeRuntime:
                     controller.before_change = self.restore_host
                     await self.initialize()
                 await self.restore_host()  # Native targets do not wait for a host connection.
+                await self.state.session_notifications.recovered()
+                self.notices_ready = True
                 try:
                     await self.host.ensure()
                     await self.restore_host()
@@ -267,10 +279,14 @@ class BridgeRuntime:
                     return isinstance(error, (ProtocolError, RouteCommitFailed, sqlite3.Error))
                 if state_failure(exc):
                     raise
+                report = native_failure_report(exc)
+                disconnected = report.get("error_type") == "ConnectionLost" or "ConnectionLost" in report.get("error_types", [])
+                notice_reason = "connection_lost" if native is None or disconnected else "verification_pending"
                 if self.emit:
                     self.emit(native_failure_report(exc))
             finally:
                 self.native_state = "unavailable"
+                self.notices_ready = False
                 if controller is not None:
                     controller.native_ready = False
                 async with self.transition:
@@ -282,6 +298,6 @@ class BridgeRuntime:
                     if native is not None:
                         await native.close()
                     self.controller = self.offline_controller()
-                    await self.initialize()
+                    await self.initialize(notice_reason=notice_reason)
             await asyncio.sleep(delay)
             delay = min(delay * 2, 15)

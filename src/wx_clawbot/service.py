@@ -150,6 +150,7 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
                 tasks.create_task(component_task("channel_send", Sender(state, api, emit=emit).run()))
                 tasks.create_task(component_task("agent", runtime.run()))
                 tasks.create_task(component_task("host", runtime.watch_host()))
+                tasks.create_task(component_task("session_notifications", runtime.watch_notifications()))
                 tasks.create_task(component_task("lifecycle", instance.watch_stop()))
                 if runtime.project_manager is not None:
                     tasks.create_task(component_task("project_registry", runtime.project_manager.watch_failure()))

@@ -93,7 +93,7 @@ class IndependentTargetTests(unittest.IsolatedAsyncioTestCase):
         for queue in self.queues.values():
             queue.add.assert_not_called()
         texts = await self.state._call(lambda: [row[0] for row in self.state.db.execute('SELECT text FROM outbox')])
-        self.assertTrue(any('所选会话无法可靠接入' in text and '不会自动切换' in text for text in texts))
+        self.assertTrue(any('已不在原生运行时中加载' in text and '不会自动切换' in text for text in texts))
 
     async def test_host_unavailable_still_submits_to_exact_loaded_native_selection(self):
         from wx_clawbot.hosts.lifecycle import HostUnavailable

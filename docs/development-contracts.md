@@ -1,6 +1,6 @@
 # wx-clawbot 开发契约与接口验证方案
 
-应用基线为 0.1.13，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
+应用基线为 0.1.14，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
 
 ## 1. 项目结构约定
 
@@ -82,6 +82,8 @@ PRJ01 自 0.1.11 新增注册服务与仅当前 UID 可访问的本地 IPC；桥
 未知身份不保存正文；同 message ID 不重复交付，冲突内容保守记录。发送 unknown 可能已送达，不自动重试。缺有效上下文保留关键结果，不把 API accepted 当作手机收到。
 
 ## 8. 数据与错误处理
+
+会话通知的结构化原因、30 秒故障 episode、事务去重与恢复判定见[通知专题](session-notifications.md)。历史索引失败不能冒充选择失效；通知不替代身份、任务或占用门禁。
 
 当前实际 13 表见[账本](state-schema.md)，projects／sessions 不在数据库表清单。错误是安全分类与用户处理动作，不假设下表为实现导出的统一错误枚举：
 

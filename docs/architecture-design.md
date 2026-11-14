@@ -1,6 +1,6 @@
 # wx-clawbot 当前架构
 
-本文描述应用 0.1.13 的实际结构，包含 NCM01 原生命令及可见启动 manifest 固定；源码交付与本机运行状态分开见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
+本文描述应用 0.1.14 的实际结构，包含 NCM01 原生命令、可见启动 manifest 固定及会话通知；源码交付与本机运行状态分开见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
 
 图中实线是有标签的数据／调用关系，虚线是管理、来源或非运行依赖。模块图的节点是逻辑模块；部署图才表示进程边界。Mermaid 为唯一图形维护源，渲染检查见 [DOC01 报告](validation/documentation-restructure.md)。旧设计输入和反例保留固定提交及历史记录，不视为当前路径。
 
@@ -136,6 +136,8 @@ flowchart TB
 | 结果／展示／发送 | `results.py`、`output.py`、`render_worker.py`、`delivery.py` | 事务外渲染、入账后冻结，重投不执行任务 |
 | 账本／维护 | `runtime_state.py`、`occupancy.py`、`async_state.py`、`schema.py`、`retention.py` | 单执行器，显式迁移／维护，不覆盖新数据 |
 | 生命周期／制品 | `service.py`、`runtime_lifecycle.py`、`runtime_discovery.py`、`managed.py`、`release.py` | host 与 native 代次分开，正式父子来源一致 |
+
+0.1.14 会话通知由 `session_notifications.py` 在既有 serve 进程内协调：独立每秒检查连接故障期限，控制器在原有核验入口提供角色和结构化原因，runtime_state 原子保存快照与 Outbox。仍共用既有消费者、渲染层和 SQLite 执行器，不新增进程／外部关系；F02／F03 的简化边界保持，细则见[通知专题](session-notifications.md)，验收及部署见 ROADMAP。
 
 ## 4. 核心数据模型
 

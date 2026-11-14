@@ -8,12 +8,14 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .commands import Command, CommandError, NATIVE_CONTROLS, parse_command
+from .agents.rpc import ConnectionLost, RpcError
 from .catalog import DiscoveryUnavailable
 from .hosts.visible import LaunchPending, reconcile_launch
 from .hosts.lifecycle import HostUnavailable
 from .routing import RouteError, Routes, Target
-from .sessions import SessionUnbound
-from .subscriptions import Subscriptions
+from .sessions import SessionBinding, SessionUnbound, verify_binding
+from .subscriptions import Subscriptions, SubscriptionUnavailable
+from .session_notifications import selection_text
 from .output import render_segments, render_in_worker, inline_literal, bold_literal, target_description
 from .project_registry import describe
 
@@ -241,7 +243,8 @@ class Controller:
                                 raise RouteError("原生连接已变化，本条操作未重放，请刷新会话。")
                             try:
                                 snapshot = self._snapshot(candidate)
-                                save = asyncio.create_task(self.state.save_routes(snapshot))
+                                reset_roles = ("observer",) if name in {"attach", "detach"} else ("target",)
+                                save = asyncio.create_task(self.state.session_notifications.select(snapshot, reset_roles))
                                 try:
                                     await asyncio.shield(save)
                                 except asyncio.CancelledError:
@@ -295,10 +298,16 @@ class Controller:
                     if command.name == "sessions" else
                     "会话操作超时，尚未确认就绪；请核对宿主后刷新，不要重发未知任务。")
             await self.reply(message, text, priority=0)
-        except SessionUnbound:
+        except SessionUnbound as exc:
+            target = target or (dispatch.target if dispatch else None)
+            record = {"session_id": target.session_id, "project_alias": target.project_alias} if target else {}
+            prior = self.subscriptions.bound.get(target.session_id) if target else None
+            reason = exc.reason
+            if reason == "evidence_missing" and prior is not None:
+                reason = await self._restore_failure_reason(target_record(prior))
             await self.reply(message,
-                "所选会话无法可靠接入，原生连接、对话身份或加载状态可能已变化；本条操作未确认完成，"
-                "不会自动切换到桌面其他会话或重发任务。请用 /status 核对任务，再用 /sessions 明确选择。", priority=0)
+                selection_text([("observer" if command.name == "attach" else "target", record, reason)])
+                + "\n\n本条操作未确认完成。", priority=0)
         except LaunchPending:
             await self.reply(message, "会话身份或启动就绪尚未确认，请检查终端后用 /sessions 刷新；不会重复创建或执行。", priority=0)
         except Exception as exc:
@@ -348,6 +357,31 @@ class Controller:
         # A still-valid native observer is a passive lease, not new dispatch
         # authority. Preserve it when a modal/closed host hides its footer.
         candidate.observer = replacement(old.observer) or old.observer
+        failures = []
+        for role, previous in (("target", old.target), ("observer", old.observer)):
+            if previous is None:
+                continue
+            prior = old_bound.get(previous.session_id)
+            chosen = getattr(candidate, role)
+            if chosen is not None and (chosen != previous or role == "target"):
+                try:
+                    await self.catalog.require(chosen)
+                    reason = None
+                except SessionUnbound as exc:
+                    reason = exc.reason
+            elif role == "observer":
+                # An existing passive lease is retained when only host/catalog
+                # provenance is missing. This never grants new dispatch authority.
+                reason = ("runtime_changed" if prior is not None and self.catalog.agent.runtime_identity is not None
+                          and prior.binding.runtime_identity != self.catalog.agent.runtime_identity else None)
+            else:
+                reason = await self._restore_failure_reason(target_record(prior)) if prior else "evidence_missing"
+            if reason:
+                failures.append((role, target_record(prior) if prior else {
+                    "session_id": previous.session_id, "project_alias": previous.project_alias}, reason))
+                setattr(candidate, role, None)
+        if candidate.target is None:
+            candidate.mode = "unbound"
         self.last_managed = {key: chosen for key, target in self.last_managed.items()
                              if (chosen := replacement(target)) is not None}
         for role, previous, chosen in (("route", old.target, candidate.target),
@@ -357,7 +391,7 @@ class Controller:
                     await self.subscriptions.acquire(chosen, role)
             if previous is not None and chosen != previous:
                 await self.subscriptions.release(previous, role)
-        await self.state.save_routes(self._snapshot(candidate))
+        await self.state.session_notifications.restore(self._snapshot(candidate), failures)
         self.routes = candidate
         if self.engine:
             await self.engine.reconcile()
@@ -463,10 +497,9 @@ class Controller:
         await self._refresh()
         routes = Routes(tuple(self.routes.projects.values()))
         routes.revision = snapshot["revision"] + 1
-        stale = False
+        failures = []
 
-        async def verified(record):
-            nonlocal stale
+        async def verified(record, role=None):
             if record is None:
                 return None
             if not isinstance(record, dict):
@@ -474,7 +507,8 @@ class Controller:
             if snapshot["version"] == 2 and (not isinstance(record.get("runtime_identity"), list)
                     or len(record["runtime_identity"]) != 2
                     or any(type(v) is not int or v <= 0 for v in record["runtime_identity"])):
-                stale = True
+                if role:
+                    failures.append((role, record, "evidence_missing"))
                 return None
             session = self.catalog.sessions.get(record.get("session_id"))
             if session is None and snapshot["version"] == 1:
@@ -485,13 +519,20 @@ class Controller:
                 expected.pop("native_session_id")
                 expected["session_id"] = record.get("session_id")
             if session is None or expected != record:
-                stale = True
+                if role:
+                    reason = await self._restore_failure_reason(record) if snapshot["version"] == 2 else "evidence_missing"
+                    failures.append((role, record, reason))
                 return None
             try:
                 routes.validate_target(session.target)
                 await self.catalog.require(session.target)
-            except (SessionUnbound, RouteError):
-                stale = True
+            except (SessionUnbound, RouteError) as exc:
+                if role:
+                    failures.append((role, record, getattr(exc, "reason", "cwd_changed")))
+                return None
+            except (RpcError, ValueError, TimeoutError):
+                if role:
+                    failures.append((role, record, "evidence_missing"))
                 return None
             return session.target
 
@@ -502,9 +543,9 @@ class Controller:
                 if chosen_project == project:
                     routes.project, routes.cwd = project, cwd
             except RouteError:
-                stale = True
-        target = await verified(snapshot.get("target"))
-        observer = await verified(snapshot.get("observer"))
+                pass  # A directory/history alone is not a failed active selection.
+        target = await verified(snapshot.get("target"), "target")
+        observer = await verified(snapshot.get("observer"), "observer")
         if (snapshot.get("target") is not None and target is None
                 or snapshot.get("observer") is not None and observer is None):
             # Diagnostic evidence only; never considered a routing candidate.
@@ -513,24 +554,67 @@ class Controller:
         if mode not in {"focused", "managed", "unbound"}:
             raise RouteCommitFailed("Invalid durable route mode")
         if mode == "managed" and target and target.origin != "managed":
-            target, stale = None, True
+            failures.append(("target", snapshot["target"], "evidence_missing"))
+            target = None
         if target and mode != "unbound":
-            await self.subscriptions.acquire(target, "route")
-            routes.target, routes.mode = target, mode
-            routes.project, routes.cwd = routes.projects[target.project_alias], target.cwd
+            try:
+                await self.subscriptions.acquire(target, "route")
+            except SessionUnbound as exc:
+                failures.append(("target", snapshot["target"], exc.reason))
+            except (SubscriptionUnavailable, ValueError, RpcError, TimeoutError):
+                failures.append(("target", snapshot["target"], "subscription_unconfirmed"))
+            else:
+                routes.target, routes.mode = target, mode
+                routes.project, routes.cwd = routes.projects[target.project_alias], target.cwd
         if observer:
-            await self.subscriptions.acquire(observer, "observer")
-            routes.observer = observer
+            try:
+                await self.subscriptions.acquire(observer, "observer")
+            except SessionUnbound as exc:
+                failures.append(("observer", snapshot["observer"], exc.reason))
+            except (SubscriptionUnavailable, ValueError, RpcError, TimeoutError):
+                failures.append(("observer", snapshot["observer"], "subscription_unconfirmed"))
+            else:
+                routes.observer = observer
+        if failures:
+            self.unrestored_selection = {key: snapshot.get(key) for key in ("version", "target", "observer")}
+        self.last_managed.clear()
         for record in history:
             target = await verified(record)
             if target and target.origin == "managed":
                 self.last_managed[(target.project_alias, target.cwd)] = target
         # Old numeric lists never survive a restart, even when targets remain valid.
-        await self.state.save_routes(self._snapshot(routes))
+        await self.state.session_notifications.restore(self._snapshot(routes), failures)
         self.routes = routes
-        if stale:
-            await self.state.queue_reply(f"route-recovery-{routes.revision}",
-                "部分旧会话已无法核验，未恢复对应选择；请用 /sessions 刷新。未知任务不会重放。", priority=0)
+
+    async def _restore_failure_reason(self, record):
+        agent = self.catalog.agent
+        identity = record.get("runtime_identity")
+        if agent.runtime_identity is None:
+            return "verification_pending"
+        if isinstance(identity, list) and tuple(identity) != agent.runtime_identity:
+            return "runtime_changed"
+        if (not isinstance(record.get("thread_id"), str) or not record["thread_id"]
+                or not isinstance(record.get("native_session_id"), str) or not record["native_session_id"]
+                or not isinstance(record.get("cwd"), str)):
+            return "evidence_missing"
+        try:
+            binding = SessionBinding(None, Path(record["cwd"]), tuple(identity),
+                                     record["thread_id"], record["native_session_id"])
+            await verify_binding(binding, None, agent)
+            loaded = await agent.loaded_threads()
+            if agent.runtime_identity is None:
+                return "verification_pending"
+            if tuple(identity) != agent.runtime_identity:
+                return "runtime_changed"
+            if record["thread_id"] not in loaded:
+                return "not_loaded"
+        except SessionUnbound as exc:
+            return exc.reason
+        except ConnectionLost:
+            return "verification_pending"
+        except (RpcError, ValueError, OSError, TimeoutError):
+            return "evidence_missing"
+        return "evidence_missing"
 
     async def _set_focus(self, target, expected, routes, *, managed=False):
         previous = routes.target

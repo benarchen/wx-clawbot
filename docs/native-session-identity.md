@@ -2,7 +2,7 @@
 
 PRJ01 自 0.1.11 的项目注册修订与 native thread 身份是不同对象：取消注册撤销旧列表／选择资格，重新注册不自动恢复旧选择；再次显式选择仍须本页完整原生复验。验收层级及可选 registry_revision 见[项目管理](project-management.md)，不改变 s- 编号算法或 loaded／订阅条件。
 
-TGT02 已完成双路径真实原生接入、切换、恢复与关闭／卸载验收，并随 0.1.8 发布部署；当前应用 0.1.13 沿用本文件的身份契约。[功能证据](validation/native-session-no-footer.md)、[首次发布切换](validation/native-session-release.md)分别记录工程与上线结果；可见启动 manifest 修复见[0.1.13 记录](validation/visible-launch-manifest.md)，旧 0.1.7 的边界见[TGT01](validation/wechat-independent-target.md)，唯一进度源为 [ROADMAP](../ROADMAP.md)。
+TGT02 已完成双路径真实原生接入、切换、恢复与关闭／卸载验收，并随 0.1.8 发布部署；当前应用 0.1.14 沿用本文件的身份契约。[功能证据](validation/native-session-no-footer.md)、[首次发布切换](validation/native-session-release.md)分别记录工程与上线结果；可见启动 manifest 修复见[0.1.13 记录](validation/visible-launch-manifest.md)，旧 0.1.7 的边界见[TGT01](validation/wechat-independent-target.md)，唯一进度源为 [ROADMAP](../ROADMAP.md)。
 
 ## 选择与证据
 
@@ -23,6 +23,8 @@ TGT02 已完成双路径真实原生接入、切换、恢复与关闭／卸载�
 路由快照提升为 version 2，补充 `runtime_identity` 和 `native_session_id`，SQLite 仍为 schema 6，没有迁移。version 1 仅在真实 SDK 端点／进程和准确原生身份可重建原有完整 UUID5 指纹时恢复为新编号；不按标题、cwd 或 ID 片段猜映射。无法恢复的原 target／observer 另存 `unrestored_selection` 供诊断，不作为路由来源；旧任务与冻结回执保留原编号，不批量改写。旧数字列表均失效，需重新获取。
 
 ## 生命周期、恢复与历史结果
+
+结构化原因、角色影响、30 秒连接通知及持久去重按[通知专题](session-notifications.md)执行；last_managed 失效不等于当前选择丢失。未知核验不得当作卸载，宿主退出不得当作原生运行时退出。
 
 桌面切换、终端改 ID 或退出不自动改变微信目标；原 thread 仍可准确核验且加载时可以继续，若卸载／断连则明确失败或未知。新业务输入与接收时的完整目标冻结，后续 focus 不迁移旧队列。
 

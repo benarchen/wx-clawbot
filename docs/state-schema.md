@@ -2,9 +2,11 @@
 
 本文件说明程序自有私有账本，状态以 [ROADMAP](../ROADMAP.md) 为准。真实业务项目数据库与 Codex 历史不属于升级对象。
 
-当前代码 `0.1.13` 使用 schema 6，延续 ASK01 已备份并显式升级的结构；具体本机加载状态见[部署证据](validation/local-release.md)。路由 JSON 快照 version 2 是独立格式，不是 SQLite schema 版本，见[身份契约](native-session-identity.md)。升级链支持 1／2／3／4／5→6；下方带旧版本的章节保存历史演进，不能当作当前部署版本或重复执行操作卡。
+当前代码 `0.1.14` 使用 schema 6，延续 ASK01 已备份并显式升级的结构；具体本机加载状态见[部署证据](validation/local-release.md)。路由 JSON 快照 version 2 是独立格式，不是 SQLite schema 版本，见[身份契约](native-session-identity.md)。升级链支持 1／2／3／4／5→6；下方带旧版本的章节保存历史演进，不能当作当前部署版本或重复执行操作卡。
 
 ## 当前结构总览
+
+0.1.14 会话通知保持 schema 6 和快照 version 2，仅在 routes.snapshot 增加可选 session_notifications；缺字段兼容，普通路由更新保留状态。episode／角色问题及冻结 Outbox 同事务，旧投递 unknown 保持；格式、上限与旧代码回退限制见[通知专题](session-notifications.md)，开发／验收／部署状态见 ROADMAP。
 
 PRJ01 自 0.1.11 提供，不增加项目 SQLite 表，不升级 schema 6；项目清单仍在私有配置，路由快照 version 2 仅增加可选 registry_revision，结合配置中的取消修订阻止旧选择在重新注册后复活。当前交付状态及新旧配置回退见[项目管理](project-management.md)，这不是旧日常制品已支持新格式的声明。
 

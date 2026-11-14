@@ -2,7 +2,7 @@
 
 通过本人微信选择本机多个注册项目中的准确 Codex 原生会话，提交任务、接收结果并处理交互。iTerm2 用于可见创建和桌面操作；微信选择独立于电脑当前画面，首次接入无需状态栏或终端标题显示 Session ID。
 
-当前源码版本 `0.1.13`，运行账本 schema 6，路由快照 version 2。本版修复可见启动继承 iTerm2 旧 manifest 导致启动器退出的问题；发布与本机切换见[0.1.13 记录](docs/validation/visible-launch-manifest.md)，唯一进度源见 [ROADMAP](ROADMAP.md)。
+当前源码版本 `0.1.14`，运行账本 schema 6，路由快照 version 2。本版区分会话通知原因与输入／观察影响，历史记录失效静默，持续连接故障按 30 秒期限及持久状态去重；验收、发布和部署分别见[通知记录](docs/validation/session-notifications.md)及 [ROADMAP](ROADMAP.md)。可见启动 manifest 修复沿用[0.1.13 结果](docs/validation/visible-launch-manifest.md)。
 
 ## 能力与前提
 
@@ -67,6 +67,8 @@
    等待 stopped、消费者锁释放及原 job 停止后再启动。托管安装、备份、迁移、版本切换和失败恢复见[运维](docs/operations.md)。
 
 ## 使用时需要分清的边界
+
+0.1.14 会话通知的原因、输入／观察影响、30 秒连接期限及持久去重见[通知说明](docs/session-notifications.md)；具体原生／手机验收和运行状态以 ROADMAP 为准，旧版 0.1.13 的提示不能当作新版文案。
 
 `/focus` 选择普通消息目标，`/attach` 独立观察桌面任务，`/detach` 只退订。桌面在同一 TUI 从 A 切到 B 不改变微信所选 A；A 仍准确加载可核验时继续，否则提示失败，不改投、不复制历史或恢复存档。接收时固定目标，后续切换不迁移旧任务。
 

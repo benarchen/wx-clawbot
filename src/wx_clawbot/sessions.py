@@ -9,7 +9,9 @@ from .agents.base import thread_is_loaded
 
 
 class SessionUnbound(ValueError):
-    pass
+    def __init__(self, message, *, reason="evidence_missing"):
+        super().__init__(message)
+        self.reason = reason
 
 
 @dataclass(frozen=True)
@@ -42,13 +44,15 @@ async def verify_binding(binding: SessionBinding, directory, agent) -> dict:
             or not isinstance(binding.runtime_identity, tuple) or len(binding.runtime_identity) != 2
             or any(type(value) is not int or value <= 0 for value in binding.runtime_identity)):
         raise SessionUnbound("原生会话身份记录不完整")
+    if agent.runtime_identity is None:
+        raise SessionUnbound("原生连接暂不可用，身份尚未核验", reason="verification_pending")
     if agent.runtime_identity != binding.runtime_identity:
-        raise SessionUnbound("原生运行时已换代，需要重新核验")
+        raise SessionUnbound("原生运行时已换代，需要重新核验", reason="runtime_changed")
     thread = await agent.inspect(binding.thread_id)
     if thread.get("id") != binding.thread_id:
-        raise SessionUnbound("原生 thread 身份不匹配")
+        raise SessionUnbound("原生 thread 身份不匹配", reason="native_identity_changed")
     if thread.get("sessionId") != binding.native_session_id:
-        raise SessionUnbound("原生 session 身份已变化")
+        raise SessionUnbound("原生 session 身份已变化", reason="native_identity_changed")
     try:
         valid_project = (binding.project.is_absolute() and binding.project.is_dir()
                          and binding.project.resolve(strict=True) == binding.project
@@ -57,9 +61,11 @@ async def verify_binding(binding: SessionBinding, directory, agent) -> dict:
     except OSError:
         valid_project = False
     if not valid_project:
-        raise SessionUnbound("原会话的项目目录已变化")
+        raise SessionUnbound("原会话的项目目录已变化", reason="cwd_changed")
     if not await thread_is_loaded(agent, thread):
-        raise SessionUnbound("原会话已不在原生运行时中加载")
+        raise SessionUnbound("原会话已不在原生运行时中加载", reason="not_loaded")
+    if agent.runtime_identity is None:
+        raise SessionUnbound("核验期间原生连接断开", reason="verification_pending")
     if agent.runtime_identity != binding.runtime_identity:
-        raise SessionUnbound("核验期间原生运行时已变化")
+        raise SessionUnbound("核验期间原生运行时已变化", reason="runtime_changed")
     return thread

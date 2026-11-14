@@ -32,7 +32,7 @@ editable 仅用于开发；正式制品不依赖开发路径。构建后端精�
 | 路径 | 用途与阅读入口 |
 | --- | --- |
 | `src/wx_clawbot/cli.py`、`__main__.py` | argparse 入口，先看 help 与参数默认值 |
-| `service.py`、`runtime_lifecycle.py`、`managed.py` | 单桥接进程、依赖恢复与日志／托管入口 |
+| `service.py`、`runtime_lifecycle.py`、`session_notifications.py`、`managed.py` | 单桥接进程、依赖恢复、会话通知与日志／托管入口 |
 | `commands.py`、`config.py`、`routing.py`、`controller.py` | 纯解析、目录校验、快照及选择事务 |
 | `catalog.py`、`sessions.py`、`subscriptions.py` | 有界原生发现、准确身份与引用式订阅 |
 | `agents/`、`hosts/`、`launcher.py` | 原生协议／队列与 iTerm2 生命周期／可见握手 |
@@ -54,7 +54,7 @@ editable 仅用于开发；正式制品不依赖开发路径。构建后端精�
 2. 从现有测试寻找最小复现和拒绝路径。路由优先看 independent_target／native_identity／native_target_lifecycle，恢复看 recovery_state／admission_recovery，通道看 wechat_*，格式看 markdown_*。
 3. 用现有标准库／依赖和直接职责实现，补充有价值的边界回归；不为一次性情况扩通用框架，不把业务消息放 fixture。
 4. 按[测试指南](testing.md)运行相关检查和项目必要离线检查。涉及原生语义先保留静态／离线结论，再显式安排真实关卡，不能以 fake 通过结案。
-5. 同步受影响的产品、技术、架构图、追溯和 ROADMAP；按[维护触发](README.md#维护触发与核对)核对其他消费者。提交前检查公开内容；只有明确要求提交才 add／commit。
+5. 同步受影响的产品、技术、架构图、追溯和 ROADMAP；按[维护触发](README.md#维护触发与核对)核对其他消费者。提交前检查公开内容；提交、发布与部署授权遵循 AGENTS，其中[标准收尾](../AGENTS.md#标准收尾)是本人明确授权的完整流程入口。
 
 ## 合成数据与调试
 

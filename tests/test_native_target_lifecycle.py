@@ -99,7 +99,7 @@ class NativeTargetLifecycleTests(unittest.IsolatedAsyncioTestCase):
         await controller.restore()
         self.assertIsNone(controller.routes.target)
         texts = await self.state._call(lambda: [r[0] for r in self.state.db.execute('SELECT text FROM outbox')])
-        self.assertTrue(any('未恢复对应选择' in text for text in texts))
+        self.assertTrue(any('会话选择未恢复' in text and '核验证据不足' in text for text in texts))
 
     async def test_corrupted_boolean_snapshot_version_is_not_a_legacy_version(self):
         snapshot = await self.state.load_routes()

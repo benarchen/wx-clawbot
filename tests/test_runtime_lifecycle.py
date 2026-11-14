@@ -121,19 +121,49 @@ class RuntimeLifecycleTests(RuntimeFixture):
         with self.assertRaises(asyncio.CancelledError):
             await job
 
+    async def test_notice_watch_is_independent_of_host_and_native_requests(self):
+        ticked = asyncio.Event()
+        async def tick():
+            ticked.set()
+        with patch.object(self.state.session_notifications, 'tick', side_effect=tick):
+            job = asyncio.create_task(self.runtime.watch_notifications())
+            try:
+                await asyncio.wait_for(ticked.wait(), .5)
+            finally:
+                job.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await job
+        self.backend.identity.assert_not_awaited()
+        self.backend.launch.assert_not_awaited()
+        self.starter.start.assert_not_awaited()
+
+    async def test_notice_watch_does_not_mark_healthy_runtime_as_outage(self):
+        self.runtime.notices_ready = True
+        with patch.object(self.state.session_notifications, 'tick', new=AsyncMock()) as tick:
+            job = asyncio.create_task(self.runtime.watch_notifications())
+            try:
+                await asyncio.sleep(.01)
+                tick.assert_not_awaited()
+            finally:
+                job.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await job
+
     async def test_offline_listing_does_not_erase_observer_waiting_for_revalidation(self):
         observer = {"session_id": "old-session", "thread_id": "old-thread"}
         saved = {"cwd": str(self.root), "revision": 7, "observer": observer,
                  "target": {"session_id": "old-target"}, "last_managed": []}
         await self.state.save_routes(saved)
         await self.runtime.initialize()
+        initialized = await self.state.load_routes()
+        self.assertEqual({k: initialized[k] for k in saved}, saved)
         self.backend.identity.return_value = "application"
         self.backend.connect.return_value = SimpleNamespace(websocket=SimpleNamespace(close=AsyncMock()))
         with patch("wx_clawbot.hosts.discovery.ItermDirectory.discover", new=AsyncMock(return_value=[])), \
                 patch("iterm2.async_get_app",new=AsyncMock(return_value=SimpleNamespace(windows=[]))):
             await self.command("/sessions")
         snapshot = await self.state.load_routes()
-        self.assertEqual(snapshot, saved)
+        self.assertEqual(snapshot, initialized)
         self.backend.launch.assert_not_awaited()
 
     async def test_cd_when_native_missing_connects_host_but_never_creates_codex(self):

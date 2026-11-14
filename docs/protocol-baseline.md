@@ -1,6 +1,6 @@
 # 协议、依赖与兼容基线
 
-适用应用 0.1.13，沿用 0.1.12 原生协议准入。这里集中维护原生版本／能力／证据范围，其他页面引用本表；实际部署进度只见 [ROADMAP](../ROADMAP.md)。CLI 版本、daemon 的 initialize 版本、应用版本、SQLite schema 和路由快照不是同一对象。未知 server 版本拒绝，不能仅扩大白名单。
+适用应用 0.1.14，沿用 0.1.12 原生协议准入。这里集中维护原生版本／能力／证据范围，其他页面引用本表；实际部署进度只见 [ROADMAP](../ROADMAP.md)。CLI 版本、daemon 的 initialize 版本、应用版本、SQLite schema 和路由快照不是同一对象。未知 server 版本拒绝，不能仅扩大白名单。
 
 ## 当前能力矩阵
 
@@ -26,6 +26,8 @@
 账号额度从同运行时 account/rateLimits/read 取得主次窗口和多桶，只请求 excludeResetCreditDetails=true，不传 Reserve 能力、不切账号或刷新认证；两版只读与本人手机额度实收均有证据。默认 status 按本人要求隐藏内部 token 统计，保留账号范围、未知值与北京时间查询时点；展示优化的同包检查、窄屏渲染及本人微信实收均已完成，分层证据见[专题](native-controls.md)及[0.169.0 记录](validation/codex-0169.md)。
 
 0.169.0 设置读取的生命周期另有[真实验证](validation/native-settings-lifecycle.md)：订阅保持时关闭 TUI 仍 loaded；跨连接归档会卸载，但检查与 resume 之间发生归档时原生明确拒绝恢复。结论仅限已测路径，不扩写成所有版本或所有卸载方式的原子保护。
+
+0.1.14 会话通知的 0.169.0 专用验证见[通知记录](validation/session-notifications.md)：同代次连接恢复、实际 30 秒期限、关闭 TUI 的有效选择、输入卸载／观察保留、历史静默和观察单独失效分别核对；不扩大协议准入，未另行重启共享 daemon 验证换代，手机证据单列。
 
 ## 版本与重建
 
