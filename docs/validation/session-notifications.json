@@ -1,0 +1,65 @@
+{
+  "status": "released_and_running",
+  "version": "0.1.14",
+  "code_commit": "8b84d30fa49f95c5876dc74253388f34a4dd22d7",
+  "annotated_tag": "v0.1.14",
+  "atomic_push": true,
+  "remote_release_refs_verified": true,
+  "previous_tags_unchanged": true,
+  "source_sha256": "1bc2e21ac6063ea4fb3466de1cfb35d5122aad1bb1ddd544f65f0348c4e4ee44",
+  "wheel_sha256": "a2be6d5b7b952cd0e6f309501dae97e90598da53613ef1689a9f0b59d4873d03",
+  "offline": {
+    "tests": 977,
+    "seconds": 50.256,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "compile_dependencies_documents_diff": "passed",
+    "frozen_release_isolation_and_compatible_rollback": "passed"
+  },
+  "native": {
+    "version": "0.169.0",
+    "checks": {
+      "two_exact_owned_startups": true,
+      "real_transport_reconnect_and_30_second_notice": true,
+      "closed_tui_valid_native_is_silent": true,
+      "unloaded_input_reason_observer_preserved_and_deduplicated": true,
+      "unloaded_history_only_is_silent": true,
+      "observer_only_reason_and_attach_action": true,
+      "two_startup_turns_only_no_wechat_production_or_global_changes": true
+    },
+    "total_owned_startup_turns": 4,
+    "extra_native_inputs": 0,
+    "shared_daemon_restarts": 0,
+    "real_runtime_replacement_tested": false,
+    "owned_terminals_closed": true
+  },
+  "wechat": {
+    "api_accepted_notifications": 2,
+    "user_screenshot_receipt": true,
+    "input_focus_action": true,
+    "observer_retained_after_input_loss": true,
+    "observer_attach_action": true,
+    "full_text_visible": true,
+    "ui_automation": false
+  },
+  "deployment": {
+    "initial_seconds_to_ready": 26.23,
+    "schema": 6,
+    "backup_tables": 13,
+    "normal_old_exit_code": 0,
+    "same_frozen_release_retained": true,
+    "actual_argv_cwd_manifest_and_single_consumer": "passed",
+    "host": "ready",
+    "native": "ready",
+    "old_data_and_frozen_receipts_preserved": true,
+    "configuration_credentials_global_config_preserved": true,
+    "control_records_preserved": 11,
+    "registered_projects": 12,
+    "historical_unknown": 2,
+    "original_unbound_context_restored": true,
+    "activity_and_pending_delivery_zero": true,
+    "schema_migration": false,
+    "database_restore": false
+  }
+}
