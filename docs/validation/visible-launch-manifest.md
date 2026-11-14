@@ -1,12 +1,20 @@
 # 可见启动继承旧 manifest 的修复
 
-状态：代码、回归、架构图及独立冻结制品的真实 iTerm2 复测通过；本机部署状态以 [ROADMAP](../../ROADMAP.md) 为准。
+状态：0.1.13 已发布并完成本机正式切换；代码、回归、架构图及真实 iTerm2 复测通过。当前进度以 [ROADMAP](../../ROADMAP.md) 为准。
 
 ## 0.1.13 发布范围
 
 功能代码保持上述最小修复，应用版本从 0.1.12 升为 0.1.13，schema 6、路由快照 version 2 及 0.167.0／0.169.0 原生协议准入不变。正式冻结制品 source `6330afe5`／wheel `ce64f6b5`；发布前以同包完整回归、编译、依赖、文档和公开内容检查为门禁。
 
 本人已明确授权提交 dev、正常合并 main、创建 annotated `v0.1.13`、推送 dev／main／tag，并在最后切换本机运行版本。部署使用同一冻结 wheel 的全新私有独立目录；先核活动任务、占用、交互、待投递和所选原生队列，正常停服后完整备份私有状态，仅替换本项目 launchd 的解释器、manifest 和 WorkingDirectory。旧制品与数据保留，不迁移、不覆盖恢复、不自动发送微信或重放 landrop。
+
+## 发布与本机结果
+
+2026-11-15 06:04 已核验：功能提交 `de4c8dddbb8c5fa8474f9e326e3ec89bd6d36de9`，dev／main 正常快进至同一提交，annotated `v0.1.13` 解引用至该提交，远端双分支及标签一致。工作树和同包各 936 项完整回归通过，编译、依赖、文档与 diff 检查通过；实际安装包 source `6330afe5`／wheel `ce64f6b5` 与冻结制品一致。
+
+部署前活动任务／占用／交互／待投递均为零，所选准确原生会话 idle、loaded 且队列为空。旧服务正常退出 0；13 表一致性备份、完整性及外键检查通过，另保存私有配置、控制记录与启动资料。仅修改本项目 launchd 的 ProgramArguments／WorkingDirectory，新实例 21.361 秒恢复 host／native ready。
+
+实际 argv／cwd／manifest、非 editable 包、父子来源和唯一消费者通过；9 张非路由业务表旧行精确保持，旧回执与投递尝试保持，2 条历史 unknown、11 份控制记录、12 个注册项目及原 target／observer 不变。配置、凭据、Codex 全局配置和原 Codex／iTerm2 进程保持；无 schema 迁移、数据库恢复、额外原生任务或自动微信消息。
 
 ## 根因
 

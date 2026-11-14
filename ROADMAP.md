@@ -4,13 +4,13 @@
 
 ## 当前阶段
 
-可见启动 manifest 继承修复已通过独立制品真实复测：iTerm2 残留旧 release 环境时仍成功创建一个自有窗口、完成唯一原生握手并准确清理；开发实现显式固定当前 manifest／清除开发残留。当前正式服务未加载修复，部署需另行明确授权。[修复记录](docs/validation/visible-launch-manifest.md)。
+可见启动 manifest 继承修复已随 0.1.13 正式交付并本机加载：iTerm2 残留旧 release 环境时仍成功创建一个自有窗口、完成唯一原生握手并准确清理；启动命令显式固定当前 manifest／清除开发残留。功能提交 de4c8dd，main 快进、annotated v0.1.13 和双分支／标签原子推送并独立核验；本机切换 21.361 秒恢复 host／native ready，旧数据及原选择保持。[修复与发布记录](docs/validation/visible-launch-manifest.md)。
 
 残留修正及后续原生验证通过：4 处已确认残留已修正；0.169.0 保持订阅关闭 TUI、跨连接归档和 loaded／resume 间归档均真实验证，原生拒绝恢复已归档对象，独立核验无重新加载。完整 934 项／47.460 秒及必需检查通过；分类清理释放 1999.9 MiB，原始证据／原件保留。本轮修正与验证已提交、main 快进、双分支原子推送并独立核验；本人后续授权的维护制品已加载，元数据仍为 0.1.12，实际 source 4790db2／wheel a73b28b3，8.318 秒 host／native ready，旧数据及原选择保持，既有标签不移动。[维护部署](docs/validation/maintenance-deployment.md)。[验证及收尾](docs/validation/native-settings-lifecycle.md)。
 
 NCM01 已按确认范围验收交付，原生 Goal 已实际 complete：统一模型／推理、Fast、status、help，以及输出精简／分组／同名去重均已完成。0.169.0 专用原生、本人微信功能及最后四图展示实收通过；最终 source b380026／wheel 54e9ad5c 同包 932 项／47.553 秒及必需检查、36 T／16 A／8 D 与跨文档核对通过。一次性程序在准确终态／空闲后正常备份切换，6.972 秒 ready；实际来源、旧账本／控制记录／配置／12 注册项及所选目标独立复核通过，程序已退出。测试设置及自有双标签已收尾，原兼容候选的临时阶段结束；0.1.12 已提交、main 快进合并、annotated v0.1.12 及双分支／标签原子推送并独立核验；冻结包 932 项／47.572 秒与必需检查通过；本人后续已授权切换同一 0.1.12 正式独立制品，16.641 秒 ready、实际来源及旧数据保护通过。[Git 记录](docs/validation/native-controls-release.md)。[最终记录](docs/validation/codex-0169.md)。
 
-MVP 已按确认范围交付。最近一次已记录的日常部署为独立非 editable 0.1.12 维护制品／schema 6，路由快照 version 2；dev／main 已公开同步，首次 annotated v0.1.12 保持原目标。[最新切换证据](docs/validation/maintenance-deployment.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
+MVP 已按确认范围交付。最近一次已记录的日常部署为独立非 editable 0.1.13／schema 6，路由快照 version 2；dev／main 及 annotated v0.1.13 已公开同步。[最新切换证据](docs/validation/visible-launch-manifest.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
 
 微信独立选择且首次接入无需状态栏／标题 ID：后台按注册根及已知准确 cwd 发现，准确原生身份／loaded／订阅复验；可见新建保留自有 boot 与唯一完成握手。桌面切换不改投，关闭窗口后以原生可用性为准，unknown 不重放。[当前身份契约](docs/native-session-identity.md)、[TGT02 验收](docs/validation/native-session-no-footer.md)。
 
@@ -66,7 +66,9 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 ## 最近完成
 
-- 2026-11-15 05:38 可见启动 manifest 继承修复：启动命令显式覆盖当前正式 manifest，开发启动清除 GUI 残留；根因、最小实现、回归、F05 派生图及真实单窗口握手完成。当前正式服务保持旧制品，未提交／部署／重放失败 landrop 意图。[记录](docs/validation/visible-launch-manifest.md)。
+- 2026-11-15 06:04 0.1.13 发布与本机切换：可见启动 manifest 修复提交 de4c8dd，main 快进、annotated v0.1.13 及双分支／标签原子推送并独立核验；同一冻结 wheel 正常切换，21.361 秒 host／native ready，旧数据、11 份控制记录、12 注册项和原选择保持。[记录](docs/validation/visible-launch-manifest.md)。
+
+- 2026-11-15 05:38 可见启动 manifest 继承修复：启动命令显式覆盖当前正式 manifest，开发启动清除 GUI 残留；根因、最小实现、回归、F05 派生图及真实单窗口握手完成。该时点尚未提交／部署，后续发布与切换见上一条。[记录](docs/validation/visible-launch-manifest.md)。
 
 - 2026-11-14 22:13 维护制品本机切换完成：复用已验 934 项的 source 4790db2／wheel a73b28b3，版本元数据仍为 0.1.12。正常停服／13 表一致备份后 8.318 秒 host／native ready；实际父子来源、唯一消费者、旧数据／控制／配置／12 注册项和准确选择保持。既有标签／旧制品保留，无迁移、额外原生输入或测试微信消息。[记录](docs/validation/maintenance-deployment.md)。
 
@@ -88,7 +90,6 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 - 2026-11-10 00:18 NCM01 查询阶段候选：严格解析首批入口、help 新分组、准确 route 的只读设置／目录与已订阅 token 用量接入；写命令全部在原生请求前拒绝。规范／ADR／协议及阶段文档同步，专用探针已 prepare，真实设置关卡待执行，不宣称完整交付。[记录](docs/validation/native-controls.md)。
 
-- 2026-11-09 23:49 NCM01 规划交付：首批 C01 至 C08、G00 至 G10、T01 至 T36、A01 至 A16、D01 至 D08 齐备，定义准确目标／逐字段设置、短帮助、并发／未知恢复、分层真实验收和发布边界。本轮只保存[施工清单](goals/20261109-2349-native-control-commands.md)与进度，未开工或变更运行环境。
 
 - 2026-11-09 23:18 项目列表展示开发完成：三个微信列表入口统一紧凑样式，标题含数量、项目名加粗、总目录只显示一次、正常状态和重复路径省略，例外保留完整路径；check 及 CLI JSON 保持详细行为。旧清单不猜总目录，空清单准确提示；长列表按完整项目分组。相关契约／测试文档同步，未发布或切换日常版本。
 
@@ -108,6 +109,8 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 
 ## 最近验证
+
+- 2026-11-15 06:04 0.1.13 发布部署核验：工作树与同包各 936 项、编译／依赖／文档／diff 通过；远端引用与本地一致。正常停服 exit 0、13 表一致性备份与完整性／外键通过；实际 argv／cwd／manifest、父子来源、单消费者、host／native ready、9 张旧业务表精确、旧回执／unknown／控制记录／注册及原选择保护通过，无迁移／恢复覆盖或测试消息。[记录](docs/validation/visible-launch-manifest.md)。
 
 - 2026-11-15 05:39 可见启动修复验证：最终 936 项／47.415 秒及编译／依赖／文档／diff 通过；iTerm2 保留旧 manifest 时，独立 source a53f4a68／wheel 0eea8337 在 12.070 秒完成 boot、准确进程／TTY／thread 及唯一 completed 握手，仅新增一个自有测试窗口并在空闲后关闭，零微信／生产写入。F05 实际渲染及视觉检查通过。[记录](docs/validation/visible-launch-manifest.md)。
 
