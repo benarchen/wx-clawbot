@@ -1,6 +1,6 @@
 # 需求、实现、测试与证据追溯
 
-适用应用 0.1.14。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
+适用应用 0.1.15。P01 至 P14 的需求与验收以 [PRD](product-design.md#8-首版验收)为准，V00 至 V08 以[开发契约](development-contracts.md#9-关键接口验证关卡)为准。本表定位实现与已有证据，不宣称所有历史关卡在本轮或每个原生版本重新执行；当前进度只见 [ROADMAP](../ROADMAP.md)，逐能力版本和手机范围见[协议矩阵](protocol-baseline.md)。
 
 ## 核心产品需求
 
@@ -34,7 +34,7 @@ P05／P13 会话通知变更：[产品与技术专题](session-notifications.md)
 | IMG01 | 单静态图、固定目标、FIFO、准备与执行分离；[指南](image-input.md) | [images](../src/wx_clawbot/images.py)、[media](../src/wx_clawbot/channels/media.py)、image_controller／image_media／image_schema 测试 | IMG01／HOST01 真机；同消息图文和新版手机专项不能由解析测试补足 |
 | HOST01 | 通道独立、按需宿主、代次／授权截止 | hosts/lifecycle、runtime_lifecycle；host_connection／host_lifecycle 测试 | HOST01；冷启动后由 0.167.0 专用复测补证，不等于每次新建无限成功 |
 | REC01 | 结果／占用分离、等待／处置 | [admission_recovery](../src/wx_clawbot/admission_recovery.py)、occupancy；[对应测试](../tests/test_admission_recovery.py)：merged_terminal_history、busy_idle_alone、late_native_activity | [REC01](validation/admission-recovery.md)；无超时自动解锁或 force |
-| ASK01 | 原轮次补充、单次意图、竞争提示 | [async_questions](../src/wx_clawbot/async_questions.py)、async_state；[对应测试](../tests/test_async_questions.py)：foreign_after_accepted、expiry_599_valid_and_600_invalid、unsupported_version | [ASK01](validation/async-questions.md)原生＋真人；矩阵门禁保留，异步非审批 |
+| ASK01 | 原轮次补充、单次意图、竞争提示；入口拒绝与任务状态分开，追问不混入最终答案 | [async_questions](../src/wx_clawbot/async_questions.py)、async_state／output；[原回归](../tests/test_async_questions.py)：foreign_after_accepted、expiry_599_valid_and_600_invalid；[0.169.0 回归](../tests/test_async_question_0169.py)：分类通知、修订失效、结果分离及原异步保护 | [ASK01](validation/async-questions.md)为原 0.166.0 原生＋真人；[新专项](validation/async-questions-0169.md)区分 0.169.0 候选原生、手机与部署，不继承旧版手机通过 |
 | ENG01 | 运行隔离、CPU 资源、容量和控制响应 | release／render_worker／managed；release、engineering_boundaries／async_model、performance 测试 | [ENG01](validation/engineering-hardening.md)合成负载／真实原生／切换分列；本地基准非 SLA |
 | TGT01／TGT02 | 微信独立选择、无页脚首次接入、准确 v1／v2 兼容 | sessions／catalog／controller；independent_target／native_identity／native_target_lifecycle／visible_launch | 对应功能证据及[0.1.8 发布](validation/native-session-release.md)；没有移动 ID 到标题或修改官方 CLI |
 | 原生规则 | 不保证热刷新、检测或自动阻断 | sessions／execution；rules_native 及真实实验入口 | [AUD01](validation/native-diagnostics-rules.md)的 0.166.0 实验与本人接受契约；不推广为所有版本内部缓存事实 |

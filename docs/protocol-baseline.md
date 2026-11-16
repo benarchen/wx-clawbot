@@ -1,6 +1,6 @@
 # 协议、依赖与兼容基线
 
-适用应用 0.1.14，沿用 0.1.12 原生协议准入。这里集中维护原生版本／能力／证据范围，其他页面引用本表；实际部署进度只见 [ROADMAP](../ROADMAP.md)。CLI 版本、daemon 的 initialize 版本、应用版本、SQLite schema 和路由快照不是同一对象。未知 server 版本拒绝，不能仅扩大白名单。
+适用应用 0.1.15，沿用 0.1.12 原生协议准入。这里集中维护原生版本／能力／证据范围，其他页面引用本表；实际部署进度只见 [ROADMAP](../ROADMAP.md)。CLI 版本、daemon 的 initialize 版本、应用版本、SQLite schema 和路由快照不是同一对象。未知 server 版本拒绝，不能仅扩大白名单。
 
 ## 当前能力矩阵
 
@@ -11,13 +11,13 @@
 | 0.163.0 | 允许，[fixture](../tests/fixtures/codex-contract.json) | 初始 CLI 为此版本，初始 daemon 为 0.164.0；不借 CLI 版本宣称相同 daemon 全动态验收 | 不开放 | 不开放 |
 | 0.164.0 | 允许，W01 匹配 schema | [W02](validation/w02.md)、[W03](validation/w03.md)：既有对象、多轮、同步交互及专用队列，TUI 反例保留 | 不开放 | 不开放 |
 | 0.165.0 | 允许，[33 份契约比较](validation/codex-0165.json) | IMG01／HOST01 相关原生任务与恢复 | 开放；[IMG01](validation/image-input.md)有单图手机闭环；同消息图文未验收 | 不开放 |
-| 0.166.0 | 允许，[36 份比较](validation/codex-0166.json) | [HOST01](validation/host-lifecycle-recovery.md)、[ASK01](validation/async-questions.md)、[ENG01](validation/engineering-hardening.md)各自范围 | 开放；HOST01 2026-10-30 07:43／07:46 有原图唯一 turn 及本人收件，MD01 有单图真实任务 | 仅此版本开放；原生反例、补充模式与手机证据见 ASK01，不承诺首答独占 |
+| 0.166.0 | 允许，[36 份比较](validation/codex-0166.json) | [HOST01](validation/host-lifecycle-recovery.md)、[ASK01](validation/async-questions.md)、[ENG01](validation/engineering-hardening.md)各自范围 | 开放；HOST01 2026-10-30 07:43／07:46 有原图唯一 turn 及本人收件，MD01 有单图真实任务 | 允许；原生反例、补充模式与手机证据见 ASK01，不承诺首答独占 |
 | 0.167.0 | 允许，[38 份比较](validation/codex-0167.json) | [真实冷启动](validation/iterm-cold-start-live.md)、[TGT01](validation/wechat-independent-target.md)、[TGT02](validation/native-session-no-footer.md)：各自身份、选择、创建、恢复范围；[0.1.6 发布](validation/codex-0167-release.md)后核心已交付 | 代码／schema 开放；新版图片手机整链路仍未验收，不借旧版通过填补 | 结构化入口不开放，专项动态验证未完成；核心同步协议准入不等于该能力开放 |
-| 0.169.0 | 0.1.12 代码准入，[43 份契约比较](validation/codex-0169.json)，准确 managed 生成 479 份；真实只读握手／目录／额度已过 | 专用 Controller 5 次设置／3 任务及清理、本人微信统一设置／Fast／额度／桌面采用／busy 拒绝／清理及最终展示实收通过；源码纳入 0.1.12，实际运行见 ROADMAP | 本版关闭；不据结构相近开放 | 本版关闭 |
+| 0.169.0 | 0.1.12 代码准入，[43 份契约比较](validation/codex-0169.json)，准确 managed 生成 479 份；真实只读握手／目录／额度已过 | 专用 Controller 5 次设置／3 任务及清理、本人微信统一设置／Fast／额度／桌面采用／busy 拒绝／清理及最终展示实收通过；源码纳入 0.1.12，实际运行见 ROADMAP | 本版关闭；不据结构相近开放 | 开发树允许，[异步专项](validation/async-questions-0169.md)完成精确协议比较、冻结候选原生双题补充、本人微信自由文字闭环及测试清理；同包授权临时运行，未正式发布，不扩写为选择项手机通过 |
 
 表格表示实际覆盖，没有声称每个已允许版本都重跑全部动态关卡。0.167.0 新增的可选 requiredHumanApproval／humanCommand 未声明支持；音频等新增 schema 字段也不构成本项目能力。图片仍要求当前模型支持，不自动换模型或去图重试。
 
-维护源为 [CodexConnection](../src/wx_clawbot/agents/codex.py) 的 SUPPORTED_SERVER_VERSIONS／image_input 和 [AsyncQuestions](../src/wx_clawbot/async_questions.py) 的独立门禁。协议结构不能推导服务端幂等、两端竞争、显示或手机送达。同步／异步区别见[交互契约](async-questions.md)。
+维护源为 [CodexConnection](../src/wx_clawbot/agents/codex.py) 的 SUPPORTED_SERVER_VERSIONS／image_input 和 [AsyncQuestions](../src/wx_clawbot/async_questions.py) 的 SUPPORTED_ASYNC_VERSIONS 独立门禁。协议结构不能推导服务端幂等、两端竞争、显示或手机送达。同步／异步区别见[交互契约](async-questions.md)。
 
 ## NCM01：原生命令独立门禁
 
@@ -81,4 +81,4 @@ iTerm2 未运行时后台不反复拉起；显式合法会话命令可按需连�
 
 ## 0.169.0 衔接核验
 
-会话列表指定 currentAccountOnly=true／includeAttachedThreads=false，准确读取拒绝 attached 对象；模型目录的 modelProvider 使用已选原生 provider，未指定的目录查询保持运行时默认。新增结果 moderation／display 指令保守提示由原生客户端处理，不能直接透传正文；可选 environments／responsesapiClientMetadata 不发送，不管理新环境或元数据。图片和异步仍按本版门禁关闭。完整范围、失败记录及具体动态操作卡见 [0.169.0 记录](validation/codex-0169.md)。
+会话列表指定 currentAccountOnly=true／includeAttachedThreads=false，准确读取拒绝 attached 对象；模型目录的 modelProvider 使用已选原生 provider，未指定的目录查询保持运行时默认。新增结果 moderation／display 指令保守提示由原生客户端处理，不能直接透传正文；可选 environments／responsesapiClientMetadata 不发送，不管理新环境或元数据。0.1.12 当次交付关闭图片和异步，历史范围、失败记录及动态操作卡见 [0.169.0 记录](validation/codex-0169.md)。2026-11-16 开发树仅扩展异步，问题卡也复用展示限制检查；图片门禁保持，候选证据和未验层级见本页矩阵及[专项记录](validation/async-questions-0169.md)。

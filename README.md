@@ -2,7 +2,7 @@
 
 通过本人微信选择本机多个注册项目中的准确 Codex 原生会话，提交任务、接收结果并处理交互。iTerm2 用于可见创建和桌面操作；微信选择独立于电脑当前画面，首次接入无需状态栏或终端标题显示 Session ID。
 
-当前源码版本 `0.1.14`，运行账本 schema 6，路由快照 version 2。本版区分会话通知原因与输入／观察影响，历史记录失效静默，持续连接故障按 30 秒期限及持久状态去重；验收、发布和部署分别见[通知记录](docs/validation/session-notifications.md)及 [ROADMAP](ROADMAP.md)。可见启动 manifest 修复沿用[0.1.13 结果](docs/validation/visible-launch-manifest.md)。
+当前源码版本 `0.1.15`，运行账本 schema 6，路由快照 version 2。本版区分异步答复入口拒绝原因并关联项目／任务，分离追问与最终答案，支持已验 0.169.0 原轮次补充；能力与限制见[异步契约](docs/async-questions.md)，验收及发布运行结果见[修复记录](docs/validation/async-questions-0169.md)、[发布记录](docs/validation/async-questions-release.md)及 [ROADMAP](ROADMAP.md)。
 
 ## 能力与前提
 
@@ -73,6 +73,8 @@
 `/focus` 选择普通消息目标，`/attach` 独立观察桌面任务，`/detach` 只退订。桌面在同一 TUI 从 A 切到 B 不改变微信所选 A；A 仍准确加载可核验时继续，否则提示失败，不改投、不复制历史或恢复存档。接收时固定目标，后续切换不迁移旧任务。
 
 同步追问的多题答案是原生题目 ID 到回答数组，例如 `{"choice":["PHONE_ALPHA"]}`；异步 `q-` 多题是全部题键到字符串，例如 `{"q1":"答案一","q2":"答案二"}`。按通知的准确 ID 使用 `/answer`，不要裸发选项猜请求。异步不保证任务暂停、模型采用或跨端首答互斥；门禁及期限见[异步契约](docs/async-questions.md)。
+
+异步追问单独通知，不拼入最终答案；微信答复入口不可用时，提示准确项目、任务和原因，原任务仍可能继续。只有追问而没有正式答案时，结果会明确说明。
 
 任务已接收、入队、原生执行完成、API accepted 和手机实际收到各有证据含义。`/status <任务 ID>` 分看结果、占用和投递；unknown 不自动重跑，少数异常按[准入处置](docs/operations.md#rec01-候选的准入诊断与受控切换)核验，不直接清锁。`/stop` 等待准确原生中断确认，不能保证所有已启动的系统子进程被杀死。
 

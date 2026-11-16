@@ -1,0 +1,263 @@
+{
+  "status": "functional_acceptance_complete_formal_release_pending",
+  "application_baseline": "0.1.14",
+  "schema": 6,
+  "protocol": {
+    "old_native_version": "0.166.0",
+    "new_native_version": "0.169.0",
+    "generated_schema_files": 479,
+    "files": {
+      "ItemCompletedNotification.json": {
+        "old_sha256": "f12a69b4f26a7fd2accadd87db4edd5e96e67ff78a1cac203dd12b91462031d7",
+        "new_sha256": "528e21e0d9b2679ba4e5c55d95fdfd23f396977536cae51480fd833acd3061b4",
+        "required_unchanged": true,
+        "added_agent_fields": [
+          "moderation"
+        ],
+        "added_event_fields": [
+          "contentTokenCount"
+        ]
+      },
+      "TurnSteerParams.json": {
+        "old_sha256": "202bc34e1f268b69e28c75f2ddd8b4990562eef114aca4663d9596f59d425bf8",
+        "new_sha256": "ba7034e96620c999cf0164f08bc753f58ff2b214f2025ab409f8ce42dc4cc708",
+        "required_unchanged": true
+      },
+      "TurnSteerResponse.json": {
+        "old_sha256": "866ba9a77c12b5d570c837d58f73bf40b24e50fa93404bdf792dd984d313b1aa",
+        "new_sha256": "866ba9a77c12b5d570c837d58f73bf40b24e50fa93404bdf792dd984d313b1aa",
+        "required_unchanged": true
+      },
+      "ThreadTurnsListResponse.json": {
+        "old_sha256": "7953d842384fbc572c0b33f03c0fb1c6b746d3a3cc9c25302e6a03f9dce6d46a",
+        "new_sha256": "1771280212d97d8f5c745dfd8b95280cd2c4927ea58d4e3d6de6f6a0326dd1d0",
+        "required_unchanged": true,
+        "added_agent_fields": [
+          "moderation"
+        ]
+      }
+    },
+    "checks": {
+      "ItemCompletedNotification.json:AgentMessageDelivery": true,
+      "ItemCompletedNotification.json:AsyncUserInputQuestion": true,
+      "ItemCompletedNotification.json:agent_required": true,
+      "ItemCompletedNotification.json:agent_existing_fields": true,
+      "steer_threadId": true,
+      "steer_expectedTurnId": true,
+      "steer_clientUserMessageId": true,
+      "steer_input": true,
+      "steer_text_input": true,
+      "steer_response_identical": true,
+      "ThreadTurnsListResponse.json:AgentMessageDelivery": true,
+      "ThreadTurnsListResponse.json:AsyncUserInputQuestion": true,
+      "ThreadTurnsListResponse.json:agent_required": true,
+      "ThreadTurnsListResponse.json:agent_existing_fields": true
+    },
+    "all_compared_contracts_compatible": true,
+    "dynamic_acceptance": true
+  },
+  "native": {
+    "passed": true,
+    "native_version": "0.169.0",
+    "schema": 6,
+    "source_sha256": "c25476ed82958f7b310106eb1e7a3577d16a29662f3e4416d181e230d665b7f4",
+    "wheel_sha256": "e6b1e08da6eed13283a25d602019fc18fe7513fb62cefb4d7ccf8f278492b221",
+    "startup_inputs": 2,
+    "business_inputs": 1,
+    "answer_submissions": 1,
+    "original_turn_preserved": true,
+    "answer_observed": true,
+    "model_adopted_both_answers": true,
+    "target_switch_preserved": true,
+    "other_target_startup_only": true,
+    "duplicate_refused": true,
+    "late_refused": true,
+    "final_excludes_async_question": true,
+    "question_delivered_before_answer": true,
+    "owned_terminals_closed": true,
+    "protected_configuration_unchanged": true,
+    "wechat_sends": 0,
+    "production_writes": 0,
+    "settings_writes": 0
+  },
+  "independent_audit": {
+    "passed": true,
+    "independent_native_and_sqlite_audit": true,
+    "exact_two_user_inputs": true,
+    "answer_body_sha256_matches": true,
+    "two_question_final_separation": true,
+    "other_thread_startup_only": true,
+    "single_completed_task": true,
+    "single_observed_answer": true,
+    "two_owned_processes_and_terminals_absent": true,
+    "complete_queues_empty": true,
+    "historical_audit_did_not_load_threads": true,
+    "source_matches_frozen_manifest": true,
+    "source_sha256": "c25476ed82958f7b310106eb1e7a3577d16a29662f3e4416d181e230d665b7f4"
+  },
+  "frozen_checks": {
+    "status": "passed",
+    "checks": [
+      {
+        "check": "unittest",
+        "exit_code": 0,
+        "seconds": 52.300458834011806
+      },
+      {
+        "check": "compile",
+        "exit_code": 0,
+        "seconds": 0.0740151249920018
+      },
+      {
+        "check": "dependencies",
+        "exit_code": 0,
+        "seconds": 0.18737604198395275
+      },
+      {
+        "check": "diff",
+        "exit_code": 0,
+        "seconds": 0.020322208001744002
+      },
+      {
+        "check": "documents",
+        "exit_code": 0
+      }
+    ],
+    "wechat_sends": 0,
+    "native_submissions": 0,
+    "production_writes": 0
+  },
+  "unit_tests": {
+    "count": 1028,
+    "seconds": 51.979,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "phone_acceptance": "free_text_functional_passed",
+  "daily_deployment": "authorized_temporary_candidate_running",
+  "git_commit": "not_created",
+  "temporary_candidate_deployment": {
+    "status": "deployed_verified",
+    "version": "0.1.14",
+    "schema": 6,
+    "route_snapshot_version": 2,
+    "source_sha256": "c25476ed82958f7b310106eb1e7a3577d16a29662f3e4416d181e230d665b7f4",
+    "wheel_sha256": "e6b1e08da6eed13283a25d602019fc18fe7513fb62cefb4d7ccf8f278492b221",
+    "seconds_to_ready": 17.895,
+    "normal_stop": true,
+    "old_exit_code": 0,
+    "backup_integrity_and_foreign_keys": "passed",
+    "backup_tables": 13,
+    "single_consumer_verified": true,
+    "actual_argv_cwd_manifest_verified": true,
+    "child_render_verified": true,
+    "old_rows_and_frozen_receipts_preserved": true,
+    "exact_old_business_tables": 9,
+    "historical_unknown_preserved": 2,
+    "control_records_preserved": 11,
+    "config_credentials_global_config_preserved": true,
+    "registered_projects": 12,
+    "selected_target_observer_preserved": true,
+    "route_identity_independently_verified": true,
+    "host_ready": true,
+    "native_ready": true,
+    "original_native_processes_preserved": true,
+    "changed_plist_keys": [
+      "ProgramArguments",
+      "WorkingDirectory"
+    ],
+    "schema_migration": false,
+    "database_restore": false,
+    "automatic_test_messages": 0,
+    "native_submissions": 0,
+    "deployment_kind": "authorized_temporary_async_phone_candidate",
+    "tests_count": 1028,
+    "git_published": false,
+    "phone_acceptance_complete": false
+  },
+  "temporary_candidate_independent_audit": {
+    "passed": true,
+    "independent_pid_argv_cwd_manifest_and_wheel": true,
+    "single_consumer": true,
+    "host_ready": true,
+    "native_ready": true,
+    "schema": 6,
+    "old_rows_and_frozen_receipts_preserved": true,
+    "protected_configuration_and_controls_preserved": true,
+    "original_selection_preserved": true,
+    "historical_unknown": 2,
+    "automatic_wechat_sends": 0,
+    "native_submissions": 0,
+    "source_sha256": "c25476ed82958f7b310106eb1e7a3577d16a29662f3e4416d181e230d665b7f4"
+  },
+  "phone": {
+    "functional_passed": true,
+    "native_version": "0.169.0",
+    "source_sha256": "c25476ed82958f7b310106eb1e7a3577d16a29662f3e4416d181e230d665b7f4",
+    "owner_screenshot_count": 2,
+    "screenshot_sha256": [
+      "8e049373b42c3bc7237213b3306c0d437a35d1b7dc107bf1fcee49f130a5746f",
+      "8db3efe4e3ff47d2270ae66c91527d23aff648a812710212651200e9ce76b7e1"
+    ],
+    "single_free_text_question_options_null": true,
+    "question_card_received_by_owner": true,
+    "original_task_completed": true,
+    "exact_original_turn_preserved": true,
+    "original_business_client_count": 1,
+    "registered_answer_client_count": 1,
+    "answer_body_sha256_matches": true,
+    "answer_observed": true,
+    "model_adopted_literal_owner_answer": true,
+    "angle_brackets_were_part_of_owner_answer": true,
+    "final_excludes_async_question": true,
+    "final_received_by_owner": true,
+    "occupancy_released": true,
+    "bridge_configuration_and_credentials_unchanged": true,
+    "global_config_review": {
+      "global_config_matches_switch_baseline": false,
+      "global_config_mtime_before_business_task": true,
+      "cause": "unconfirmed",
+      "config_written_by_this_audit": false,
+      "config_restored_or_overwritten": false
+    },
+    "automatic_wechat_sends": 0,
+    "additional_test_inputs": 0,
+    "test_terminal_cleanup": "completed",
+    "temporary_candidate_runtime": "still_running",
+    "cleanup": {
+      "other_terminal_ids_preserved": true,
+      "process_exited": true,
+      "original_unfocused_context_preserved": true,
+      "bridge_process_unchanged": true,
+      "host_ready": true,
+      "native_ready": true,
+      "current_global_config_preserved": true
+    }
+  },
+  "global_config_owner_confirmation": {
+    "confirmed": true,
+    "time_bj": "2026-11-17 00:01",
+    "other_project_settings_work_ongoing": true,
+    "exact_field_changes_not_attributed": true,
+    "preserve_current_file": true,
+    "fresh_snapshot_required_before_final_switch": true
+  },
+  "phone_cleanup_independent_audit": {
+    "passed": true,
+    "owner_unfocus_verified": true,
+    "owned_terminal_absent": true,
+    "owned_process_absent": true,
+    "other_terminals_preserved": true,
+    "original_turn_still_completed": true,
+    "complete_queue_empty": true,
+    "audit_did_not_load_or_restore_thread": true,
+    "host_ready": true,
+    "native_ready": true,
+    "source_sha256": "c25476ed82958f7b310106eb1e7a3577d16a29662f3e4416d181e230d665b7f4",
+    "additional_native_inputs": 0,
+    "wechat_ui_actions": 0,
+    "global_config_writes": 0
+  },
+  "pre_release_source_matches_tested_candidate": true
+}

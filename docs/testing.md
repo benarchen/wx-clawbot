@@ -15,6 +15,8 @@
 
 `tests/integration/` 同时含合成和真实脚本，不用目录名决定执行权限；先读入口、参数、具体 Goal 和前置。原生版本逐能力见[兼容矩阵](protocol-baseline.md)，不机械在 0.167.0 执行只核验过 0.166.0 的异步全阶段脚本。
 
+0.169.0 异步专项入口为 `async_questions_0169.py`，使用新临时项目和准确非 editable manifest；不修改模型或全局设置。`test_async_question_0169.py` 在该版本重复原有异步竞态／未知／辅助输入保护回归，并覆盖分类通知、稳定去重、无效修订关闭旧卡及最终结果分离。协议、离线、真实原生、手机及运行加载分列于[本轮记录](validation/async-questions-0169.md)。
+
 ## 默认离线检查
 
 PRJ01 专项入口为 `tests/test_project_registry.py`、`tests/test_project_runtime.py`，覆盖真实目录、配置原子写、真实子进程落盘后退出／启动锁、Unix socket 成功回执丢失／提前断开／资源上限、双端一致性、取消注册竞争和崩溃收敛；未处理回调异常也必须令用例失败。显式真实原生入口 `tests/integration/project_management_native.py` 的 prepare 不运行任务，run／cleanup 须有专用资源授权；两个临时项目／一个窗口／两个标签，无真实微信发送。逐 T／A 状态及手机范围见[PRJ01 清单](../goals/20261108-2048-project-management.md)。

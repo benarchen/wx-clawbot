@@ -871,18 +871,28 @@ async def render_in_worker(text, *, renderer=None, slots=None, **kwargs):
             raise
 
 
+def unsupported_presentation(item):
+    moderation = item.get("moderation")
+    return (item.get("type") == "agentMessage" and moderation is not None
+            and (not isinstance(moderation, dict) or moderation.get("moderated") is not False
+                 or moderation.get("display") is not None))
+
+
 def native_output(turn):
     for item in turn.get("items", []):
-        moderation = item.get("moderation")
-        if item.get("type") == "agentMessage" and moderation is not None:
-            if (not isinstance(moderation, dict) or moderation.get("moderated") is not False
-                    or moderation.get("display") is not None):
-                return "原生结果包含当前桥接未支持的展示／审核指令，请在原生客户端查看。"
+        if unsupported_presentation(item):
+            return "原生结果包含当前桥接未支持的展示／审核指令，请在原生客户端查看。"
     body = "\n".join(item.get("text", "") for item in turn.get("items", [])
                      if item.get("type") == "agentMessage" and item.get("phase") != "commentary"
+                     and item.get("delivery") != "async"
                      and isinstance(item.get("text"), str))
     body = bounded(body, RESULT_LIMIT)
     error = turn.get("error")
     if turn.get("status") == "failed" and isinstance(error, dict) and isinstance(error.get("message"), str) and error["message"].strip():
         body = (body + "\n\n原生错误：" + bounded(error["message"], 8000)).strip()
-    return body or "原生任务已结束，没有最终文本结果。"
+    if body:
+        return body
+    if any(item.get("type") == "agentMessage" and item.get("delivery") == "async"
+           for item in turn.get("items", [])):
+        return "原生任务已结束，仅有异步补充问题，没有最终文本答案。"
+    return "原生任务已结束，没有最终文本结果。"

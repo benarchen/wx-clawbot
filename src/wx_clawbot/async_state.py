@@ -10,6 +10,10 @@ def digest(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+class AsyncQuestionCapacity(ValueError):
+    """Registration exceeded a retained or shared interaction budget."""
+
+
 def user_text(item):
     content = item.get('content')
     if (not isinstance(content, list) or len(content) != 1 or not isinstance(content[0], dict)
@@ -82,14 +86,14 @@ class AsyncQuestionStore:
                 turn_count = self.db.execute('SELECT count(*) FROM async_questions WHERE thread_id=? AND turn_id=?',
                                              (record['thread_id'], record['turn_id'])).fetchone()[0]
                 if turn_count >= 256:
-                    raise ValueError('Per-turn retained question bound exceeded')
+                    raise AsyncQuestionCapacity('Per-turn retained question bound exceeded')
                 n, b = self.db.execute("""SELECT count(*),COALESCE(sum(length(CAST(questions AS BLOB))+
                     length(CAST(target AS BLOB))+COALESCE(length(CAST(answer_text AS BLOB)),0)),0)
                     FROM async_questions WHERE closed_at IS NULL OR state='unknown'""").fetchone()
                 questions = json.dumps(record['questions'], ensure_ascii=False, separators=(',', ':'))
                 target = json.dumps(record['target'], ensure_ascii=False, sort_keys=True)
                 if count + n >= 256 or size + b + len((questions + target).encode()) > 16 * 1024 * 1024:
-                    raise ValueError('Shared interaction capacity exceeded')
+                    raise AsyncQuestionCapacity('Shared interaction capacity exceeded')
                 now = time.time()
                 self.db.execute('''INSERT INTO async_questions(public_id,source,thread_id,turn_id,item_id,
                     revision,questions,question_sha256,target,task_id,generation,state,reason,expires_at,created_at,updated_at)

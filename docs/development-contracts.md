@@ -1,6 +1,6 @@
 # wx-clawbot 开发契约与接口验证方案
 
-应用基线为 0.1.14，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
+应用基线为 0.1.15，本文维护当前开发树的跨模块不变量、实际接口入口和 V00 至 V08；实际部署见 ROADMAP。产品需求见 [PRD](product-design.md)，结构见[架构](architecture-design.md)，如何开发和运行测试分别见[开发指南](development.md)及[测试指南](testing.md)。早期建议接口／表名不再作为实现 API；原稿的固定提交与章节映射见 [DOC01 报告](validation/documentation-restructure.md)。
 
 ## 1. 项目结构约定
 
@@ -132,3 +132,5 @@ V01 至 V08 的真实关卡不能由替身代替。自然上下文失效触发�
 ## ASK01 已确认施工契约
 
 异步答案是原轮次输入，严格匹配预先登记 client、正文摘要、thread／turn 和来源才可分类为辅助输入；其他合并输入保持 unknown。状态持久化和冲突边界见[异步契约](async-questions.md)，不扩大版本门禁。
+
+异步入口拒绝不改变业务任务状态；拒绝通知绑定原项目／任务，按版本、结构、内容和容量给出原因。最终结果排除 async 追问，过滤前仍核验所有原生展示／审核指令，纯追问不冒充正式答案；规则与验证范围统一由上述专题维护。

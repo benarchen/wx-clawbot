@@ -8,10 +8,13 @@ import uuid
 from dataclasses import asdict
 
 from .agents.rpc import RpcError
-from .async_state import digest
+from .async_state import AsyncQuestionCapacity, digest
 from .commands import CommandError
 from .controller import target_record
-from .output import render_in_worker, render_segments
+from .output import inline_literal, render_in_worker, render_segments, unsupported_presentation
+
+
+SUPPORTED_ASYNC_VERSIONS = frozenset({'0.166.0', '0.169.0'})
 
 
 def questions_from(item):
@@ -78,6 +81,18 @@ class AsyncQuestions:
         self.engine, self.state, self.clock = engine, engine.state, clock
         self.deadlines = {}
 
+    async def unavailable(self, task, key, public_id, reason):
+        # A malformed/unsupported revision must not leave an older card usable.
+        await self.state.async_close(public_id=public_id, reason='unsupported_question', pending_only=True)
+        # Keep old frozen replies immutable, including when a revision changes
+        # the refusal category or an older release already notified this item.
+        await self.state.queue_reply('async-unsupported-v2-' + digest(key + reason),
+            '**异步补充答复暂不可用**\n\n'
+            f"项目：{inline_literal(task['target']['project_alias'])}\n\n"
+            f"任务：{inline_literal(task['id'])}\n\n原因：{reason}。\n\n"
+            '原任务可能继续执行，结束后仍会按实际结果回传；如需补充，请在原生客户端处理。没有发送自动答复。',
+            priority=0, task_id=task['id'])
+
     async def register(self, thread_id, turn_id, item):
         engine = self.engine
         task_id = engine.turn_tasks.get((thread_id, turn_id))
@@ -90,17 +105,26 @@ class AsyncQuestions:
         target = restore_target(task['target'])
         session = engine.controller.subscriptions.event_session(target, thread_id)
         key = digest(json.dumps([thread_id, turn_id, item.get('id')], ensure_ascii=False))
+        source = json.dumps(session.binding.runtime_identity)
+        public_id = 'q-' + uuid.uuid5(uuid.NAMESPACE_URL,
+            json.dumps([source, thread_id, turn_id, item.get('id')])).hex
+        if getattr(engine.native, 'server_version', None) not in SUPPORTED_ASYNC_VERSIONS:
+            await self.unavailable(task, key, public_id, '当前原生版本尚未开放微信异步答复')
+            return
+        if unsupported_presentation(item):
+            await self.unavailable(task, key, public_id, '原生问题包含当前桥接未支持的展示／审核指令')
+            return
+        if len(json.dumps(item, ensure_ascii=False).encode()) > 1024 * 1024:
+            await self.unavailable(task, key, public_id, '问题内容超过完整展示或安全处理上限')
+            return
         try:
-            if getattr(engine.native, 'server_version', None) != '0.166.0':
-                raise ValueError('Async question protocol is not verified on this version')
-            if len(json.dumps(item, ensure_ascii=False).encode()) > 1024 * 1024:
-                raise ValueError('Async event exceeds the safe record budget')
             if not isinstance(turn_id, str) or not 0 < len(turn_id) <= 256:
                 raise ValueError('Exact turn identity required')
             questions = questions_from(item)
-            source = json.dumps(session.binding.runtime_identity)
-            public_id = 'q-' + uuid.uuid5(uuid.NAMESPACE_URL,
-                json.dumps([source, thread_id, turn_id, item['id']])).hex
+        except ValueError:
+            await self.unavailable(task, key, public_id, '问题结构不完整或不受支持')
+            return
+        try:
             encoded = json.dumps(questions, ensure_ascii=False, separators=(',', ':'))
             record = {'public_id': public_id, 'source': source, 'thread_id': thread_id, 'turn_id': turn_id,
                 'item_id': item['id'], 'questions': questions, 'question_sha256': digest(encoded),
@@ -108,6 +132,7 @@ class AsyncQuestions:
                            'native_generation': engine.controller.native_generation},
                 'task_id': task['id'], 'generation': engine.generation, 'expires_at': time.time() + 600}
             lines = [f'异步补充问题：{target.project_alias}｜{public_id}',
+                f"任务：{inline_literal(task['id'])}",
                 '任务可能继续运行；本地答复入口 600 秒有效。电脑与微信可能同时被接受，内容不构成审批授权。']
             literal_lines = []
             for question in questions:
@@ -121,12 +146,16 @@ class AsyncQuestions:
             if len(prompt) > 7000 or len(json.dumps(record, ensure_ascii=False).encode()) > 1024 * 1024:
                 raise ValueError('Complete prompt exceeds the safe display budget')
             chunks = await render_in_worker(prompt, renderer=render_segments, slots=self.state.render_slots)
-            _, created = await self.state.async_register(record, chunks)
-            if created:
-                self.deadlines[public_id] = self.clock() + 600
         except ValueError:
-            await self.state.queue_reply('async-unsupported-' + key,
-                '本次结构化异步问题无法完整处理或已达容量上限，请在原终端处理；没有发送自动答复。', priority=0)
+            await self.unavailable(task, key, public_id, '问题内容超过完整展示或安全处理上限')
+            return
+        try:
+            _, created = await self.state.async_register(record, chunks)
+        except AsyncQuestionCapacity:
+            await self.unavailable(task, key, public_id, '交互记录已达容量上限')
+            return
+        if created:
+            self.deadlines[public_id] = self.clock() + 600
 
     async def expire(self):
         for row in await self.state.async_rows(active=True):
