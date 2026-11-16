@@ -1,5 +1,5 @@
 {
-  "status": "functional_acceptance_complete_formal_release_pending",
+  "status": "released_and_formally_deployed",
   "application_baseline": "0.1.14",
   "schema": 6,
   "protocol": {
@@ -135,8 +135,8 @@
     "skipped": 0
   },
   "phone_acceptance": "free_text_functional_passed",
-  "daily_deployment": "authorized_temporary_candidate_running",
-  "git_commit": "not_created",
+  "daily_deployment": "formal_0.1.15_running",
+  "git_commit": "94b415244fa98788d702d50e5ece2164702d8965",
   "temporary_candidate_deployment": {
     "status": "deployed_verified",
     "version": "0.1.14",
@@ -259,5 +259,12 @@
     "wechat_ui_actions": 0,
     "global_config_writes": 0
   },
-  "pre_release_source_matches_tested_candidate": true
+  "pre_release_source_matches_tested_candidate": true,
+  "formal_release": {
+    "version": "0.1.15",
+    "record": "async-questions-release.json",
+    "source_sha256": "bd47c3b75d878d15b585dff77b6ad4962f4bc9e30d8aa00b20de3f26fc862594",
+    "wheel_sha256": "9f88031f66de5a913a0aebafeeda3ab4a404a3cc75c42c946cece52d56df92ef"
+  },
+  "phone_evidence_phase": "0.1.14_candidate_functional_acceptance_and_cleanup_before_formal_cutover"
 }

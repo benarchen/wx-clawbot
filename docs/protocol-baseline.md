@@ -13,7 +13,7 @@
 | 0.165.0 | 允许，[33 份契约比较](validation/codex-0165.json) | IMG01／HOST01 相关原生任务与恢复 | 开放；[IMG01](validation/image-input.md)有单图手机闭环；同消息图文未验收 | 不开放 |
 | 0.166.0 | 允许，[36 份比较](validation/codex-0166.json) | [HOST01](validation/host-lifecycle-recovery.md)、[ASK01](validation/async-questions.md)、[ENG01](validation/engineering-hardening.md)各自范围 | 开放；HOST01 2026-10-30 07:43／07:46 有原图唯一 turn 及本人收件，MD01 有单图真实任务 | 允许；原生反例、补充模式与手机证据见 ASK01，不承诺首答独占 |
 | 0.167.0 | 允许，[38 份比较](validation/codex-0167.json) | [真实冷启动](validation/iterm-cold-start-live.md)、[TGT01](validation/wechat-independent-target.md)、[TGT02](validation/native-session-no-footer.md)：各自身份、选择、创建、恢复范围；[0.1.6 发布](validation/codex-0167-release.md)后核心已交付 | 代码／schema 开放；新版图片手机整链路仍未验收，不借旧版通过填补 | 结构化入口不开放，专项动态验证未完成；核心同步协议准入不等于该能力开放 |
-| 0.169.0 | 0.1.12 代码准入，[43 份契约比较](validation/codex-0169.json)，准确 managed 生成 479 份；真实只读握手／目录／额度已过 | 专用 Controller 5 次设置／3 任务及清理、本人微信统一设置／Fast／额度／桌面采用／busy 拒绝／清理及最终展示实收通过；源码纳入 0.1.12，实际运行见 ROADMAP | 本版关闭；不据结构相近开放 | 开发树允许，[异步专项](validation/async-questions-0169.md)完成精确协议比较、冻结候选原生双题补充、本人微信自由文字闭环及测试清理；同包授权临时运行，未正式发布，不扩写为选择项手机通过 |
+| 0.169.0 | 0.1.12 代码准入，[43 份契约比较](validation/codex-0169.json)，准确 managed 生成 479 份；真实只读握手／目录／额度已过 | 专用 Controller 5 次设置／3 任务及清理、本人微信统一设置／Fast／额度／桌面采用／busy 拒绝／清理及最终展示实收通过；源码纳入 0.1.12，实际运行见 ROADMAP | 本版关闭；不据结构相近开放 | 0.1.15 开放，[异步专项](validation/async-questions-0169.md)完成精确协议比较、原生双题补充、本人微信自由文字闭环及清理；正式包仅版本元数据不同，[发布／加载](validation/async-questions-release.md)已核验，不扩写为选择项手机通过 |
 
 表格表示实际覆盖，没有声称每个已允许版本都重跑全部动态关卡。0.167.0 新增的可选 requiredHumanApproval／humanCommand 未声明支持；音频等新增 schema 字段也不构成本项目能力。图片仍要求当前模型支持，不自动换模型或去图重试。
 
