@@ -17,7 +17,7 @@
 
 表格表示实际覆盖，没有声称每个已允许版本都重跑全部动态关卡。0.167.0 新增的可选 requiredHumanApproval／humanCommand 未声明支持；音频等新增 schema 字段也不构成本项目能力。图片仍要求当前模型支持，不自动换模型或去图重试。
 
-维护源为 [CodexConnection](../src/wx_clawbot/agents/codex.py) 的 SUPPORTED_SERVER_VERSIONS／image_input 和 [AsyncQuestions](../src/wx_clawbot/async_questions.py) 的 SUPPORTED_ASYNC_VERSIONS 独立门禁。协议结构不能推导服务端幂等、两端竞争、显示或手机送达。同步／异步区别见[交互契约](async-questions.md)。
+维护源为 [CodexConnection](../src/wx_clawbot/agents/codex.py) 的 SUPPORTED_SERVER_VERSIONS／image_input 和 [AsyncQuestions](../src/wx_clawbot/async_questions.py) 的 SUPPORTED_ASYNC_VERSIONS 独立门禁。版本适配采用 SemVer 向前自适应策略：以已验证版本为基线，对 `>= 0.169.0` 的版本（如 0.170.0+）自动按最新稳定标准放行并启用高级特性，通过环境变量 `WX_CLAWBOT_STRICT_NATIVE_VERSIONS=1` 可强制回退为静态白名单。协议结构不能推导服务端幂等、两端竞争、显示或手机送达。同步／异步区别见[交互契约](async-questions.md)。
 
 ## NCM01：原生命令独立门禁
 

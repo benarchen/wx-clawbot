@@ -61,13 +61,15 @@ def doctor(config: Path | None = None, *, iterm: bool = False) -> tuple[dict, bo
             runtime = json.loads(result.stdout) if result.returncode == 0 else {}
             if not isinstance(runtime, dict):
                 raise ValueError("Invalid daemon status")
-            from .agents.codex import SUPPORTED_SERVER_VERSIONS
+            from .agents.codex import SUPPORTED_SERVER_VERSIONS, is_supported_server_version
             report["runtime"] = {"status": "running" if runtime.get("status") == "running" else "unavailable"}
             for key in ("cliVersion", "appServerVersion"):
                 value = runtime.get(key)
                 report["runtime"][key] = value if isinstance(value, str) and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", value) else None
-            report["runtime"]["verified_schema"] = runtime.get("appServerVersion") in SUPPORTED_SERVER_VERSIONS if isinstance(runtime.get("appServerVersion"), str) else False
-            if runtime.get("status") != "running" or not report["runtime"]["verified_schema"]:
+            app_version = runtime.get("appServerVersion")
+            report["runtime"]["verified_schema"] = app_version in SUPPORTED_SERVER_VERSIONS if isinstance(app_version, str) else False
+            report["runtime"]["compatible"] = is_supported_server_version(app_version)
+            if runtime.get("status") != "running" or not report["runtime"]["compatible"]:
                 ok = False
         except (OSError, ValueError, subprocess.TimeoutExpired):
             report["runtime"] = {"status": "unavailable"}

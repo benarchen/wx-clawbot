@@ -14,6 +14,35 @@ from .. import __version__
 SUPPORTED_SERVER_VERSIONS = frozenset({"0.163.0", "0.164.0", "0.165.0", "0.166.0", "0.167.0", "0.169.0"})
 
 
+def parse_version(v: str) -> tuple[int, ...]:
+    if not isinstance(v, str):
+        return ()
+    parts = []
+    for seg in v.split('.'):
+        num = ''
+        for c in seg:
+            if c.isdigit():
+                num += c
+            else:
+                break
+        if num:
+            parts.append(int(num))
+        else:
+            break
+    return tuple(parts)
+
+
+def is_supported_server_version(v: str) -> bool:
+    if not isinstance(v, str):
+        return False
+    if v in SUPPORTED_SERVER_VERSIONS:
+        return True
+    if os.environ.get("WX_CLAWBOT_STRICT_NATIVE_VERSIONS") == "1":
+        return False
+    parsed = parse_version(v)
+    return bool(parsed and parsed[0] == 0 and (0, 169, 0) <= parsed < (0, 300, 0))
+
+
 class CodexConnection:
     capabilities = Capabilities(observe=True, submit_idle=True, queue=True,
                                 interrupt=True, shared_interactions=True)
@@ -65,7 +94,7 @@ class CodexConnection:
                 raise ValueError("Unsupported native server identity")
             version_parts = user_agent.split("/", 1)[1].split()
             server_version = version_parts[0] if version_parts else ""
-            if server_version not in SUPPORTED_SERVER_VERSIONS:
+            if not is_supported_server_version(server_version):
                 raise ValueError("Native version has no verified schema baseline")
             connection.server_version = server_version
             connection.capabilities = replace(cls.capabilities, image_input=server_version in {"0.165.0", "0.166.0", "0.167.0"})
@@ -82,7 +111,7 @@ class CodexConnection:
         result = await self.rpc.request("thread/read", {"threadId": thread_id, "includeTurns": False})
         self._check_runtime()
         thread = result.get("thread", {})
-        if self.server_version == "0.169.0" and thread.get("attachedToThreadId") is not None:
+        if parse_version(self.server_version) >= (0, 169, 0) and thread.get("attachedToThreadId") is not None:
             raise ValueError("Attached native threads are outside the supported session scope")
         if thread.get("id") != thread_id:
             raise ValueError("Native thread identity mismatch")
@@ -94,7 +123,7 @@ class CodexConnection:
         if not project.is_dir():
             raise ValueError("Existing project directory required")
         params = {"cwd": str(project), "useStateDbOnly": True, "limit": 100}
-        if self.server_version == "0.169.0":
+        if parse_version(self.server_version) >= (0, 169, 0):
             params.update(currentAccountOnly=True, includeAttachedThreads=False)
         if cursor is not None:
             params["cursor"] = cursor
@@ -164,7 +193,7 @@ class CodexConnection:
         Uses the existing loaded-only subscription path, with no settings
         overrides. The caller must own an existing route subscription.
         """
-        if self.server_version not in {"0.167.0", "0.169.0"}:
+        if self.server_version != "0.167.0" and parse_version(self.server_version) < (0, 169, 0):
             raise ValueError("Native settings schema is not verified for this version")
         before = await self.inspect(thread_id)
         if not isinstance(before.get("modelProvider"), str) or not before["modelProvider"]:

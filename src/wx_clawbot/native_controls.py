@@ -5,6 +5,7 @@ from collections import OrderedDict
 from pathlib import Path
 import json
 import hashlib
+import os
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -15,9 +16,23 @@ from .output import RESULT_LIMIT, inline_literal as literal, bold_literal, markd
 from .admission import repository_key
 from .channels.http import ChannelError
 from .control_journal import ControlJournal
+from .agents.codex import parse_version
 
 
 VERSIONS = frozenset({'0.167.0', '0.169.0'})
+
+
+def is_control_supported(v):
+    if getattr(v, 'server_version', None) is not None:
+        v = v.server_version
+    if not isinstance(v, str):
+        return False
+    if v in VERSIONS:
+        return True
+    if os.environ.get("WX_CLAWBOT_STRICT_NATIVE_VERSIONS") == "1":
+        return False
+    parsed = parse_version(v)
+    return bool(parsed and parsed[0] == 0 and (0, 169, 0) <= parsed < (0, 300, 0))
 RACE_NOTICE = '桌面并发操作仍可能影响排队任务。'
 
 
@@ -82,7 +97,7 @@ def rate_limit_lines(value):
 async def account_quota(native):
     generation=native.runtime_identity
     try:
-        if native.server_version not in VERSIONS or generation is None:
+        if not is_control_supported(native.server_version) or generation is None:
             return ['账号额度：当前原生版本或连接未核验。']
         value=await native.rpc.request('account/rateLimits/read',{'excludeResetCreditDetails':True},timeout=5)
         if native.runtime_identity!=generation:
@@ -95,7 +110,7 @@ async def account_quota(native):
 
 
 async def model_catalog(native, *, provider=None):
-    if getattr(native, 'server_version', None) not in VERSIONS:
+    if not is_control_supported(getattr(native, 'server_version', None)):
         raise CommandError('当前原生版本尚未核验模型目录能力。')
     models, cursors, size, cursor = {}, set(), 0, None
     generation = native.runtime_identity
@@ -104,7 +119,7 @@ async def model_catalog(native, *, provider=None):
     async with asyncio.timeout(25):
         for _ in range(10):
             params = {'limit': 100, 'includeHidden': False}
-            if native.server_version == '0.169.0' and provider is not None:
+            if parse_version(getattr(native, 'server_version', '')) >= (0, 169, 0) and provider is not None:
                 if not identifier(provider):
                     raise CommandError('原生模型 provider 无效，未查询目录。')
                 params['modelProvider'] = provider
@@ -412,7 +427,7 @@ class NativeControls:
         journal, record, sent = None, None, False
         window = None
         try:
-            if native.server_version not in VERSIONS or target is None:
+            if not is_control_supported(native.server_version) or target is None:
                 raise CommandError('当前版本或输入目标不支持设置修改。')
             ControlJournal.key(message_id)
             fingerprint = hashlib.sha256(json.dumps([command.name,command.argument,command.text,command.reasoning,

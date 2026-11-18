@@ -1,9 +1,10 @@
 """Native controls use structured reads and preserve the unverified write gate."""
 
+import os
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 from markdown_it import MarkdownIt
 
@@ -129,6 +130,15 @@ class CatalogTests(unittest.IsolatedAsyncioTestCase):
         native.rpc.request.side_effect = changed
         with self.assertRaises(CommandError):
             await model_catalog(native)
+
+    async def test_forward_compatible_0170_controls_and_strict_mode(self):
+        native = self.native([{'data': [model()]}]); native.server_version = '0.170.0'
+        rows = await model_catalog(native, provider='custom-provider')
+        self.assertIn('fixture-model', rows)
+        self.assertEqual(native.rpc.request.call_args[0][1].get('modelProvider'), 'custom-provider')
+        with patch.dict(os.environ, {'WX_CLAWBOT_STRICT_NATIVE_VERSIONS': '1'}):
+            with self.assertRaises(CommandError):
+                await model_catalog(native)
 
     async def test_fast_uses_catalog_ids_and_distinguishes_unknown_and_unsupported(self):
         rows = await model_catalog(self.native([{'data': [model()]}]));row = rows['fixture-model']

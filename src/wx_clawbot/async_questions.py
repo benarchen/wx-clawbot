@@ -2,12 +2,14 @@
 
 import asyncio
 import json
+import os
 import re
 import time
 import uuid
 from dataclasses import asdict
 
 from .agents.rpc import RpcError
+from .agents.codex import parse_version
 from .async_state import AsyncQuestionCapacity, digest
 from .commands import CommandError
 from .controller import target_record
@@ -15,6 +17,19 @@ from .output import inline_literal, render_in_worker, render_segments, unsupport
 
 
 SUPPORTED_ASYNC_VERSIONS = frozenset({'0.166.0', '0.169.0'})
+
+
+def is_async_supported(v):
+    if getattr(v, 'server_version', None) is not None:
+        v = v.server_version
+    if not isinstance(v, str):
+        return False
+    if v in SUPPORTED_ASYNC_VERSIONS:
+        return True
+    if os.environ.get("WX_CLAWBOT_STRICT_NATIVE_VERSIONS") == "1":
+        return False
+    parsed = parse_version(v)
+    return bool(parsed and parsed[0] == 0 and (0, 169, 0) <= parsed < (0, 300, 0))
 
 
 def questions_from(item):
@@ -108,7 +123,7 @@ class AsyncQuestions:
         source = json.dumps(session.binding.runtime_identity)
         public_id = 'q-' + uuid.uuid5(uuid.NAMESPACE_URL,
             json.dumps([source, thread_id, turn_id, item.get('id')])).hex
-        if getattr(engine.native, 'server_version', None) not in SUPPORTED_ASYNC_VERSIONS:
+        if not is_async_supported(getattr(engine.native, 'server_version', None)):
             await self.unavailable(task, key, public_id, '当前原生版本尚未开放微信异步答复')
             return
         if unsupported_presentation(item):

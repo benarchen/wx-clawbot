@@ -4,6 +4,8 @@
 
 ## 当前阶段
 
+Codex 原生版本基线向前自适应已随 0.1.17 正式交付并本机加载：支持 SemVer 向前自适应门禁（兼容放行 0.170.0+ 等静默升级版本并自适应高级特性，支持 WX_CLAWBOT_STRICT_NATIVE_VERSIONS 严格模式）。正式冻结包 1041 项／52.829 秒及必需检查全部通过；新增针对性单测覆盖版本自适应与严格模式。功能提交、main 快进、固定 annotated v0.1.17、双分支／标签原子推送及独立远端核验通过。本机同一正式 wheel 恢复 host／native ready，旧数据、当前设置与其他原生进程保护通过。[发布与运行](docs/validation/codex-forward-compatibility-release.md)。
+
 静态审计缺陷修复与工程治理已随 0.1.16 正式交付并本机加载：加固临时文件 0o600 权限防线、消除 maintain 图片异常穿透、retire 超时排空与 inflight 计数器化、剥离控制命令分发并统一事务上下文管理器。正式冻结包 1036 项／52.994 秒及必需检查全部通过；新增针对性测试覆盖盲区。功能提交 f5926af、main 快进、固定 annotated v0.1.16、双分支／标签原子推送及独立远端核验通过。本机同一正式 wheel 恢复 ready，PID 67074，旧数据、当前设置与其他原生进程保护通过。[清单](goals/20261118-1823-audit-remediation.md)、[发布与运行](docs/validation/audit-remediation-release.md)。
 
 异步追问修复已随 0.1.15 正式发布并本机加载：分类通知与项目／任务关联、async 追问结果分离、0.169.0 补充及展示限制检查完成。正式冻结包 1028 项／51.716 秒及必需检查、专用原生双题与本人微信自由文字两图和准确清理通过；正式包仅版本元数据与已验候选不同。功能提交 94b4152、main 快进、固定 annotated v0.1.15、双分支／标签原子推送及独立远端核验通过。本机同一正式 wheel 22.166 秒恢复 ready，旧数据、当前设置与其他原生进程保护通过；测试前项目／目录恢复，输入／观察保持为空。[功能记录](docs/validation/async-questions-0169.md)、[发布与运行](docs/validation/async-questions-release.md)。
@@ -16,7 +18,7 @@
 
 NCM01 已按确认范围验收交付，原生 Goal 已实际 complete：统一模型／推理、Fast、status、help，以及输出精简／分组／同名去重均已完成。0.169.0 专用原生、本人微信功能及最后四图展示实收通过；最终 source b380026／wheel 54e9ad5c 同包 932 项／47.553 秒及必需检查、36 T／16 A／8 D 与跨文档核对通过。一次性程序在准确终态／空闲后正常备份切换，6.972 秒 ready；实际来源、旧账本／控制记录／配置／12 注册项及所选目标独立复核通过，程序已退出。测试设置及自有双标签已收尾，原兼容候选的临时阶段结束；0.1.12 已提交、main 快进合并、annotated v0.1.12 及双分支／标签原子推送并独立核验；冻结包 932 项／47.572 秒与必需检查通过；本人后续已授权切换同一 0.1.12 正式独立制品，16.641 秒 ready、实际来源及旧数据保护通过。[Git 记录](docs/validation/native-controls-release.md)。[最终记录](docs/validation/codex-0169.md)。
 
-MVP 已按确认范围交付。最近正式发布及日常运行均为独立非 editable 0.1.16／schema 6，路由快照 version 2；dev／main 及 annotated v0.1.16 已公开同步。[正式发布与运行证据](docs/validation/audit-remediation-release.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
+MVP 已按确认范围交付。最近正式发布及日常运行均为独立非 editable 0.1.17／schema 6，路由快照 version 2；dev／main 及 annotated v0.1.17 已公开同步。[正式发布与运行证据](docs/validation/codex-forward-compatibility-release.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
 
 微信独立选择且首次接入无需状态栏／标题 ID：后台按注册根及已知准确 cwd 发现，准确原生身份／loaded／订阅复验；可见新建保留自有 boot 与唯一完成握手。桌面切换不改投，关闭窗口后以原生可用性为准，unknown 不重放。[当前身份契约](docs/native-session-identity.md)、[TGT02 验收](docs/validation/native-session-no-footer.md)。
 
@@ -72,6 +74,8 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 ## 最近完成
 
+- 2026-11-18 21:25 Codex 原生版本基线向前自适应改造完成：将静态硬编码全版本白名单升级为 SemVer 向前自适应策略（SUPPORTED_SERVER_VERSIONS 保持历史基线，>= 0.169.0 自动启用高级特性），平滑接入 0.170.0+ 等静默升级版本；native_controls 与 async_questions 同步升级为 SemVer 自适应门禁；引入 WX_CLAWBOT_STRICT_NATIVE_VERSIONS 环境变量支持严格模式；全量离线单元测试 1041 项（净增 5 项针对性单测）、compileall、git diff --check 及 scripts/check.py 全部通过；未提交、未发布、未切换生产独立制品。
+
 - 2026-11-18 18:43 静态审计缺陷修复与工程治理开发完成：依据审计报告及源码二次核实，完成 P0-01（maintain 图片异常穿透）、P0-02/P1-06（retire 超时与 drain 等待排空）、P0-03（临时文件 0o600 权限纵深加固）、P1-01（inflight 集合计数器化）、P1-02（未派发图片 prepared 任务断连恢复）、P1-03（poll 命令 job 异常隔离）；落地 P2-01（execution.py 剥离微信控制逻辑至 execution_control.py）与 P2-02（runtime_state.py 统一 transaction 上下文管理器）；补齐 P3 对应 8 项高价值自动化回归测试（tests/test_audit_remediation.py）。全量离线单元测试 1036 项（净增 8 项）、compileall、git diff --check 及 scripts/check.py 全部通过；保持 SQLite schema 6 与路由快照 version 2，未提交、未发布、未切换生产独立制品。[施工清单](goals/20261118-1823-audit-remediation.md)。
 
 - 2026-11-17 00:29 0.1.15 标准收尾：异步追问修复与必要验收完成，正式包 1028 项／51.716 秒及必需检查、源代码与已验候选仅版本差异通过。提交 94b4152、main 快进、固定 annotated v0.1.15 及双分支／标签原子推送独立核验通过；同一 wheel 正式切换 22.166 秒 ready，13 表备份、旧数据／冻结回执／当前新设置及其他原生进程保持。原项目／目录经正式 API 恢复，输入／观察为空。[记录](docs/validation/async-questions-release.md)。
@@ -111,13 +115,13 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 - 2026-11-09 07:49 0.1.11 发布部署完成：41 文件功能提交 7df84ed、main 快进、固定 annotated v0.1.11 与双分支／标签原子推送和独立核验完成；同一已验独立制品本机加载，项目管理 IPC 可用，原配置／任务／回执保持。[记录](docs/validation/project-management-release.md)。
 
-- 2026-11-08 23:48 PRJ01 交付齐备：一层初始化、双端 project 子命令与旧入口、即时生效、取消保护／零项目；835 项、专用原生及本人 12 条手机闭环通过。正常重启取消项不复活，测试终端准确清理，原日常版本／配置恢复且新增任务／回执保持。原生 Goal 已实际 complete，未提交或正式发布。[清单](goals/20261108-2048-project-management.md)、[报告](docs/validation/project-management.md)。
-
 
 
 
 
 ## 最近验证
+
+- 2026-11-18 21:25 原生版本自适应离线全量验证：执行离线单元测试 1041 项（耗时 52.2 秒）0 failure / 0 error，针对性单测验证了 0.170.0 原生握手向前兼容、RPC 特性自适应启用、原生控制/异步追问放行及 WX_CLAWBOT_STRICT_NATIVE_VERSIONS 严格模式阻断；compileall 语法检查通过、git diff --check 无空白违规；scripts/check.py 工程检查（unittest、compile、dependencies、diff、documents）全部通过。仅离线验证，未连接真实原生/微信，未执行 Git 提交或部署。
 
 - 2026-11-18 18:43 静态审计缺陷修复离线全量验证：执行离线单元测试 1036 项（耗时 52.2 秒）0 failure / 0 error，针对性单测验证了图片准备异常隔离、临时文件 0o600 权限加固、并发 dispatch inflight 计数一致性、断连重置未派发图片任务至 received、poll 命令异常隔离、retire 超时吞吐与 drain 等待、occupancy.release_rows 边界防护及 SQLite BEGIN IMMEDIATE 争用隔离；compileall 语法检查通过、git diff --check 无空白违规；scripts/check.py 工程检查（unittest、compile、dependencies、diff、documents）全部通过。仅离线验证，未连接真实原生/微信，未执行 Git 提交或部署。
 
@@ -156,5 +160,3 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 - 2026-11-14 10:55 最终去重候选 source b380026／wheel 54e9ad5c：同包 932 项／47.553 秒及必需检查、实际 argv／manifest／managed、daemon 0.169.0、13 表旧行与冻结字段／控制文件字节／配置及 12 项注册／所选目标保护通过。一次性切换 6.972 秒 ready 并退出；本人四图与三个准确命令 accepted 回执分别核验，status 去重／8 模型／完整 help 实收通过。[证据](docs/validation/codex-0169.md)。
 
 - 2026-11-14 10:30 去重收尾准备：同一已验 932 项制品独立预装通过，8 项一次性门禁检查及等待进程实际存活核验通过；仅等本轮准确任务结束／完整空闲后正常切换，尚无切换成功声明。36 T／16 A／8 D 索引的 65 条测试逐项核对源码和冻结日志，剩余实际切换及本人微信新版输出实收。
-
-- 2026-11-14 10:16 去重候选 source b380026／wheel 54e9ad5c：先复现计数 2 的失败，修正后展示专项 8 项、同包 932 项／47.553 秒及必需检查通过；源码／manifest 一致。本人四图实收列表／选择／任务／status，双测试标签清理记录复核；当前有执行中任务，未停止服务或清占用，新制品待空闲切换。

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import time
 import unittest
 import sqlite3
@@ -9,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 import test_controller as fixtures
 from wx_clawbot.agents.rpc import OutcomeUnknown, RpcError
-from wx_clawbot.async_questions import answer_text, questions_from
+from wx_clawbot.async_questions import answer_text, is_async_supported, questions_from
 from wx_clawbot.commands import CommandError, parse_command
 from wx_clawbot.hosts.discovery import TerminalEndpoint
 from wx_clawbot.hosts.process import ProcessIdentity
@@ -522,6 +523,15 @@ class AsyncQuestionTests(AsyncFixture):
                    [{'title':'x','options':[{'label':'A'}]}],[{'title':'x'*7000,'options':None}]]:
             await self.emit({**self.item,'id':'bad-'+str(len(str(qs))),'questions':qs})
         self.assertEqual(await self.state.async_rows(active=True),[])
+
+    async def test_forward_compatible_0170_async_questions_and_strict_mode(self):
+        self.agent.server_version = '0.170.0'
+        row = await self.question()
+        self.assertIsNotNone(row)
+        self.assertEqual(row['item_id'], 'fixture-question')
+        self.assertTrue(is_async_supported('0.170.0'))
+        with patch.dict(os.environ, {'WX_CLAWBOT_STRICT_NATIVE_VERSIONS': '1'}):
+            self.assertFalse(is_async_supported('0.170.0'))
 
 
 class AsyncFormatTests(unittest.TestCase):

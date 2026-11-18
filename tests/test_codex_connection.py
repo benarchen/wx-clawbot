@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from websockets.asyncio.server import unix_serve
@@ -106,6 +107,30 @@ class ConnectionTests(unittest.IsolatedAsyncioTestCase):
         try:
             with self.assertRaisesRegex(ValueError,'Attached'):await connection.inspect('fixture-thread')
         finally:await connection.close()
+
+    async def test_forward_compatible_0170_handshake_and_features_adaptive(self):
+        self.server_version = '0.170.0'
+        self.thread['reasoningEffort'] = 'high'
+        self.resume_settings = {'model': 'fixture-model', 'modelProvider': 'fixture-provider',
+                                'reasoningEffort': 'high', 'serviceTier': 'default', 'cwd': self.temp.name}
+        connection = await CodexConnection.connect(self.socket)
+        try:
+            self.assertEqual(connection.server_version, '0.170.0')
+            self.assertFalse(connection.capabilities.image_input)
+            await connection.list_project_threads(Path(self.temp.name))
+            request = next(v for v in self.requests if v['method'] == 'thread/list')
+            self.assertTrue(request['params']['currentAccountOnly'])
+            self.assertFalse(request['params']['includeAttachedThreads'])
+            result = await connection.read_settings('fixture-thread', Path(self.temp.name))
+            self.assertEqual(result['model'], 'fixture-model')
+        finally:
+            await connection.close()
+
+    async def test_strict_native_versions_env_var_enforces_whitelist(self):
+        self.server_version = '0.170.0'
+        with patch.dict(os.environ, {'WX_CLAWBOT_STRICT_NATIVE_VERSIONS': '1'}):
+            with self.assertRaisesRegex(ValueError, "schema baseline"):
+                await CodexConnection.connect(self.socket)
 
     async def test_verified_0165_handshake_and_read_do_not_submit_tasks(self):
         self.server_version = "0.165.0"
