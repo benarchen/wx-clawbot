@@ -2,7 +2,7 @@
 
 通过本人微信选择本机多个注册项目中的准确 Codex 原生会话，提交任务、接收结果并处理交互。iTerm2 用于可见创建和桌面操作；微信选择独立于电脑当前画面，首次接入无需状态栏或终端标题显示 Session ID。
 
-当前源码版本 `0.1.15`，运行账本 schema 6，路由快照 version 2。本版区分异步答复入口拒绝原因并关联项目／任务，分离追问与最终答案，支持已验 0.169.0 原轮次补充；能力与限制见[异步契约](docs/async-questions.md)，验收及发布运行结果见[修复记录](docs/validation/async-questions-0169.md)、[发布记录](docs/validation/async-questions-release.md)及 [ROADMAP](ROADMAP.md)。
+当前源码版本 `0.1.16`，运行账本 schema 6，路由快照 version 2。本版完成静态审计缺陷修复与工程治理：加固临时文件权限、修复 maintain 图片异常穿透、retire 超时排空与 inflight 计数器化、解耦控制命令分发并统一事务上下文管理器；能力与边界见[开发契约](docs/development-contracts.md)，验收及发布运行结果见[治理施工清单](goals/20261118-1823-audit-remediation.md)、[发布记录](docs/validation/audit-remediation-release.md)及 [ROADMAP](ROADMAP.md)。
 
 ## 能力与前提
 

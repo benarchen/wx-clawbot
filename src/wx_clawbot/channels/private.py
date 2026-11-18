@@ -53,12 +53,14 @@ def write_json(path: Path, value: dict, *, replace=False):
         return
     private_file(path)
     with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, prefix=".private-", delete=False) as stream:
+        os.fchmod(stream.fileno(), 0o600)
         temporary = Path(stream.name)
         try:
             json.dump(value, stream, ensure_ascii=False)
             stream.flush()
             os.fsync(stream.fileno())
             stream.close()
+            private_file(temporary)
             os.replace(temporary, path)
         finally:
             temporary.unlink(missing_ok=True)

@@ -330,7 +330,10 @@ class Controller:
         for job in jobs:
             job.cancel()
         if jobs:
-            await asyncio.wait_for(asyncio.gather(*jobs, return_exceptions=True), 3)
+            try:
+                await asyncio.wait_for(asyncio.gather(*jobs, return_exceptions=True), 3)
+            except TimeoutError:
+                pass
 
     async def recover_host(self):
         """A new terminal endpoint needs full proof, even for a surviving thread."""

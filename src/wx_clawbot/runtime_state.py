@@ -6,7 +6,19 @@ import math
 import sqlite3
 import time
 import uuid
-from contextlib import closing
+from contextlib import closing, contextmanager
+
+
+@contextmanager
+def transaction(db):
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        yield
+        db.execute("COMMIT")
+    except BaseException:
+        if db.in_transaction:
+            db.execute("ROLLBACK")
+        raise
 
 from .channels.http import ProtocolError
 from .channels.private import private_file
@@ -67,13 +79,8 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
             if context:
                 self.db.execute("INSERT INTO reply_context VALUES(1,?,?,?)", context)
             # Only the brand-new file created by this call may be initialized here.
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 schema.apply_steps(self.db, self.credentials)
-                self.db.execute("COMMIT")
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
         if schema.validate(self.db, self.credentials) != schema.VERSION:
             raise schema.UpgradeRequired("An older runtime schema requires an explicitly authorized upgrade")
         # No task, inbound command or uncertain HTTP send is replayed on restart.
@@ -113,17 +120,12 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
 
     async def handled(self, message_id):
         def finish():
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 self.db.execute("UPDATE inbox SET phase='handled' WHERE message_id=?", (message_id,))
                 # No task was admitted: retain the tombstone, not unused keys.
                 self.db.execute("""UPDATE attachments SET state='failed',media='{}',
                     error_code='file_unavailable',updated_at=? WHERE message_id=?
                     AND task_id IS NULL AND state='pending'""", (time.time(), message_id))
-                self.db.execute("COMMIT")
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
         await self._call(finish)
 
     async def attachments(self, *, task_id=None, message_id=None):
@@ -197,8 +199,7 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
             rendered.extend((event_id if len(chunks) == 1 else f"{event_id}-part-{i}", chunk.text)
                             for i, chunk in enumerate(chunks))
         def save():
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 row = self.db.execute("SELECT snapshot FROM routes WHERE id=1").fetchone()
                 previous = json.loads(row[0]) if row else {}
                 value = dict(snapshot) if snapshot is not None else previous.copy()
@@ -230,10 +231,6 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
                 for event_id, text in rendered:
                     if observed:
                         self._queue_reply(event_id, text, 0)
-                self.db.execute("COMMIT")
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
         await self._call(save, wake=bool(rendered))
 
     async def load_routes(self):
@@ -302,8 +299,7 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
         return await self._call(read)
 
     def _stale_interactions(self, generation=None):
-        self.db.execute("BEGIN IMMEDIATE")
-        try:
+        with transaction(self.db):
             clause = "state NOT IN ('resolved','stale')"
             args = ()
             if generation is not None:
@@ -319,10 +315,10 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
             else:
                 for public_id in public_ids:
                     self.db.execute("UPDATE outbox SET state='superseded' WHERE state='pending' AND id GLOB ?", (public_id + "-prompt*",))
-            self.db.execute("COMMIT")
-        except BaseException:
-            self.db.execute("ROLLBACK")
-            raise
+
+    async def drain(self):
+        """Wait until all previously enqueued worker calls have completed."""
+        await self._call(lambda: None)
 
     async def stale_interactions(self, generation=None):
         await self._call(self._stale_interactions, generation)
@@ -332,17 +328,13 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
         await self._call(self._mark_native_unknown)
 
     def _mark_native_unknown(self):
-        self.db.execute("BEGIN IMMEDIATE")
-        try:
+        with transaction(self.db):
+            self.db.execute("UPDATE tasks SET state='received' WHERE state='prepared' AND input_items<>'[]' AND queue_id IS NULL AND turn_id IS NULL")
             rows = list(self.db.execute("SELECT id FROM tasks WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')"))
             for (identity,) in rows:
                 self.db.execute("UPDATE tasks SET state='unknown',updated_at=? WHERE id=?", (time.time(), identity))
                 self._occupancy_transition(identity, "holding", "native_unverified")
             self._async_restart()
-            self.db.execute("COMMIT")
-        except BaseException:
-            self.db.execute("ROLLBACK")
-            raise
 
     async def task_intent(self, message_id, target: dict, text: str):
         if (not isinstance(message_id, str) or not message_id or not isinstance(target, dict)
@@ -364,16 +356,11 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
             if self._active_count() >= 128:
                 raise ProtocolError("Unresolved task admission bound reached")
             now = time.time()
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 self.db.execute("INSERT INTO tasks(id,source_message_id,client_id,target,thread_id,input,state,created_at,updated_at,input_items) VALUES(?,?,?,?,?,?,'prepared',?,?,?)",
                                 (task_id, message_id, client_id, encoded, target["thread_id"], text, now, now, row[2]))
                 self.db.execute("UPDATE attachments SET task_id=? WHERE message_id=? AND task_id IS NULL", (task_id, message_id))
                 self._occupancy_transition(task_id, "waiting", "not_submitted")
-                self.db.execute("COMMIT")
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
             return {"id": task_id, "client_id": client_id, "target": target, "state": "prepared"}
         return await self._call(insert)
 
@@ -387,8 +374,7 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
             if previous and ((state == "queued" and previous[0] in {"running", "waiting_interaction", "stopping"})
                              or (state in {"running", "waiting_interaction"} and previous[0] == "stopping")):
                 return False  # A delayed queue ACK must not regress an observed native turn.
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 result = self.db.execute("""UPDATE tasks SET state=?,queue_id=COALESCE(?,queue_id),
                     turn_id=COALESCE(?,turn_id),updated_at=? WHERE id=? AND state NOT IN ('completed','failed','interrupted','cancelled')""",
                                          (state, queue_id, turn_id, time.time(), task_id))
@@ -398,11 +384,7 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
                 if state != "unknown" or prior != ("released",):
                     occupancy = "waiting" if state == "received" else "holding"
                     self._occupancy_transition(task_id, occupancy, "late_native_activity" if prior == ("released",) else "native_" + state)
-                self.db.execute("COMMIT")
-                return True
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
+            return True
         return await self._call(update)
 
     async def external_task(self, target, turn_id, *, native_client_id=None):
@@ -420,18 +402,11 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
             if self._active_count() >= 128:
                 raise ProtocolError("Unresolved task bound prevents adopting another external turn")
             now = time.time()
-            # client_id is explicitly local for this external row, not a claimed
-            # native submission receipt. No fabricated inbox or task text is stored.
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 self.db.execute("""INSERT INTO tasks(id,client_id,target,thread_id,input,state,turn_id,created_at,updated_at)
                     VALUES(?,?,?,?,'','running',?,?,?)""", ("e-" + identity, "wx-external-" + identity,
                         encoded, target["thread_id"], turn_id, now, now))
                 self._occupancy_transition("e-" + identity, "holding", "external_activity")
-                self.db.execute("COMMIT")
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
             return "e-" + identity
         task_id = await self._call(insert)
         return await self.tasks(task_id=task_id)
@@ -492,17 +467,12 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
     async def queue_reply(self, event_id, text, *, priority=5, task_id=None, kind="reply"):
         chunks = [text] if isinstance(text, DisplaySegment) else await render_in_worker(text, renderer=render_segments, slots=self.render_slots)
         def queue():
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 result = False
                 for index, chunk in enumerate(chunks):
                     key = event_id if len(chunks) == 1 else f"{event_id}-part-{index}"
                     result = self._queue_reply(key, chunk.text, priority, task_id, kind) or result
-                self.db.execute("COMMIT")
                 return result
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
         return await self._call(queue, wake=True)
 
     async def task_finish(self, task_id, state, text, *, turn_id=None, only_if=None, deliver=True, reply_priority=1):
@@ -520,8 +490,7 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
         chunks = await render_in_worker(text, renderer=render_segments, slots=self.render_slots,
             prefix=lambda i, n: f"〔{i}/{n}〕{task_id}\n\n" if n > 1 else "") if deliver else []
         def finish():
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 row = self.db.execute("SELECT state FROM tasks WHERE id=?", (task_id,)).fetchone()
                 if row is None:
                     raise ProtocolError("Task identity is missing")
@@ -538,14 +507,7 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
                 self.db.execute("UPDATE outbox SET state='superseded' WHERE task_id=? AND state='pending' AND kind IN ('accepted','progress')", (task_id,))
                 for index, chunk in enumerate(chunks, 1):
                     self._queue_reply(f"{task_id}-final-{index}", chunk.text, reply_priority, task_id, "final")
-                self.db.execute("COMMIT")
                 return True
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
-            finally:
-                if self.db.in_transaction:
-                    self.db.execute("ROLLBACK")
         return await self._call(finish, wake=True)
 
     async def claim_reply(self):
@@ -560,8 +522,7 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
                 ORDER BY o.priority,o.rowid LIMIT 1""").fetchone()
             if row is None:
                 return None
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 attempt = self.db.execute("""SELECT number,client_id,state FROM delivery_attempts
                     WHERE outbox_id=? ORDER BY number DESC LIMIT 1""", (row[0],)).fetchone()
                 if attempt is None:
@@ -576,19 +537,14 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
                     self.db.execute("""UPDATE delivery_attempts SET state='sending',context=?,started_at=?
                         WHERE outbox_id=? AND number=?""", (context[0], time.time(), row[0], number))
                 self.db.execute("UPDATE outbox SET state='sending',context=? WHERE id=?", (context[0], row[0]))
-                self.db.execute("COMMIT")
                 return {"id": row[0], "text": row[1], "context": context[0], "client_id": client_id, "attempt": number}
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
         return await self._call(claim)
 
     async def finish_reply(self, event_id, state, server_id=None, *, error_code=None):
         if state not in {"accepted", "unknown", "rejected"}:
             raise ValueError("Explicit send outcome required")
         def finish():
-            self.db.execute("BEGIN IMMEDIATE")
-            try:
+            with transaction(self.db):
                 native_id = str(server_id) if server_id is not None else None
                 result = self.db.execute("UPDATE outbox SET state=?,server_id=? WHERE id=? AND state='sending'",
                                          (state, native_id, event_id))
@@ -596,10 +552,6 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
                     WHERE outbox_id=? AND state='sending'""", (state, native_id, time.time(), str(error_code) if error_code is not None else None, event_id))
                 if result.rowcount != 1 or attempt.rowcount != 1:
                     raise ProtocolError("Send attempt is absent or already terminal")
-                self.db.execute("COMMIT")
-            except BaseException:
-                self.db.execute("ROLLBACK")
-                raise
         await self._call(finish, wake=True)
 
     async def retry_reply(self, event_id, *, confirm_unknown=False):
@@ -625,8 +577,7 @@ def prepare_reply_retry(db, credentials, event_id, confirm_unknown=False):
     if type(confirm_unknown) is not bool:
         raise ValueError("Explicit unknown-delivery decision required")
     def prepare():
-        db.execute("BEGIN IMMEDIATE")
-        try:
+        with transaction(db):
             row = db.execute("SELECT state FROM outbox WHERE id=?", (event_id,)).fetchone()
             if row is None or row[0] not in {"rejected", "unknown"}:
                 raise ProtocolError("Only a recorded rejected or uncertain delivery can be retried")
@@ -641,9 +592,5 @@ def prepare_reply_retry(db, credentials, event_id, confirm_unknown=False):
             db.execute("""INSERT INTO delivery_attempts(outbox_id,number,client_id,context,state,authorization,provenance)
                 VALUES(?,?,?,'','prepared',?,'runtime-v2')""", (event_id, number, base + "-" + str(number), authorization))
             db.execute("UPDATE outbox SET state='pending' WHERE id=?", (event_id,))
-            db.execute("COMMIT")
             return number
-        except BaseException:
-            db.execute("ROLLBACK")
-            raise
     return prepare()

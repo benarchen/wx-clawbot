@@ -67,7 +67,10 @@ async def poll(controller, api, *, emit=None):
                 completed = {job for job in jobs if job.done()}
                 for job in completed:
                     jobs.remove(job)
-                    job.result()
+                    try:
+                        job.result()
+                    except Exception:
+                        pass
                 # Do not stop receiving controls behind a full set of pending
                 # submissions. Reject overload before prepare can reserve a
                 # selection; static queries do not depend on native I/O.
@@ -94,7 +97,10 @@ async def poll(controller, api, *, emit=None):
             completed = {job for job in jobs if job.done()}
             for job in completed:
                 jobs.remove(job)
-                job.result()
+                try:
+                    job.result()
+                except Exception:
+                    pass
     finally:
         for job in jobs:
             job.cancel()

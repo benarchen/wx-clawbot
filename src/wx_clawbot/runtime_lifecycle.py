@@ -238,6 +238,7 @@ class BridgeRuntime:
                 self.native_state = "ready"
                 async with self.transition:
                     await self.controller.retire()
+                    await self.state.drain()
                     catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), native)
                     controller = Controller(self.projects, catalog, self.state, self.starter,
                                             executable, self.codex_home, host=self.host)
@@ -297,6 +298,7 @@ class BridgeRuntime:
                         await self.state.native_disconnected()
                     if native is not None:
                         await native.close()
+                    await self.state.drain()
                     self.controller = self.offline_controller()
                     await self.initialize(notice_reason=notice_reason)
             await asyncio.sleep(delay)
