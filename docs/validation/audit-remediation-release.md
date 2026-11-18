@@ -20,15 +20,15 @@
 
 ## Git 发布结果
 
-功能与版本提交在 dev 完成；main 正常快进至同一提交。一次创建 annotated `v0.1.16` 固定到该功能提交。双分支与该标签原子推送成功，独立 `ls-remote` 核对 dev／main／标签解引用及标签对象一致，既有标签对象全部保持。
+功能与版本提交 `f5926af43b50609c624b49f549b807be99c044c8` 在 dev 完成；main 正常快进至同一提交。一次创建 annotated `v0.1.16`（标签对象 `3b749c2c5403a600137d6e07e3b3d5f6512d8ab5`）固定到该功能提交。双分支与该标签原子推送成功，独立 `ls-remote` 核对 dev／main／标签解引用及标签对象一致，既有标签对象全部保持。
 
 发布提交的 63 份包源码逐项与正式安装 manifest 相同。收尾结果另作普通文档提交并同步双分支，不移动 v0.1.16；Git 发布没有包含私有 case、数据库、日志或截图。
 
 ## 本机正式运行结果
 
-在准确空闲且两角色均空时，旧消费者正常退出 0；13 表一致性备份、完整性／外键与私有配置／控制记录备份通过。输入目标和观察均保持为空；没有 SQL 任务／占用写入或原生 thread 恢复。
+在准确空闲且两角色均空时，旧消费者正常退出 0；13 表一致性备份 `runtime-v6-audit-remediation-20261118-2037.sqlite3`、完整性／外键与私有配置／控制记录备份通过。输入目标和观察均保持为空；没有 SQL 任务／占用写入或原生 thread 恢复。
 
-仅替换本项目 Label 的 ProgramArguments／WorkingDirectory，以同一冻结 wheel 的全新独立 release 重载。恢复 host／native ready；实际版本为 **0.1.16**，source `8e2bf386`／wheel `e91da3bcaa77`。旧候选与既有正式版本、备份均保留，运行不依赖开发路径或任务 `.tmp`。
+仅替换本项目 Label 的 ProgramArguments／WorkingDirectory，以同一冻结 wheel 的全新独立 release 重载。服务正常恢复；实际版本为 **0.1.16**，PID 为 **67074**，source `8e2bf386`／wheel `e91da3bcaa77`。旧候选与既有正式版本、备份均保留，运行不依赖开发路径或任务 `.tmp`。
 
 独立进程再次核验 PID／argv／cwd、non editable manifest／wheel、准确发布提交与安装源码、唯一消费者、真实 native、schema 6、旧业务行与冻结回执、owner 绑定及控制记录保持。12 注册项及历史 unknown 保持，未聚焦状态通过。当前桥接配置／凭据／Codex 全局配置一致；其他原生进程保持。
 
