@@ -44,8 +44,10 @@ def is_supported_server_version(v: str) -> bool:
 
 
 class CodexConnection:
+    agent_kind = "codex"
     capabilities = Capabilities(observe=True, submit_idle=True, queue=True,
-                                interrupt=True, shared_interactions=True)
+                                interrupt=True, shared_interactions=True,
+                                model_control=True, external_observe=True)
     def __init__(self, transport):
         self.rpc = JsonRpc(transport)
 

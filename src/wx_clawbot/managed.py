@@ -23,7 +23,7 @@ from .hosts.process import read_process
 LOG_LIMIT = 1024 * 1024
 LOG_BACKUPS = 3
 STATUSES = {"foreground_ready", "capabilities", "receive_disconnected", "failed", "stopped", "upgrade_required",
-            "native_unavailable"}
+            "native_unavailable", "agy_unavailable"}
 STATES = {"not_running", "connecting", "verifying", "ready", "unavailable", "stopped"}
 
 
@@ -130,7 +130,7 @@ class EventStream:
             fields["failures"] = [{"component": error_name(item.get("component")),
                                     "error_type": error_name(item.get("error_type"))}
                                    for item in value["failures"][:8] if isinstance(item, dict)]
-        for name in ("host", "native"):
+        for name in ("host", "native", "antigravity"):
             item = value.get(name)
             if isinstance(item, dict) and isinstance(item.get("state"), str) and item["state"] in STATES:
                 fields[name] = {"state": item["state"]}

@@ -70,7 +70,9 @@ async def conflict(task, active, catalog, projects):
     for other in holds:
         destination = other["target"]
         if destination["session_id"] == target["session_id"]:
-            continue  # Same native session uses its own FIFO queue.
+            if target.get("agent", "codex") == "antigravity":
+                return AdmissionConflict("同会话仍有正在执行的 Antigravity 任务，已进入顺序等待", [other["id"]])
+            continue  # Same Codex native session uses its own FIFO queue.
         identity = await key(destination)
         if identity is None:
             return AdmissionConflict("旧项目任务的仓库身份无法复验，请先核对未知任务", [other["id"]])
@@ -84,10 +86,14 @@ async def conflict(task, active, catalog, projects):
         destination = session.target
         if destination.session_id == target["session_id"]:
             continue
+        agent_kind = getattr(session.binding, "agent", "codex")
+        backend = catalog.backend_for(agent_kind) if hasattr(catalog, "backend_for") else catalog.agent
+        if backend is None or backend.runtime_identity is None:
+            continue
         same_project = destination.project_alias == target["project_alias"]
         record = {"cwd": str(destination.cwd), "project_alias": destination.project_alias}
         if same_project or await key(record) == target["repository"]:
-            thread = await catalog.agent.inspect(session.binding.thread_id)
+            thread = await backend.inspect(session.binding.thread_id)
             if thread.get("status", {}).get("type") == "active":
                 return "同项目或同仓库检测到其他桌面会话正在执行"
     return None

@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 from pathlib import Path
 
+from .agents.antigravity import AntigravityConnection
 from .agents.base import Capabilities
 from .agents.codex import CodexConnection
 from .agents.rpc import ConnectionLost
@@ -14,6 +15,7 @@ from .execution import Execution
 from .hosts.discovery import ItermDirectory
 from .hosts.launch import native_tui_command
 from .hosts.lifecycle import HostUnavailable
+from .interactions import ACP_APPROVAL
 from .routing import RouteError
 from .runtime_discovery import discover_runtime
 
@@ -84,11 +86,16 @@ class OfflineExecution:
 
 
 class BridgeRuntime:
-    def __init__(self, projects, state, starter, host, socket, executable, codex_home, *, emit=None):
+    def __init__(self, projects, state, starter, host, socket, executable, codex_home, *,
+                 emit=None, agy_executable=None, default_agent="codex"):
         self.projects, self.state, self.starter, self.host = projects, state, starter, host
         self.socket, self.executable, self.codex_home = socket, executable, codex_home
+        self.agy_executable, self.default_agent = agy_executable, default_agent
         self.emit = emit
         self.native_state, self.native_generation = "unavailable", 0
+        self.agy_state, self.agy_generation = "unavailable", 0
+        self.agy_agent = None
+        self._agy_engine_tasks = []
         self.controller = self.offline_controller()
         self.pending_restore = False
         self.host_generation = None
@@ -97,13 +104,35 @@ class BridgeRuntime:
         self.notices_ready = False
 
     def offline_controller(self):
-        catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), UnavailableNative())
+        extra = {"antigravity": self.agy_agent} if self.agy_agent is not None else {}
+        catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), UnavailableNative(),
+                                 extra_agents=extra)
         controller = Controller(self.projects, catalog, self.state, self.starter,
-                                self.executable, self.codex_home, host=self.host)
+                                self.executable, self.codex_home, host=self.host,
+                                default_agent=self.default_agent)
         controller.native_ready = False
-        controller.engine = OfflineExecution(controller)
+        controller.agy_enabled = self.agy_executable is not None
+        controller.agy_ready = bool(self.agy_agent is not None and self.agy_agent.runtime_identity is not None)
+        controller.agy_generation = self.agy_generation
+        controller.engine = Execution(controller) if controller.agy_ready else OfflineExecution(controller)
         controller.project_manager = getattr(self, "project_manager", None)
         return controller
+
+    async def _stop_agy_engine(self):
+        tasks = list(self._agy_engine_tasks)
+        self._agy_engine_tasks.clear()
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    def _start_agy_engine(self, controller):
+        if not isinstance(controller.engine, Execution):
+            return
+        self._agy_engine_tasks = [
+            asyncio.create_task(controller.engine.run()),
+            asyncio.create_task(controller.engine.maintain()),
+        ]
 
     async def initialize(self, *, notice_reason="connection_lost"):
         snapshot = await self.state.load_routes()
@@ -151,8 +180,75 @@ class BridgeRuntime:
         await self.controller.reply(*args, **kwargs)
 
     def report(self):
-        return {"host": self.host.report(), "native": {"state": self.native_state,
-                                                       "generation": self.native_generation}}
+        result = {"host": self.host.report(), "native": {"state": self.native_state,
+                                                         "generation": self.native_generation}}
+        if self.agy_executable is not None:
+            result["antigravity"] = {"state": self.agy_state, "generation": self.agy_generation}
+        return result
+
+    async def watch_agy(self):
+        if self.agy_executable is None:
+            return
+        delay = 1
+        while True:
+            agy = None
+            try:
+                self.agy_state = "connecting"
+                agy = await AntigravityConnection.connect(self.agy_executable)
+                self.agy_generation += 1
+                self.agy_state = "ready"
+                async with self.transition:
+                    self.agy_agent = agy
+                    self.controller.catalog.extra_agents["antigravity"] = agy
+                    self.controller.agy_enabled = True
+                    self.controller.agy_ready = True
+                    self.controller.agy_generation = self.agy_generation
+                    if isinstance(self.controller.engine, OfflineExecution):
+                        await self._stop_agy_engine()
+                        self.controller.engine = Execution(self.controller)
+                        self._start_agy_engine(self.controller)
+                try:
+                    await self.controller.restore_agy_target()
+                except Exception:
+                    pass
+                if self.emit:
+                    self.emit({"status": "capabilities", **self.report()})
+                delay = 1
+                while agy.runtime_identity is not None:
+                    await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                if self.emit:
+                    self.emit({"status": "agy_unavailable", "error_type": type(exc).__name__})
+            finally:
+                self.agy_state = "unavailable"
+                async with self.transition:
+                    self.agy_agent = None
+                    self.agy_generation += 1
+                    self.controller.agy_ready = False
+                    self.controller.agy_generation = self.agy_generation
+                    self.controller.catalog.extra_agents.pop("antigravity", None)
+                    self.controller.catalog.sessions = {
+                        k: s for k, s in self.controller.catalog.sessions.items()
+                        if s.target.agent != "antigravity"
+                    }
+                    if isinstance(self.controller.engine, Execution):
+                        for broker in list(self.controller.engine.brokers.values()):
+                            if any(r.method == ACP_APPROVAL for r in broker.records.values()):
+                                broker.disconnect()
+                    await self.state.native_disconnected(agent="antigravity")
+                    if not self.controller.native_ready:
+                        await self._stop_agy_engine()
+                        if isinstance(self.controller.engine, Execution):
+                            await self.controller.engine.close()
+                        self.controller.engine = OfflineExecution(self.controller)
+                    if agy is not None:
+                        await agy.close()
+                if self.emit:
+                    self.emit({"status": "capabilities", **self.report()})
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, 15)
 
     async def restore_host(self):
         async with self.transition:
@@ -214,6 +310,8 @@ class BridgeRuntime:
 
     async def connect_native(self):
         socket, executable = self.socket, self.executable
+        if self.codex_home is None:
+            raise FileNotFoundError("Codex home directory is absent")
         if socket is None or executable is None:
             found_socket, found_executable = await asyncio.to_thread(discover_runtime, self.codex_home)
             socket, executable = socket or found_socket, executable or found_executable
@@ -226,6 +324,10 @@ class BridgeRuntime:
         return native, executable
 
     async def run(self):
+        if self.codex_home is None and self.socket is None:
+            self.native_state = "unavailable"
+            await asyncio.Event().wait()
+            return
         delay = 1
         while True:
             native = engine = None
@@ -237,12 +339,19 @@ class BridgeRuntime:
                 self.native_generation += 1
                 self.native_state = "ready"
                 async with self.transition:
+                    await self._stop_agy_engine()
                     await self.controller.retire()
                     await self.state.drain()
-                    catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), native)
+                    extra = {"antigravity": self.agy_agent} if self.agy_agent is not None else {}
+                    catalog = SessionCatalog(self.projects, ItermDirectory(lifecycle=self.host), native,
+                                             extra_agents=extra)
                     controller = Controller(self.projects, catalog, self.state, self.starter,
-                                            executable, self.codex_home, host=self.host)
+                                            executable, self.codex_home, host=self.host,
+                                            default_agent=self.default_agent)
                     controller.native_generation = self.native_generation
+                    controller.agy_enabled = self.agy_executable is not None
+                    controller.agy_ready = bool(self.agy_agent is not None and self.agy_agent.runtime_identity is not None)
+                    controller.agy_generation = self.agy_generation
                     controller.project_manager = self.project_manager
                     engine = Execution(controller)
                     self.controller = controller
@@ -295,11 +404,13 @@ class BridgeRuntime:
                         await controller.retire()
                     if engine is not None:
                         await engine.close()
-                        await self.state.native_disconnected()
+                        await self.state.native_disconnected(agent="codex" if self.agy_agent is not None else None)
                     if native is not None:
                         await native.close()
                     await self.state.drain()
                     self.controller = self.offline_controller()
+                    if self.controller.agy_ready:
+                        self._start_agy_engine(self.controller)
                     await self.initialize(notice_reason=notice_reason)
             await asyncio.sleep(delay)
             delay = min(delay * 2, 15)

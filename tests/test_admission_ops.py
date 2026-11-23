@@ -115,6 +115,46 @@ class AdmissionOperatorTests(RuntimeFixture):
         await self.restart()
         self.assertEqual((await self.state.occupancy_snapshot(task_id=self.task['id']))[0]['occupancy']['state'],'holding')
 
+    async def test_antigravity_unknown_occupancy_report_audited_release_and_rejections(self):
+        # Convert task to an Antigravity unknown holding occupancy
+        await self.state._call(lambda: self.state.db.execute(
+            'UPDATE tasks SET target=?,thread_id=? WHERE id=?',
+            (json.dumps({'agent': 'antigravity', 'cwd': str(self.root),
+                         'thread_id': 'agy-thread-1', 'session_id': 's-agy-1'}),
+             'agy-thread-1', self.task['id']),
+        ))
+        report = admission_ops.report(self.root, self.task['id'])
+        self.assertEqual(report['occupancies'][0]['agent'], 'antigravity')
+        self.assertFalse(report['requires_native_terminal_evidence'])
+        # Running consumer still blocks release!
+        with self.assertRaises(ProtocolError):
+            await admission_ops.release(self.root, self.task['id'], apply=True,
+                                        confirm_report=report['confirm_report'], reason='operator checked')
+        await self.state.close()
+        # Stopped consumer + matching digest releases without connecting Codex!
+        with patch.object(admission_ops.CodexConnection, 'connect', new=AsyncMock()) as connect:
+            result = await admission_ops.release(self.root, self.task['id'], apply=True,
+                                                 confirm_report=report['confirm_report'],
+                                                 reason='verified agy stopped')
+            self.assertEqual(result['status'], 'released')
+            self.assertEqual(result['agent'], 'antigravity')
+            self.assertEqual(result['execution_state'], 'unknown')
+            again = await admission_ops.release(self.root, self.task['id'], apply=True,
+                                                confirm_report=report['confirm_report'],
+                                                reason='verified agy stopped')
+            self.assertEqual(again['status'], 'already_released')
+            connect.assert_not_awaited()
+        await self.restart()
+        self.assertEqual((await self.state.tasks(task_id=self.task['id']))['state'], 'unknown')
+        self.assertEqual(await self.state.tasks(active_only=True), [])
+        audit = await self.state._call(lambda: list(self.state.db.execute(
+            "SELECT reason,evidence FROM occupancy_audit WHERE state='released'")))
+        self.assertEqual(audit[0][0], 'operator_verified_antigravity')
+        ev = json.loads(audit[0][1])
+        self.assertEqual(ev['kind'], 'operator_verified_antigravity')
+        self.assertTrue(ev['verified_consumer_stopped'])
+        self.assertEqual(ev['operator_report'], report['confirm_report'])
+
 
 class OccupancyMigrationTests(RuntimeFixture):
     async def v4(self):

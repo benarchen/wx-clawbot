@@ -1,25 +1,25 @@
 # wx-clawbot 当前架构
 
-本文描述应用 0.1.15 的实际结构，包含 NCM01 原生命令、可见启动 manifest 固定及会话通知；源码交付与本机运行状态分开见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
+本文描述应用 0.2.0 的实际结构，包含多 Agent 后端架构（Codex 原生协议 + Antigravity `agy acp` 协议）、NCM01 原生命令与对称 `ControlJournal`、可见启动 manifest 固定、会话通知及 `admission-release` 多后端占用处置；源码交付与本机运行状态分开见 [ROADMAP](../ROADMAP.md)，产品要求见 [PRD](product-design.md)，接口和关卡见[开发契约](development-contracts.md)。采用 [arc42](https://arc42.org/overview/) 的上下文、模块、运行、部署、质量视角，并参考 [C4](https://c4model.com/diagrams) 分层；不是标准认证，也不要求 Docker 或微服务。
 
 图中实线是有标签的数据／调用关系，虚线是管理、来源或非运行依赖。模块图的节点是逻辑模块；部署图才表示进程边界。Mermaid 为唯一图形维护源，渲染检查见 [DOC01 报告](validation/documentation-restructure.md)。旧设计输入和反例保留固定提交及历史记录，不视为当前路径。
 
 ## 1. 需求与证据边界
 
-系统服务本人微信和本机多个注册项目，只实现 Codex。核心质量约束为准确原生身份、接收时冻结目标、未知不重放、执行与送达分离。外部原生运行时、模型和微信服务不受桥接控制；目录登记不提供操作系统沙箱。项目与其他桥接服务独立，不读取其他项目代码、凭据或服务。
+系统服务本人微信和本机多个注册项目，支持 Codex 与 Antigravity（`agy`）双 Agent 后端并行独立运行。核心质量约束为准确会话身份、接收时冻结目标、未知不重放、执行与送达分离、跨 Agent 共享仓库级占用互斥。外部原生运行时、模型和微信服务不受桥接控制；目录登记不提供操作系统沙箱。项目与其他桥接服务独立，不读取其他项目代码、凭据或服务。
 
-原生身份、宿主来源与显示界面分开。既有对话使用项目限定的原生元数据、完整 loaded 集合及订阅确认；iTerm2 用于可见新建和可选 cwd／来源证据。后台对话不被宣称对应某个当前显示窗口。版本与证据层级以[协议矩阵](protocol-baseline.md)为准。
+原生身份、宿主来源与显示界面分开。Codex 既有对话使用项目限定的原生元数据、完整 loaded 集合及订阅确认；iTerm2 用于 Codex 可见新建和可选 cwd／来源证据。Antigravity 会话由官方 `agy acp --stdio` 在后台托管，`/sessions` 仅列当前活跃会话并自动回收 24 小时非聚焦闲置句柄（不删磁盘历史），桌面可通过 `agy --conversation <uuid>` 续接。版本与证据层级以[协议矩阵](protocol-baseline.md)为准。
 
 ## 2. 设计决策与未决边界
 
 | 策略 | 当前选择与后果 | 依据 |
 | --- | --- | --- |
-| 同一原生对话 | 连接既有 daemon，不复制历史／恢复存档；微信选择不随桌面改变 | [身份契约](native-session-identity.md) |
-| 最小本机服务 | Python asyncio、标准库 HTTPS／SQLite、官方 iTerm2 SDK | [ADR](technical-decisions.md) |
-| 原生执行权威 | daemon 队列调度；本地仅持久化意图、准入和关联 | [桌面排队](desktop-queue-contract.md) |
-| 可靠交付 | SQLite 原子事务配合 Outbox，跨系统 RPC／HTTP 不确定性保留 unknown | [账本](state-schema.md) |
-| 独立选择和观察 | focus／managed 输入与 attach 观察分别保存 | [命令契约](command-contract-proposal.md) |
-| 运行隔离 | 非 editable 独立 release，父子 manifest 一致 | [运维](operations.md#eng01独立运行制品与开发隔离) |
+| 同一原生对话 | Codex 连接既有 daemon，不复制历史／恢复存档；Antigravity 通过官方 ACP 会话管理，微信选择不随桌面改变 | [身份契约](native-session-identity.md) |
+| 最小本机服务 | Python asyncio、标准库 HTTPS／SQLite、官方 iTerm2 SDK、官方 `agy acp --stdio`（零新增三方依赖） | [ADR](technical-decisions.md) |
+| 执行与排队权威 | Codex 使用原生 daemon 队列；Antigravity 由桥接按 SQLite `received` 严格 FIFO 串行，跨 Agent 共享仓库占用锁 | [桌面排队](desktop-queue-contract.md) |
+| 可靠交付 | SQLite 原子事务配合 Outbox，跨系统 RPC／HTTP 不确定性保留 unknown；两后端均支持审计式 `admission-release` | [账本](state-schema.md) |
+| 独立选择和观察 | focus／managed 输入与 Codex attach 观察分别保存；Antigravity 明确拒绝 `/attach` 与 `/fast` | [命令契约](command-contract-proposal.md) |
+| 运行隔离 | 非 editable 独立 release，父子 manifest 一致；支持纯 `agy` 无 Codex 独立启动 | [运维](operations.md#eng01独立运行制品与开发隔离) |
 
 已知限制由专题和 ROADMAP 维护：外部客户端写入不能被桥接锁住，原生规则不保证逐轮刷新，异步不保证首答独占，暂停队列不自动恢复；不以添加复杂框架回避这些限制。
 
@@ -29,7 +29,7 @@
 
 [查看独立 SVG](diagrams/architecture-F01.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-范围：本人手机、外部微信服务及同一用户的本机。公网服务与原生 daemon／TUI 均为外部依赖；桥接只管理自身资源。
+范围：本人手机、外部微信服务及同一用户的本机。公网服务与原生 daemon／ACP 子进程／TUI 均为外部依赖；桥接只管理自身资源。
 
 ```mermaid
 flowchart TB
@@ -38,34 +38,38 @@ flowchart TB
   subgraph local["本人本机与操作系统权限边界"]
     bridge["wx-clawbot 桥接"]
     native["既有 Codex daemon"]
+    agy["Antigravity ACP 子进程"]
     iterm["iTerm2 与原生 TUI"]
     project["注册项目文件"]
     private["桥接私有配置／凭据／账本"]
     bridge <-->|"Unix WebSocket 原生协议"| native
+    bridge <-->|"stdio JSON-RPC 2.0 ACP"| agy
     bridge -->|"官方 SDK：按需连接／可见创建"| iterm
     iterm <-->|"原生客户端连接"| native
     native -->|"工具与项目规则／原生权限"| project
+    agy -->|"工具与项目规则／一次性审批"| project
     bridge <-->|"本人绑定／意图／结果"| private
   end
   cloud <-->|"HTTPS 轮询与文本发送"| bridge
   native <-->|"既有认证与模型请求"| model["模型服务"]
-  user -.->|"桌面操作"| iterm
+  agy <-->|"既有认证与模型请求"| model
+  user -.->|"桌面操作与 CLI 续接"| iterm
 ```
 
-桥接不提供模型额度，不复制 Codex 历史；任务正文和图片可能经原生路径到模型服务。目录注册与用户绑定限制路由范围，不能代替原生权限或系统隔离。
+桥接不提供模型额度，不复制会话历史；任务正文和图片可能经对应运行时路径到模型服务。目录注册与用户绑定限制路由范围，不能代替原生权限或系统隔离。
 
 ### F02：运行进程与部署
 
 [查看独立 SVG](diagrams/architecture-F02.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-范围：运行结构；其中 PRJ01 项目管理 IPC 自 0.1.11 提供，状态见 ROADMAP。开发检出不进入生产导入路径；launchd 只托管本项目，Codex daemon／iTerm2 的生命周期由用户及其原生机制管理。
+范围：运行结构；其中 PRJ01 项目管理 IPC 自 0.1.11 提供，Antigravity ACP 独立协程自 0.2.0 正式纳入。开发检出不进入生产导入路径；launchd 只托管本项目，Codex daemon／iTerm2 的生命周期由用户及其原生机制管理，`agy acp` 由桥接子进程守护并在断连时独立重连。
 
 ```mermaid
 flowchart TB
   launchd["用户级 launchd：本项目 Label"] -->|"托管／异常限速重启"| serve["managed 入口调用 serve：同一桥接进程"]
   release["独立 release：wheel／lock／manifest／venv"] -.->|"冻结代码与解释器"| serve
   subgraph inside["serve 内部；不是独立服务"]
-    loops["微信收发／命令／原生事件／恢复协程"]
+    loops["微信收发／命令／双后端事件／恢复协程"]
     registry["PRJ01 注册服务与私有 Unix IPC"]
     dbworker["SQLite 单写入工作线程"]
     httpworkers["有界 HTTPS 工作线程"]
@@ -78,64 +82,65 @@ flowchart TB
   loops --> httpworkers
   serve -->|"有界 CPU／超时回收"| helpers["临时渲染／图片／宿主探测子进程"]
   dbworker <-->|"WAL／事务"| ledger["私有 runtime.sqlite3"]
-  serve <-->|"启动登记／实例／附件"| state["私有状态目录"]
+  serve <-->|"启动登记／实例／控制日志／附件"| state["私有状态目录"]
   serve -->|"managed 脱敏容量轮转"| logs["私有 logs"]
   loops <-->|"原生协议"| daemon["既有 Codex daemon：独立进程"]
+  loops <-->|"stdio ACP；独立升降级"| agyproc["agy acp --stdio：受管子进程"]
   loops -->|"SDK 创建；launcher exec"| tui["iTerm2 内可见 Codex TUI：独立进程"]
   tui <-->|"同一原生运行时"| daemon
   dev["开发检出与开发 venv"] -.->|"离线构建与验收"| release
 ```
 
-`managed.py` 在同一进程调用 CLI 的 serve 入口并管理日志，不另建服务进程或微信消费者；`ForegroundInstance`／消费者锁核对实例。直接前台 serve 不经过 managed 日志入口。SQLite 工作线程和 HTTPS 工作线程不等于额外常驻服务。可见 launcher 的进程回执证明创建来源，后续 `exec` 运行原生 TUI；不托管或自动重启该 TUI。
+`managed.py` 在同一进程调用 CLI 的 serve 入口并管理日志，不另建服务进程或微信消费者；`ForegroundInstance`／消费者锁核对实例。直接前台 serve 不经过 managed 日志入口。SQLite 工作线程和 HTTPS 工作线程不等于额外常驻服务。Codex 可见 launcher 的进程回执证明创建来源，后续 `exec` 运行原生 TUI；不托管或自动重启该 TUI。`agy acp --stdio` 由 `watch_agy()` 独立管理，不阻塞微信通道或 Codex 后端。
 
 ### F03：模块协作
 
 [查看独立 SVG](diagrams/architecture-F03.svg)。派生图只从下方 Mermaid 重新生成，不单独维护事实。
 
-范围：serve 内部的逻辑职责；NCM01 自 0.1.12 纳入源码，不能据图推定日常版本已加载。图简化辅助调用，准确入口在下表；SQLite 状态共用同一账本执行器，配置、启动回执及控制意图文件分别原子持久化。
+范围：serve 内部的逻辑职责；0.2.0 拆分 `agents/antigravity_codec.py` 与 `agents/registry.py` 收口多 Agent 策略与标签。SQLite 状态共用同一账本执行器，配置、启动回执及控制意图文件分别原子持久化。
 
 ```mermaid
 flowchart TB
-  life["service／runtime_lifecycle"] -->|"组合与代次管理"| ctrl["commands／routing／controller"]
+  life["service／runtime_lifecycle"] -->|"双后端代次管理"| ctrl["commands／routing／controller"]
   local["本人本机 project CLI"] <-->|"私有 Unix IPC"| reg["PRJ01 project_control／project_registry"]
   ctrl <-->|"本人项目子命令／串行 gate"| reg
   reg -->|"同一修订更新路由／发现／重连"| life
   reg <-->|"单份配置／备份／撤销修订"| cfg["config.json"]
   channel["channels：本人绑定与 HTTPS"] -->|"规范化 Inbox"| ctrl
-  ctrl -->|"准确发现／选择"| cat["catalog／sessions／subscriptions"]
-  cat <-->|"元数据／loaded／订阅"| adapter["agents：Codex 协议与原生队列"]
-  ctrl -->|"可见启动"| host["hosts／launcher"]
-  ctrl -->|"冻结 Dispatch"| exec["execution／admission 系列"]
-  exec -->|"核验后提交／中断"| adapter
+  ctrl -->|"准确发现／选择与策略"| cat["catalog／sessions／subscriptions"]
+  cat <-->|"双后端元数据／订阅"| adapter["agents：codex／antigravity／registry"]
+  ctrl -->|"Codex 可见启动"| host["hosts／launcher"]
+  ctrl -->|"冻结 Dispatch"| exec["execution／execution_control／admission"]
+  exec -->|"核验后提交／串行排队／中断"| adapter
   adapter -->|"单一事件消费"| exec
-  ctrl -->|"NCM01：原生设置命令"| controls["native_controls：快照／忙碌检查／确认"]
+  ctrl -->|"模型与状态命令"| controls["native_controls：双后端快照／确认"]
   exec -->|"沿用同一消费者分发设置事件"| controls
-  controls <-->|"准确 thread：查询／显式设置"| adapter
+  controls <-->|"准确会话：查询／显式设置"| adapter
   controls <-->|"短 lease；意图先落盘；冻结回执"| journal["control_journal：私有 JSON；不重放"]
   exec -->|"终态与历史核对"| result["results／output／render_worker"]
   exec -->|"准确请求与补充"| interact["interactions／async_questions"]
   result -->|"冻结结果"| store["runtime_state／occupancy／async_state／schema"]
   ctrl -->|"选择／任务事务"| store
   interact -->|"单次答复意图"| store
-  exec -->|"占用／任务状态"| store
+  exec -->|"跨 Agent 占用／任务状态"| store
   store -->|"Outbox 领取与投递状态"| sender["delivery：串行 Sender"]
   sender -->|"冻结文本与最新合法上下文"| channel
 ```
 
 | 职责 | 实现入口 | 不跨越的边界 |
 | --- | --- | --- |
-| 通道／媒体 | `channels/wechat.py`、`messages.py`、`media.py` | 不选择 thread，不执行项目工作 |
+| 通道／媒体 | `channels/wechat.py`、`messages.py`、`media.py` | 不选择会话，不执行项目工作 |
 | 固定命令／目录／路由 | `commands.py`、`config.py`、`routing.py`、`controller.py` | 不用模型猜目标，不向普通 Shell 注入任务 |
-| PRJ01 注册管理 | `project_registry.py`、`project_control.py` | 单份配置、准确实例、同 UID IPC；不执行 Shell，不创建业务目录，不绕过任务／占用保护 |
-| 发现／身份／订阅 | `catalog.py`、`sessions.py`、`subscriptions.py` | 不读页脚，不 resume notLoaded，不伪造宿主 |
-| 可见宿主 | `hosts/lifecycle.py`、`hosts/visible.py`、`launcher.py` | 自有启动意图至多一次，不清理用户资源 |
-| 原生适配 | `agents/codex.py`、`rpc.py`、`queue.py` | 校验实际 server 版本／socket，不另建运行时 |
-| NCM01 原生命令 | `native_controls.py`、`control_journal.py` | 当前原生设置为权威；意图不是任务／默认配置；共用准入锁，承认桌面竞争；自 0.1.12 纳入，实际运行状态见 ROADMAP |
-| 执行／准入／恢复 | `execution.py`、`admission.py`、`admission_recovery.py`、`admission_ops.py` | 原生队列权威，unknown 不重放，结果不等同占用 |
-| 交互 | `interactions.py`、`async_questions.py` | 同步裁决与异步补充分开，不擅自授权 |
+| PRJ01 注册管理 | `project_registry.py`、`project_control.py` | 单份配置、准确实例、同 UID IPC；保留 `default_agent`；不创建业务目录，不绕过占用保护 |
+| 发现／身份／订阅 | `catalog.py`、`sessions.py`、`subscriptions.py` | 不读页脚，不 resume notLoaded；`agy` 仅列活跃会话并过滤 `.tmp` |
+| 可见宿主 | `hosts/lifecycle.py`、`hosts/visible.py`、`launcher.py` | 仅用于 Codex；自有启动意图至多一次，不清理用户资源 |
+| 多 Agent 适配 | `agents/base.py`、`registry.py`、`codex.py`、`rpc.py`、`queue.py`、`antigravity.py`、`antigravity_codec.py`、`acp_rpc.py` | 校验真实运行时与能力门禁；绝不传 `--dangerously-skip-permissions` |
+| 原生与模型控制 | `native_controls.py`、`control_journal.py` | 当前运行时设置为权威；双后端写均落盘意图、不重放；`/fast` 仅 Codex |
+| 执行／准入／恢复 | `execution.py`、`execution_control.py`、`admission.py`、`admission_recovery.py`、`admission_ops.py` | 跨 Agent 共享仓库占用锁，unknown 不重放；`admission-release` 支持双后端审计解锁 |
+| 交互 | `interactions.py`、`async_questions.py` | 同步一次性裁决（Codex 审批／追问与 ACP `session/request_permission`）与异步补充分开，不擅自授权 |
 | 结果／展示／发送 | `results.py`、`output.py`、`render_worker.py`、`delivery.py` | 事务外渲染、入账后冻结，重投不执行任务 |
-| 账本／维护 | `runtime_state.py`、`occupancy.py`、`async_state.py`、`schema.py`、`retention.py` | 单执行器，显式迁移／维护，不覆盖新数据 |
-| 生命周期／制品 | `service.py`、`runtime_lifecycle.py`、`runtime_discovery.py`、`managed.py`、`release.py` | host 与 native 代次分开，正式父子来源一致 |
+| 账本／维护 | `runtime_state.py`、`occupancy.py`、`async_state.py`、`schema.py`、`retention.py` | 单执行器，schema 6 不变，显式迁移／维护，不覆盖新数据 |
+| 生命周期／制品 | `service.py`、`runtime_lifecycle.py`、`runtime_discovery.py`、`managed.py`、`release.py` | host、Codex 与 Antigravity 代次分开，支持纯 `agy` 启动，正式父子来源一致 |
 
 0.1.14 会话通知由 `session_notifications.py` 在既有 serve 进程内协调：独立每秒检查连接故障期限，控制器在原有核验入口提供角色和结构化原因，runtime_state 原子保存快照与 Outbox。仍共用既有消费者、渲染层和 SQLite 执行器，不新增进程／外部关系；F02／F03 的简化边界保持，细则见[通知专题](session-notifications.md)，验收及部署见 ROADMAP。
 
@@ -254,7 +259,7 @@ sequenceDiagram
 
 ## 8. Codex 适配与未来扩展
 
-`AgentAdapter` 是当前小型 Protocol，实际方法见[开发契约](development-contracts.md)。Codex 特有的队列、交互和历史方法保留在具体实现，不宣称所有能力已统一为可插拔框架。未知版本和缺少能力明确拒绝；不安装第二真实 Agent，不承诺跨 Agent 历史互通。
+`AgentAdapter` 与 `Capabilities` 定义多 Agent 能力边界，实际字段见[开发契约](development-contracts.md)。0.2.0 起已正式并行支持 Codex（`agents/codex.py`）与 Antigravity（`agents/antigravity.py`、`agents/antigravity_codec.py`、`agents/acp_rpc.py`），并通过 `agents/registry.py` 收口后端标签、运行态文案、受管会话键、电脑接手代码块及控制命令解析策略。后端特有能力（如 Codex 原生队列／账号额度／Fast 档位、Antigravity ACP 单会话串行／闲置 24 小时内存句柄回收）各自封装在具体实现中，不支持的能力通过 `Capabilities` 门禁明确拒绝，不承诺跨 Agent 历史互通。
 
 ## 9. 调度、执行状态与交互
 

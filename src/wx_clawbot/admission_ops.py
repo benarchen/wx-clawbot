@@ -46,11 +46,14 @@ def report(root, task_id):
         db.execute('BEGIN')
         schema.validate(db, credentials, versions=(schema.VERSION,))
         rows = snapshots(db, task_id)
+    agents = {t['target'].get('agent', 'codex') for t in rows}
     return {'status':'admission_report','task_id':task_id,'confirm_report':report_digest(rows),
-            'occupancies':[{'task_id':t['id'],'execution_state':t['state'],
+            'occupancies':[{'task_id':t['id'],'agent':t['target'].get('agent','codex'),
+                'execution_state':t['state'],
                 'occupancy':t['occupancy']['state'],'revision':t['occupancy']['revision'],
                 'reason':t['occupancy']['reason'],'checked_at':t['occupancy']['checked_at']} for t in rows],
-            'applied':False,'requires_stopped_consumer':True,'requires_native_terminal_evidence':True}
+            'applied':False,'requires_stopped_consumer':True,
+            'requires_native_terminal_evidence':('codex' in agents)}
 
 
 async def release(root, task_id, *, apply=False, confirm_report=None, reason=None, socket=None, codex_home=None):
@@ -71,16 +74,39 @@ async def release(root, task_id, *, apply=False, confirm_report=None, reason=Non
             return {'status':'already_released','task_id':task_id,'applied':False}
         if report_digest(rows) != confirm_report:
             raise ProtocolError('Operator report became stale')
-        if socket is None:
-            socket, _ = await asyncio.to_thread(discover_runtime, codex_home)
-        native = await CodexConnection.connect(socket)
-        try:
-            async with asyncio.timeout(5):
-                evidence = await terminal_evidence(native, rows, uuid.uuid4().hex)
-            evidence['operator_reason'] = reason
-            evidence['operator_report'] = confirm_report
-            release_rows(db, rows, evidence, reason='operator_verified_terminal')
-        finally:
-            await native.close()
+        agents = {t['target'].get('agent', 'codex') for t in rows}
+        if len(agents) != 1:
+            raise ProtocolError('Mixed agent occupancy batch cannot be released together')
+        agent = next(iter(agents))
+        if agent == 'antigravity':
+            # Holding channel-consumer.lock proves the bridge (and its agy acp
+            # child process) is stopped; verify exact session identity and audit.
+            thread_id = selected.get('thread_id')
+            if (not isinstance(thread_id, str) or not thread_id or len(thread_id) > 256
+                    or any(t.get('state') != 'unknown' or t.get('thread_id') != thread_id
+                           or not isinstance(t['target'].get('cwd'), str)
+                           or not t['target']['cwd'].startswith('/') for t in rows)):
+                raise ProtocolError('Antigravity task identity is incomplete; cannot release')
+            evidence = {
+                'kind': 'operator_verified_antigravity',
+                'agent': 'antigravity',
+                'thread_id': thread_id,
+                'verified_consumer_stopped': True,
+                'operator_reason': reason.strip(),
+                'operator_report': confirm_report,
+            }
+            release_rows(db, rows, evidence, reason='operator_verified_antigravity')
+        else:
+            if socket is None:
+                socket, _ = await asyncio.to_thread(discover_runtime, codex_home)
+            native = await CodexConnection.connect(socket)
+            try:
+                async with asyncio.timeout(5):
+                    evidence = await terminal_evidence(native, rows, uuid.uuid4().hex)
+                evidence['operator_reason'] = reason
+                evidence['operator_report'] = confirm_report
+                release_rows(db, rows, evidence, reason='operator_verified_terminal')
+            finally:
+                await native.close()
     return {'status':'released','task_id':task_id,'task_ids':[t['id'] for t in rows],
-            'execution_state':'unknown','applied':True,'native_submissions':0,'messages_sent':0}
+            'agent':agent,'execution_state':'unknown','applied':True,'native_submissions':0,'messages_sent':0}

@@ -131,7 +131,9 @@ def status(root):
         # instance fields. running describes the consumer, not its dependencies.
         components = instance.get("components", {})
         report["components"] = {}
-        for name in ("host", "native"):
+        for name in ("host", "native", "antigravity"):
+            if name == "antigravity" and name not in components:
+                continue
             value = components.get(name, {})
             state = value.get("state")
             phase = value.get("phase")

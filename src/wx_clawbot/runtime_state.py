@@ -323,18 +323,25 @@ class RuntimeState(AsyncQuestionStore, OccupancyStore, ChannelState):
     async def stale_interactions(self, generation=None):
         await self._call(self._stale_interactions, generation)
 
-    async def native_disconnected(self):
+    async def native_disconnected(self, *, agent=None):
         """Preserve intent and receipts; never replay an uncertain native call."""
-        await self._call(self._mark_native_unknown)
+        await self._call(self._mark_native_unknown, agent)
 
-    def _mark_native_unknown(self):
+    def _mark_native_unknown(self, agent=None):
         with transaction(self.db):
-            self.db.execute("UPDATE tasks SET state='received' WHERE state='prepared' AND input_items<>'[]' AND queue_id IS NULL AND turn_id IS NULL")
-            rows = list(self.db.execute("SELECT id FROM tasks WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')"))
-            for (identity,) in rows:
+            prep_rows = list(self.db.execute("SELECT id,target FROM tasks WHERE state='prepared' AND input_items<>'[]' AND queue_id IS NULL AND turn_id IS NULL"))
+            for identity, raw_target in prep_rows:
+                if agent is not None and json.loads(raw_target).get("agent", "codex") != agent:
+                    continue
+                self.db.execute("UPDATE tasks SET state='received' WHERE id=?", (identity,))
+            rows = list(self.db.execute("SELECT id,target FROM tasks WHERE state IN ('prepared','dispatching','queued','running','waiting_interaction','stopping')"))
+            for identity, raw_target in rows:
+                if agent is not None and json.loads(raw_target).get("agent", "codex") != agent:
+                    continue
                 self.db.execute("UPDATE tasks SET state='unknown',updated_at=? WHERE id=?", (time.time(), identity))
                 self._occupancy_transition(identity, "holding", "native_unverified")
-            self._async_restart()
+            if agent in {None, "codex"}:
+                self._async_restart()
 
     async def task_intent(self, message_id, target: dict, text: str):
         if (not isinstance(message_id, str) or not message_id or not isinstance(target, dict)

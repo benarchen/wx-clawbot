@@ -4,6 +4,8 @@
 
 ## 当前阶段
 
+V020 多 Agent 架构全面加固与 `0.2.0` 里程碑已完成 `dev` 分支全部施工（`G00`–`G06`）：8 项架构与项目负责人审查问题 100% 闭环，包括 `admission-release` 支持 Antigravity `unknown` 占用审计解锁、`agy` `/model set` 接入 `ControlJournal` 对称持久化幂等、`watch_agy()` 断连清理 `catalog.sessions`、解耦 `serve()`/`doctor()` 支持纯 `agy` 无 Codex 独立启动、删除死代码 `agent_label()` 与 `list_all_sessions()`、拆分 `agents/antigravity_codec.py` 与 `agents/registry.py` 收口多 Agent 策略层、全量同步受影响专题文档并重渲染视觉复核 F01–F03 架构 SVG；版本已推进至 `0.2.0` 并通过 1064 项离线检查、9 项本机 `agy 1.5.14` 隔离真机自测与 `0.2.0` 非 editable 冻结制品校验（保持 SQLite schema 6 与路由快照 version 2）。尚未提交、合并 `main`、打 `v0.2.0` tag 或切换本机正式版本，待本人触发标准收尾。[施工清单](goals/20261123-2225-v020-multi-agent-hardening-and-release.md)、[验证归档](docs/validation/v020-multi-agent-release.md)。
+
 Codex 原生版本基线向前自适应已随 0.1.17 正式交付并本机加载：支持 SemVer 向前自适应门禁（兼容放行 0.170.0+ 等静默升级版本并自适应高级特性，支持 WX_CLAWBOT_STRICT_NATIVE_VERSIONS 严格模式）。正式冻结包 1041 项／52.829 秒及必需检查全部通过；新增针对性单测覆盖版本自适应与严格模式。功能提交、main 快进、固定 annotated v0.1.17、双分支／标签原子推送及独立远端核验通过。本机同一正式 wheel 恢复 host／native ready，旧数据、当前设置与其他原生进程保护通过。[发布与运行](docs/validation/codex-forward-compatibility-release.md)。
 
 静态审计缺陷修复与工程治理已随 0.1.16 正式交付并本机加载：加固临时文件 0o600 权限防线、消除 maintain 图片异常穿透、retire 超时排空与 inflight 计数器化、剥离控制命令分发并统一事务上下文管理器。正式冻结包 1036 项／52.994 秒及必需检查全部通过；新增针对性测试覆盖盲区。功能提交 f5926af、main 快进、固定 annotated v0.1.16、双分支／标签原子推送及独立远端核验通过。本机同一正式 wheel 恢复 ready，PID 67074，旧数据、当前设置与其他原生进程保护通过。[清单](goals/20261118-1823-audit-remediation.md)、[发布与运行](docs/validation/audit-remediation-release.md)。
@@ -74,6 +76,12 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 ## 最近完成
 
+- 2026-11-23 22:45 V020 多 Agent 架构全面加固与 `0.2.0` 施工完成（`G00`–`G06`）：全部 8 项审查问题闭环（`admission-release` 支持 Antigravity `unknown` 占用审计解锁、`agy` `/model set` 接入 `ControlJournal`、`watch_agy()` 断连清 `catalog.sessions`、支持纯 `agy` 无 `codex_home` 独立启动与 `doctor` 判定、清理死代码 `agent_label()` 与 `list_all_sessions()`、拆分 `agents/antigravity_codec.py` 与 `agents/registry.py`、同步全量专题文档并重渲染视觉检查 F01–F03 SVG、版本号推进至 `0.2.0` 并产出交付归档）；未提交、未推送、未切换正式生产制品。[施工清单](goals/20261123-2225-v020-multi-agent-hardening-and-release.md)、[验证归档](docs/validation/v020-multi-agent-release.md)。
+
+- 2026-11-23 21:50 AGY01 首轮真机联调 5 项修复与深度代码审计加固完成：修复 `/model list` 未跟随已聚焦 `agy` 会话（新增 `/model list [codex|agy]`）；修复 `AntigravityConnection._pump()` 空闲 5 秒因 `TimeoutError` 静默退出及通知与 RPC 返回帧顺序竞态导致文本／图片任务无正文返回；`/sessions` 改为仅列当前活跃 `agy` 会话并过滤 `.tmp` 子目录，引入非聚焦闲置 24 小时内存句柄自动回收（不删磁盘历史）与重启仅恢复上次聚焦 `agy` 会话；在 `/cd ... agy`、`/new agy`、`/focus` 与 `/agy status` 补充 `agy --conversation <uuid>` 电脑接手提示；同步修复深度审计发现的 5 处隐患（Codex `idle()` 检查同项目 `agy` 会话误调 Codex `inspect`、冷启动 Codex 与 `watch_agy()` 恢复竞态、`dispatch()` 同步登记 `turn_tasks` 防极快响应／审批竞态、`_pump()` 单条异常保护与 `agy` 断连清理审批 broker、`/status` 持续展示已启用 Antigravity 状态）。未提交或正式发布。[施工清单](goals/20261122-2143-antigravity-agent-support.md)。
+
+- 2026-11-22 22:11 AGY01 多 Agent 架构与 Antigravity（`agy acp`）后端开发完成：新增 `agents/acp_rpc.py` 与 `agents/antigravity.py`（基于官方 `agy acp --stdio`，零新增第三方依赖），重构多后端 `SessionCatalog`、`Subscriptions`、`Controller`、`Execution`、`NativeControls` 与 `BridgeRuntime` 独立升降级；支持 `default_agent` 配置与 `/cd <项目> [codex|agy]`、`/new [codex|agy] [标题]`、`/agy status`、`/agent status`，覆盖文本／单图入站、`/model` 读写、`/stop` 中断、一次性审批、桥接 FIFO 串行排队与跨 Agent 仓库互斥锁；保持 SQLite schema 6 与路由快照 version 2 不变，同步相关契约与 ADR-12；未提交、未做手机验收、未切换生产独立制品。[施工清单](goals/20261122-2143-antigravity-agent-support.md)。
+
 - 2026-11-18 21:25 Codex 原生版本基线向前自适应改造完成：将静态硬编码全版本白名单升级为 SemVer 向前自适应策略（SUPPORTED_SERVER_VERSIONS 保持历史基线，>= 0.169.0 自动启用高级特性），平滑接入 0.170.0+ 等静默升级版本；native_controls 与 async_questions 同步升级为 SemVer 自适应门禁；引入 WX_CLAWBOT_STRICT_NATIVE_VERSIONS 环境变量支持严格模式；全量离线单元测试 1041 项（净增 5 项针对性单测）、compileall、git diff --check 及 scripts/check.py 全部通过；未提交、未发布、未切换生产独立制品。
 
 - 2026-11-18 18:43 静态审计缺陷修复与工程治理开发完成：依据审计报告及源码二次核实，完成 P0-01（maintain 图片异常穿透）、P0-02/P1-06（retire 超时与 drain 等待排空）、P0-03（临时文件 0o600 权限纵深加固）、P1-01（inflight 集合计数器化）、P1-02（未派发图片 prepared 任务断连恢复）、P1-03（poll 命令 job 异常隔离）；落地 P2-01（execution.py 剥离微信控制逻辑至 execution_control.py）与 P2-02（runtime_state.py 统一 transaction 上下文管理器）；补齐 P3 对应 8 项高价值自动化回归测试（tests/test_audit_remediation.py）。全量离线单元测试 1036 项（净增 8 项）、compileall、git diff --check 及 scripts/check.py 全部通过；保持 SQLite schema 6 与路由快照 version 2，未提交、未发布、未切换生产独立制品。[施工清单](goals/20261118-1823-audit-remediation.md)。
@@ -108,18 +116,13 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 - 2026-11-10 00:18 NCM01 查询阶段候选：严格解析首批入口、help 新分组、准确 route 的只读设置／目录与已订阅 token 用量接入；写命令全部在原生请求前拒绝。规范／ADR／协议及阶段文档同步，专用探针已 prepare，真实设置关卡待执行，不宣称完整交付。[记录](docs/validation/native-controls.md)。
 
-
-- 2026-11-09 23:18 项目列表展示开发完成：三个微信列表入口统一紧凑样式，标题含数量、项目名加粗、总目录只显示一次、正常状态和重复路径省略，例外保留完整路径；check 及 CLI JSON 保持详细行为。旧清单不猜总目录，空清单准确提示；长列表按完整项目分组。相关契约／测试文档同步，未发布或切换日常版本。
-
-- 2026-11-09 23:08 本机项目总目录初始化完成：使用已部署 0.1.11 CLI，经一层预览确认后设置本人指定总目录；原 2 项保留，新增 10 项，共 12 项。只维护目录关联，未创建业务目录或会话；0600 原配置备份与运行态即时生效核验通过。私人路径及完整预览仅存本机私有证据，使用方法见[项目管理](docs/project-management.md)。
-
-- 2026-11-09 07:49 0.1.11 发布部署完成：41 文件功能提交 7df84ed、main 快进、固定 annotated v0.1.11 与双分支／标签原子推送和独立核验完成；同一已验独立制品本机加载，项目管理 IPC 可用，原配置／任务／回执保持。[记录](docs/validation/project-management-release.md)。
-
-
-
-
-
 ## 最近验证
+
+- 2026-11-23 22:45 V020 `0.2.0` 全量验证：离线 `scripts/check.py` 全部通过（1064 项单测、compileall、pip check、git diff --check、documents）；本机 `agy 1.5.14` 隔离 9 步自测（6.5 秒空闲存活、可复制 `sh` 代码块、`/model list`、`/model set` + `ControlJournal` 审计文件、`/sessions`、文本 `V020_LIVE_OK`、64×64 红色 PNG 识别、`admission-release` 释放 `agy` `unknown` 占用、纯 `agy` 无 `codex_home` 独立启动）全部通过；F01–F03 SVG 用隔离 Mermaid CLI 12.2.0 重渲染并逐张视觉核对通过；`0.2.0` 非 editable 冻结包（`source e11a11fb294a` / `wheel d7356c74be88`）版本、隔离包测试与隐私扫描通过。未提交或切换正式生产版本。[归档](docs/validation/v020-multi-agent-release.md)。
+
+- 2026-11-23 21:50 AGY01 二轮修复离线全量与本机 `agy 1.5.14` 隔离复验：离线全量单元测试 1059 项（净增 4 项回归：同帧通知顺序与 `_pump()` 超时存活、24 小时闲置回收与 `.tmp` 过滤、`/model list` 跟随聚焦与活跃列表及电脑接手提示、冷启动 `restore_agy_target()` 与 Codex `idle()` 跨后端检查）及 `scripts/check.py` 全部通过；本机 `agy 1.5.14` 隔离实测在 6.5 秒空闲等待后 `_pump_task` 保持存活，`/cd` 接手提示、`/model list` 返回 Antigravity 目录（Codex 同时在线）、`/model set gemini-3.8-flash low`、`/agy status`、`/sessions` 仅列 1 个活跃会话、文本回复（`AGY_LIVE_OK`）及真实 64x64 红色 PNG 识别（返回「红色」）全部通过。待本人微信二轮实测复核。[施工清单](goals/20261122-2143-antigravity-agent-support.md)。
+
+- 2026-11-22 22:11 AGY01 离线全量与本机 `agy 1.5.14` 隔离动态验证：全量离线单元测试 1055 项（新增 14 项，覆盖 ACP 协议、权限一次性约束、目录越界与 URL 解码、单图、模型读写、中断、崩溃不重放、多 Agent 路由、FIFO 串行、Codex 离线独立运行及同仓库互斥）及 `scripts/check.py`（unittest、compile、dependencies、diff、documents）全部通过；本机 `agy 1.5.14` 隔离临时项目真实运行 `/cd sample-live agy`、`/model list`、`/model set gemini-3.8-flash low`、`/agy status`、多轮文本、单张 PNG 入站、`/stop` 中断与 `/sessions` 全部通过，且实测 `agy --conversation <id>` 互通。未连接真实微信或切换本机生产服务。[施工清单](goals/20261122-2143-antigravity-agent-support.md)。
 
 - 2026-11-18 21:25 原生版本自适应离线全量验证：执行离线单元测试 1041 项（耗时 52.2 秒）0 failure / 0 error，针对性单测验证了 0.170.0 原生握手向前兼容、RPC 特性自适应启用、原生控制/异步追问放行及 WX_CLAWBOT_STRICT_NATIVE_VERSIONS 严格模式阻断；compileall 语法检查通过、git diff --check 无空白违规；scripts/check.py 工程检查（unittest、compile、dependencies、diff、documents）全部通过。仅离线验证，未连接真实原生/微信，未执行 Git 提交或部署。
 
@@ -154,9 +157,3 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 - 2026-11-14 20:51 残留修正工作树：933 项／47.271 秒及编译／依赖／文档／diff 通过，零失败／错误／跳过；阶段计数与历史范围、所有相对链接、开发版本元数据及运行制品完整性通过。当前正式 0.1.12 服务保持，未执行真实原生写入或微信测试。[记录](docs/validation/native-controls-release.md)。
 
 - 2026-11-14 15:51 0.1.12 实际部署核验：新目录 manifest 与已验 wheel 一致，父／子来源、实际 argv／cwd、host／native ready 及单消费者通过；13 表旧数据／冻结回执、控制文件、配置及准确路由独立复核，历史 unknown 保持，无恢复覆盖或重放。[结果](docs/validation/native-controls-release.md)。
-
-- 2026-11-14 14:22 0.1.12 发布冻结核验：932 项／47.572 秒及编译／依赖／文档／diff、manifest 通过；已验候选仅版本元数据差异，其余 60 包文件一致。公开文件／可达历史／wheel 与 sdist 隐私审计通过，F03 实际渲染及视觉复核，原运行与配置保持；Git 尚待执行。[发布记录](docs/validation/native-controls-release.md)。
-
-- 2026-11-14 10:55 最终去重候选 source b380026／wheel 54e9ad5c：同包 932 项／47.553 秒及必需检查、实际 argv／manifest／managed、daemon 0.169.0、13 表旧行与冻结字段／控制文件字节／配置及 12 项注册／所选目标保护通过。一次性切换 6.972 秒 ready 并退出；本人四图与三个准确命令 accepted 回执分别核验，status 去重／8 模型／完整 help 实收通过。[证据](docs/validation/codex-0169.md)。
-
-- 2026-11-14 10:30 去重收尾准备：同一已验 932 项制品独立预装通过，8 项一次性门禁检查及等待进程实际存活核验通过；仅等本轮准确任务结束／完整空闲后正常切换，尚无切换成功声明。36 T／16 A／8 D 索引的 65 条测试逐项核对源码和冻结日志，剩余实际切换及本人微信新版输出实收。

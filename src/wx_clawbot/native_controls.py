@@ -17,6 +17,7 @@ from .admission import repository_key
 from .channels.http import ChannelError
 from .control_journal import ControlJournal
 from .agents.codex import parse_version
+from .agents.registry import handoff_block, resolve_control_agent
 
 
 VERSIONS = frozenset({'0.167.0', '0.169.0'})
@@ -276,8 +277,194 @@ class NativeControls:
         while len(self.usage) > 256:
             self.usage.popitem(last=False)
 
+    async def _execute_antigravity(self, command, target, revision, *, message_id=None):
+        controller, engine = self.engine.controller, self.engine
+        agy = engine.backend_for('antigravity')
+        expected = engine.verified_native(agent='antigravity')
+        def validate():
+            engine.verified_native(expected, agent='antigravity')
+            if controller.retired or controller.routes.revision != revision or controller.selection_pending:
+                raise CommandError('输入目标已变化，本条原生命令未执行；请核对选择后重试。')
+            if target is not None and controller.routes.target != target:
+                raise CommandError('输入目标已变化，本条原生命令未执行。')
+        validate()
+        if command.name == 'fast':
+            raise CommandError('当前为 Antigravity 会话，不支持 Codex 专属的 /fast 开关。')
+        if command.name == 'codex':
+            raise CommandError('当前选中的是 Antigravity 会话，请使用 /agy status 或 /agent status 查看状态。')
+        if command.name == 'model' and command.argument == 'list':
+            session_id = None
+            if target is not None and target.agent == 'antigravity':
+                session = await controller.catalog.require(target)
+                session_id = session.binding.thread_id
+            try:
+                models = agy.model_catalog(session_id)
+            except ValueError:
+                raise CommandError('请先通过 `/cd <项目> agy` 或 `/focus` 选择一个 Antigravity 会话再查看模型目录。') from None
+            validate()
+            lines = ['**Antigravity 可用模型 · ' + str(len(models)) + ' 个**']
+            for item in models.values():
+                lines.append(bold_literal(item['model']) + '（' + markdown_literal(item['display']) + '）')
+                options = ' / '.join(item['efforts']) or '模型默认'
+                lines.append('思考等级：' + markdown_literal(options))
+            lines.append('使用：`/model set <模型名称> [推理强度]`')
+            lines.append('支持直接填写基础模型名加等级，或完整 modelId；修改仅作用于当前选中会话。')
+            text = '\n\n'.join(lines)
+            if len(text) > RESULT_LIMIT:
+                raise CommandError('模型目录展示超过回执上限，未返回不完整清单。')
+            return text
+        if target is None:
+            raise CommandError('请先用 /sessions 和 /focus 选择输入目标。')
+        session = await controller.catalog.require(target)
+        controller.subscriptions.event_session(target, session.binding.thread_id)
+        if 'route' not in controller.subscriptions.roles.get(target.session_id, set()):
+            raise CommandError('原输入订阅尚未核验，请重新选择会话。')
+        thread = session.binding.thread_id
+        if self.is_write(command):
+            return await self._write_antigravity(command, target, session, agy, validate, message_id)
+        settings = await agy.read_settings(thread, target.cwd)
+        validate()
+        heading = '当前模型' if command.name == 'model' else 'Antigravity 状态'
+        model_val = settings.get('model')
+        effort_val = settings.get('reasoningEffort')
+        mode_val = settings.get('mode')
+        lines = [
+            '**' + heading + '**',
+            target_description(target),
+            '模型：' + (literal(model_val) if model_val else '原生未提供'),
+            '思考等级：' + (reasoning_label(effort_val) if effort_val else '原生默认'),
+        ]
+        if command.name in {'agy', 'agent'}:
+            if mode_val:
+                lines.append('执行模式：' + literal(mode_val))
+            tier = settings.get('tier')
+            if isinstance(tier, dict) and tier.get('name'):
+                lines.append('账号档位：' + literal(tier['name']))
+            active = await engine.state.tasks(active_only=True)
+            queued_count = sum(1 for t in active if t['target']['session_id'] == target.session_id and t['state'] == 'received')
+            busy = agy.is_busy(thread)
+            state_text = '忙碌' if busy else '空闲'
+            lines.append('会话：' + state_text + (f' · 排队 {queued_count} 项任务' if queued_count else ''))
+            usage = settings.get('usage')
+            if isinstance(usage, dict) and type(usage.get('used')) is int and type(usage.get('size')) is int and usage['size'] > 0:
+                pct = round(usage['used'] * 100 / usage['size'], 1)
+                lines.append(f"上下文占用：{usage['used']} / {usage['size']}（{pct}%）")
+            lines.append(handoff_block('antigravity', thread))
+        lines.append('查询时间：' + beijing_time() + '（北京时间）')
+        if command.name == 'model':
+            lines.append('可用模型与等级见 `/model list`；设置用 `/model set <模型名称> [推理强度]`。')
+        return '\n\n'.join(lines)
+
+    async def _write_antigravity(self, command, target, session, agy, validate, message_id):
+        controller, engine = self.engine.controller, self.engine
+        thread = session.binding.thread_id
+        journal, record, sent = None, None, False
+        try:
+            ControlJournal.key(message_id)
+            fingerprint = hashlib.sha256(json.dumps([
+                'antigravity', command.name, command.argument, command.text, command.reasoning,
+                target.session_id, target.project_alias, str(target.cwd),
+            ], ensure_ascii=False).encode()).hexdigest()
+            journal = self.journal()
+            old = journal.read(message_id)
+            if old is not None:
+                if old['fingerprint'] != fingerprint:
+                    raise CommandError('同一消息已有不同设置记录，未重新执行。')
+                return old.get('reply') or self.unknown_antigravity(target)
+            async with engine.admission_gate:
+                async with asyncio.timeout(25):
+                    validate()
+                    if any(t.project_alias == target.project_alias or t.session_id == target.session_id
+                           for t in controller.task_reservations.values()):
+                        raise CommandError('已有接收中的任务，未修改设置；请等待任务结束。')
+                    active = await engine.state.tasks(active_only=True)
+                    if any(t['target']['session_id'] == target.session_id for t in active) or agy.is_busy(thread):
+                        raise CommandError('Antigravity 会话忙碌或尚有排队任务，未修改设置。')
+                    before = await agy.read_settings(thread, target.cwd)
+                    try:
+                        target_base, target_effort, _ = agy.resolve_model_request(thread, command.text, command.reasoning)
+                    except KeyError:
+                        raise CommandError('模型名称不在 Antigravity 当前目录，请用 /model list 核对。') from None
+                    except LookupError as exc:
+                        raise CommandError(f'所选模型不支持该推理强度（可选：{exc}），未修改设置。') from None
+                    validate()
+                    payload = {
+                        'fingerprint': fingerprint,
+                        'target': {
+                            'agent': 'antigravity',
+                            'session_id': target.session_id,
+                            'project_alias': target.project_alias,
+                            'cwd': str(target.cwd),
+                            'thread_id': thread,
+                            'runtime': list(agy.runtime_identity),
+                        },
+                        'before': {'model': before.get('model'), 'reasoningEffort': before.get('reasoningEffort')},
+                        'setting': {'model': target_base, 'reasoningEffort': target_effort},
+                    }
+                    record, created = journal.begin(message_id, payload)
+                    if not created:
+                        if record['fingerprint'] != fingerprint:
+                            raise CommandError('同一消息设置记录不匹配，未执行。')
+                        return record.get('reply') or self.unknown_antigravity(target)
+                    header = target_description(target) + '\n\n'
+                    if (before.get('model') == target_base
+                            and (target_effort is None or before.get('reasoningEffort') == target_effort)):
+                        effort = before.get('reasoningEffort')
+                        effort_text = reasoning_label(effort) if effort else '模型默认'
+                        reply = ('**当前已是该设置，无变更**\n\n' + header
+                                 + '模型：' + literal(target_base) + '\n\n思考等级：' + effort_text)
+                        return journal.finish(message_id, 'unchanged', reply)
+                    sent = True
+                    try:
+                        updated = await agy.set_model_and_effort(thread, target.cwd, command.text, command.reasoning)
+                    except KeyError:
+                        return journal.finish(message_id, 'rejected', '模型名称不在 Antigravity 当前目录，请用 /model list 核对。')
+                    except LookupError as exc:
+                        return journal.finish(message_id, 'rejected', f'所选模型不支持该推理强度（可选：{exc}），未修改设置。')
+                    validate()
+                    effort = updated.get('reasoningEffort')
+                    effort_text = reasoning_label(effort) if effort else '模型默认'
+                    reply = ('**设置已确认**\n\n' + header
+                             + '模型：' + literal(updated['model'])
+                             + '\n\n思考等级：' + effort_text)
+                    return journal.finish(message_id, 'confirmed', reply,
+                                          after={'model': updated['model'], 'reasoningEffort': effort})
+        except asyncio.CancelledError:
+            raise
+        except (CommandError, ChannelError, ValueError, OSError, RpcError, KeyError, TypeError, TimeoutError) as exc:
+            if record is not None:
+                reply = self.unknown_antigravity(target) if sent else '设置请求未发送，未修改设置；请核对后下达新命令。'
+                try:
+                    return journal.finish(message_id, 'unknown' if sent else 'rejected', reply)
+                except (ChannelError, ValueError, OSError):
+                    raise CommandError(self.unknown_antigravity(target)) from None
+            if isinstance(exc, CommandError):
+                raise
+            raise CommandError('Antigravity 设置未发送（' + type(exc).__name__ + '）；未重放，请核对状态。') from None
+
+    @staticmethod
+    def unknown_antigravity(target):
+        return (f'设置结果待核对：{target.project_alias}｜{target.session_id}。\n'
+                '原请求不会重放或回滚；请先查询 /model 或 /agy status，再明确下达新命令。')
+
     async def execute(self, command, target, revision, *, message_id=None):
         controller, native = self.engine.controller, self.engine.native
+        agent_kind = resolve_control_agent(
+            command,
+            target,
+            default_agent=getattr(controller, 'default_agent', 'codex'),
+            backend_ready=getattr(controller, 'backend_ready', None),
+        )
+        if agent_kind == 'antigravity':
+            try:
+                return await self._execute_antigravity(command, target, revision, message_id=message_id)
+            except (CommandError, asyncio.CancelledError):
+                raise
+            except (ValueError, OSError, RpcError, KeyError, TypeError, TimeoutError) as exc:
+                raise CommandError('Antigravity 查询或设置未确认（' + type(exc).__name__ + '）；未重放，请核对状态。') from None
+        if command.name == 'agy':
+            raise CommandError('当前选中的是 Codex 会话，请使用 /codex status 或 /agent status 查看状态。')
+        effective_name = 'codex' if command.name == 'agent' else command.name
         expected = self.engine.verified_native()
         def validate():
             self.engine.verified_native(expected)
@@ -317,7 +504,7 @@ class NativeControls:
                 for key in ('model', 'modelProvider', 'reasoningEffort', 'serviceTier'):
                     if key in settings and settings[key] is not None and not identifier(settings[key]):
                         raise CommandError('原生设置值无效，未使用旧缓存替代。')
-                heading = {'model': '当前模型', 'fast': '快速模式', 'codex': 'Codex 状态'}[command.name]
+                heading = {'model': '当前模型', 'fast': '快速模式', 'codex': 'Codex 状态'}[effective_name]
                 header = '**'+heading+'**'
                 def field(key):
                     if key not in settings or key == 'model' and settings[key] is None:
@@ -326,10 +513,10 @@ class NativeControls:
                 effort = settings.get('reasoningEffort')
                 effort_text = reasoning_label(effort) if effort is not None else field('reasoningEffort')
                 lines = [header, target_description(target), '模型：' + field('model'), '思考等级：' + effort_text]
-                if command.name != 'model':
+                if effective_name != 'model':
                     models = await model_catalog(native, provider=settings.get('modelProvider'))
                     lines += ['Fast：' + fast_state(settings, models.get(settings.get('model')))]
-                if command.name == 'codex':
+                if effective_name == 'codex':
                     metadata = await native.inspect(session.binding.thread_id)
                     queue = await self.engine.queue(session.binding.thread_id, target.cwd).list()
                     state = metadata.get('status', {}).get('type')
@@ -340,7 +527,7 @@ class NativeControls:
                 await controller.catalog.require(target)
                 validate()
                 lines.append('查询时间：'+beijing_time()+'（北京时间）')
-                if command.name == 'model':
+                if effective_name == 'model':
                     lines.append('思考等级越高，通常思考更充分、等待更久；可用等级见 `/model list`。')
                 return '\n\n'.join(lines)
         except (CommandError, asyncio.CancelledError):
@@ -389,8 +576,13 @@ class NativeControls:
                 continue
             record = {'project_alias':other.target.project_alias,'cwd':str(other.target.cwd)}
             if await related(record):
-                status = (await engine.native.inspect(other.binding.thread_id)).get('status',{}).get('type')
-                if status not in {'idle','notLoaded'}:
+                other_agent = getattr(other.binding, 'agent', 'codex')
+                other_backend = (engine.backend_for(other_agent) if hasattr(engine, 'backend_for')
+                                 else (engine.native if other_agent == 'codex' else None))
+                if other_backend is None or other_backend.runtime_identity is None:
+                    continue
+                status = (await other_backend.inspect(other.binding.thread_id)).get('status',{}).get('type')
+                if status not in {'idle','notLoaded','resumable'}:
                     raise CommandError('同项目或仓库的其他会话忙碌，未修改设置。')
 
     @staticmethod

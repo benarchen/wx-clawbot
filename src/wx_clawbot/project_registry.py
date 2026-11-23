@@ -292,6 +292,8 @@ class ProjectStore:
                                                   "removed": name if action == "remove" else ""}])[-128:]
         payload = {"version": 1, "workspace_root": str(workspace), "revision": revision,
                    "projects": [{"alias": p.alias, "root": str(p.root)} for p in projects], "operations": operations}
+        if current.has_default_agent:
+            payload["default_agent"] = current.default_agent
         result = {"status": "committed", "action": action, "request_id": request, "revision": revision}
         return result, payload
 

@@ -65,6 +65,7 @@ documents 当前验证 JSON、本地链接／标题锚点、包版本、README �
 | 通道／媒体／投递 | wechat_*、image_*、delivery_state；本人身份、游标原子、防重／冲突、SSRF／重定向／媒体超限、同会话顺序、发送未知及重复风险确认 |
 | 账本／维护 | schema、image_schema、performance_schema、retention；消费者锁、绑定、备份、失败回滚、旧行保持、unknown 保护 |
 | 展示／性能／制品 | markdown_*、output、render_worker、performance、release、engineering_*；代码／链接语义、源切片重建、取消回收、冻结历史、manifest／非 editable |
+| 多 Agent／Antigravity | antigravity_acp、multi_agent、admission_ops、cli；ACP 协议握手／通知顺序／`_pump()` 超时存活、24 小时闲置回收与 `.tmp` 过滤、微信单图入站全链路、`ControlJournal` 幂等与部分写 `unknown`、`watch_agy` 崩溃清理与重连恢复、跨 Agent 仓库互斥、纯 `agy` 独立启动与 `admission-release` 审计解锁 |
 
 文件名均为 `tests/test_<名称>.py`，精确测试方法可从追溯入口定位。修改实现后跑相关最小回归，再完成项目必要离线检查；只有新增修改、失败或具体疑点才扩大／重复。
 

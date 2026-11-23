@@ -33,6 +33,8 @@ def bold_literal(value):
 def target_description(target):
     """Compact display only; routing always uses the full frozen identity."""
     parts = [target.project_alias]
+    if getattr(target, "agent", "codex") == "antigravity":
+        parts.insert(0, "agy")
     directory = target.cwd.name or str(target.cwd)
     if directory != target.project_alias:
         parts.append(directory)

@@ -1,3 +1,3 @@
-"""Bridge for native Codex sessions."""
+"""Bridge for Codex and Antigravity local coding sessions."""
 
-__version__ = "0.1.17"
+__version__ = "0.2.0"

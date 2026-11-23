@@ -7,6 +7,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from .agents.base import normalize_agent
+
 
 class ConfigError(ValueError):
     pass
@@ -25,6 +27,8 @@ class ProjectConfig:
     revision: int = 0
     operations: tuple[dict, ...] = ()
     digest: str = "missing"
+    default_agent: str = "codex"
+    has_default_agent: bool = False
 
 
 def valid_alias(value):
@@ -64,8 +68,17 @@ def load_config(path: Path, *, missing=False) -> ProjectConfig:
         raise ConfigError("配置不可读或 JSON 格式无效。") from exc
     if not isinstance(value, dict):
         raise ConfigError("配置必须是对象。")
-    legacy = set(value) == {"projects"}
-    if not legacy and (set(value) != {"version", "workspace_root", "revision", "projects", "operations"}
+    keys = set(value)
+    has_default_agent = "default_agent" in keys
+    default_agent = "codex"
+    if has_default_agent:
+        normalized = normalize_agent(value["default_agent"])
+        if normalized is None:
+            raise ConfigError("默认 Agent 仅支持 codex 或 agy。")
+        default_agent = normalized
+    core_keys = keys - {"default_agent"}
+    legacy = core_keys == {"projects"}
+    if not legacy and (core_keys != {"version", "workspace_root", "revision", "projects", "operations"}
                        or type(value["version"]) is not int or value["version"] != 1
                        or type(value["revision"]) is not int or value["revision"] < 1):
         raise ConfigError("项目配置格式或版本无效。")
@@ -114,7 +127,8 @@ def load_config(path: Path, *, missing=False) -> ProjectConfig:
         roots.add(root)
         projects.append(Project(alias, root))
     return ProjectConfig(tuple(projects), workspace, 0 if legacy else value["revision"],
-                         tuple(operations), hashlib.sha256(raw_bytes).hexdigest())
+                         tuple(operations), hashlib.sha256(raw_bytes).hexdigest(),
+                         default_agent, has_default_agent)
 
 
 def canonical_record(raw):

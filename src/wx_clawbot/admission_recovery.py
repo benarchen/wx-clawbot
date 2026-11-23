@@ -120,6 +120,8 @@ class AdmissionRecovery:
         attempt = self.schedule.get(thread_id, (0, 0))[1]
         reason = "native_unavailable"
         try:
+            if any(t.get("target", {}).get("agent", "codex") != "codex" for t in tasks):
+                raise EvidenceUnavailable("antigravity_manual_verification_required")
             if not engine.controller.native_ready:
                 raise EvidenceUnavailable('native_generation_changed')
             if thread_id in engine.inflight:

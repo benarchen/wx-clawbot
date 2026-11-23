@@ -5,6 +5,19 @@ from pathlib import Path
 from typing import Protocol
 
 
+AGENT_ALIASES = {
+    "codex": "codex",
+    "agy": "antigravity",
+    "antigravity": "antigravity",
+}
+
+
+def normalize_agent(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return AGENT_ALIASES.get(value.strip().lower())
+
+
 @dataclass(frozen=True)
 class Capabilities:
     observe: bool = False
@@ -13,6 +26,9 @@ class Capabilities:
     interrupt: bool = False
     shared_interactions: bool = False
     image_input: bool = False
+    bridge_queue: bool = False
+    model_control: bool = False
+    external_observe: bool = True
 
 
 @dataclass(frozen=True)

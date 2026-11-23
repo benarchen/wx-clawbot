@@ -13,6 +13,7 @@ from .agents.rpc import JsonRpc
 
 APPROVAL = "item/commandExecution/requestApproval"
 QUESTION = "item/tool/requestUserInput"
+ACP_APPROVAL = "session/request_permission"
 
 
 @dataclass
@@ -44,7 +45,7 @@ class InteractionBroker:
         if not self.connected:
             raise ValueError("Disconnected interaction generation")
         method, params = event.get("method"), event.get("params")
-        if method not in {APPROVAL, QUESTION}:
+        if method not in {APPROVAL, QUESTION, ACP_APPROVAL}:
             raise ValueError("Unsupported native interaction; never auto-approve")
         key = JsonRpc.key(event.get("id"))
         if not isinstance(params, dict) or params.get("threadId") != self.thread_id or any(
@@ -63,6 +64,15 @@ class InteractionBroker:
                 raise ValueError("Approval has no explicit command; cannot approve")
             if params.get("availableDecisions") is not None and not isinstance(params["availableDecisions"], list):
                 raise ValueError("Invalid native approval decisions")
+        if method == ACP_APPROVAL:
+            if not isinstance(params.get("command"), str) or not params["command"].strip():
+                raise ValueError("ACP approval has no explicit command; cannot approve")
+            options = params.get("options")
+            if not isinstance(options, list) or any(
+                not isinstance(opt, dict) or not isinstance(opt.get("optionId"), str) or not opt["optionId"]
+                for opt in options
+            ):
+                raise ValueError("Invalid ACP permission options")
         if method == QUESTION:
             questions = params.get("questions")
             if not isinstance(questions, list) or not 1 <= len(questions) <= 20:
@@ -108,6 +118,20 @@ class InteractionBroker:
 
     @staticmethod
     def _result(record: Interaction, answer: object) -> dict:
+        if record.method == ACP_APPROVAL:
+            # Strictly one-time decisions only: allow_once / reject_once / cancelled.
+            if answer not in ("accept", "cancel", "decline"):
+                raise ValueError("One-time ACP approval decision required")
+            options = record.params.get("options") or []
+            if answer == "accept":
+                allow = next((o for o in options if o.get("kind") == "allow_once"), None)
+                if allow is None:
+                    raise ValueError("ACP request does not offer a one-time allow_once option")
+                return {"outcome": {"outcome": "selected", "optionId": allow["optionId"]}}
+            reject = next((o for o in options if o.get("kind") == "reject_once"), None)
+            if reject is not None:
+                return {"outcome": {"outcome": "selected", "optionId": reject["optionId"]}}
+            return {"outcome": {"outcome": "cancelled"}}
         if record.method == APPROVAL:
             # Only one-time actions. Session grants and policy amendments are not accepted.
             if answer not in ("accept", "cancel", "decline"):

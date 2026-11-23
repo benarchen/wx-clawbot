@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wx-clawbot"
-version = "0.1.17"
-description = "WeChat bridge for native Codex sessions in iTerm2"
+version = "0.2.0"
+description = "WeChat bridge for Codex and Antigravity (agy) local coding sessions"
 license = "MIT"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 requires-python = ">=3.14,<3.15"

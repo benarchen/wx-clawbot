@@ -1,0 +1,112 @@
+{
+  "protocol": "agent-client-protocol",
+  "protocol_version": 1,
+  "verified_server": {
+    "name": "Antigravity ACP Server",
+    "version": "1.5.14"
+  },
+  "initialize_result": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "Antigravity ACP Server",
+      "version": "1.5.14"
+    },
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": true
+      },
+      "sessionCapabilities": {
+        "resume": {},
+        "close": {},
+        "load": {},
+        "list": {},
+        "additionalDirectories": {}
+      }
+    }
+  },
+  "session_new_result": {
+    "sessionId": "00000000-0000-4000-8000-000000000001",
+    "models": {
+      "currentModelId": "gemini-4-neon-high",
+      "availableModels": [
+        {"modelId": "gemini-4-neon-high", "name": "Gemini 4 Neon (High)"},
+        {"modelId": "gemini-4-neon-medium", "name": "Gemini 4 Neon (Medium)"},
+        {"modelId": "gemini-3.8-flash-low", "name": "Gemini 3.8 Flash (Low)"},
+        {"modelId": "gemini-3.8-flash-high", "name": "Gemini 3.8 Flash (High)"}
+      ]
+    },
+    "modes": {
+      "currentModeId": "default",
+      "availableModes": [
+        {"id": "default", "name": "Default"},
+        {"id": "accept-edits", "name": "Accept edits"},
+        {"id": "auto", "name": "Auto"},
+        {"id": "plan", "name": "Plan"}
+      ]
+    },
+    "configOptions": [
+      {
+        "id": "model",
+        "name": "Model",
+        "category": "model",
+        "type": "select",
+        "currentValue": "gemini-4-neon",
+        "options": [
+          {"value": "gemini-4-neon", "name": "Gemini 4 Neon"},
+          {"value": "gemini-3.8-flash", "name": "Gemini 3.8 Flash"}
+        ]
+      },
+      {
+        "id": "thought_level",
+        "name": "Thinking Level",
+        "category": "thought_level",
+        "type": "select",
+        "currentValue": "high",
+        "options": [
+          {"value": "low", "name": "Low"},
+          {"value": "medium", "name": "Medium"},
+          {"value": "high", "name": "High"},
+          {"value": "xhigh", "name": "Extra"}
+        ]
+      },
+      {
+        "id": "mode",
+        "name": "Mode",
+        "category": "mode",
+        "type": "select",
+        "currentValue": "default",
+        "options": [
+          {"value": "default", "name": "Default"},
+          {"value": "plan", "name": "Plan"}
+        ]
+      }
+    ],
+    "_meta": {
+      "antigravity": {
+        "tier": {"name": "Google AI Pro", "id": "g1-pro-tier"}
+      }
+    }
+  },
+  "permission_request": {
+    "jsonrpc": "2.0",
+    "id": 99,
+    "method": "session/request_permission",
+    "params": {
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "toolCall": {
+        "toolCallId": "call_fixture_1",
+        "title": "echo fixture",
+        "kind": "execute",
+        "rawInput": {"CommandLine": "echo fixture"}
+      },
+      "options": [
+        {"optionId": "allow_once_id", "name": "Allow once", "kind": "allow_once"},
+        {"optionId": "allow_always_id", "name": "Allow always", "kind": "allow_always"},
+        {"optionId": "reject_once_id", "name": "Reject", "kind": "reject_once"}
+      ]
+    }
+  }
+}

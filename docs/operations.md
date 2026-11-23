@@ -6,7 +6,7 @@
 
 ## 安装与准备
 
-1. 准备 Python 3.14、Git、已登录 Codex 的既有 daemon，以及用于可见新建的 iTerm2。开发环境安装见[开发指南](development.md)；日常托管使用下文独立非 editable 制品。
+1. 准备 Python 3.14、Git、以及至少一种受支持的本机 Agent 运行时：已登录 Codex 的既有 daemon（配 iTerm2 用于可见新建）和／或已登录的 Antigravity CLI（`agy`，官方 `agy acp --stdio` 协议，无需 iTerm2）。开发环境安装见[开发指南](development.md)；日常托管使用下文独立非 editable 制品。
 2. 在本项目私有状态根准备 `config.json`，从[模板](../config/config.example.json)填写别名与真实绝对 root。注册范围不是系统沙箱。私有目录本人所有、0700，敏感文件 0600，不放仓库。
 3. 首次本人扫码和明确绑定按[微信指南](wechat-protocol.md#前台扫码与本人联调)执行；已有本项目绑定直接复用，不重新扫码覆盖，不读取其他项目凭据。诊断 echo 和 serve 不同时使用同一消费者。
 4. 在普通 Shell 只读查看 `codex app-server daemon version`。桥接不启动／升级 daemon，实际 app-server 版本须匹配协议矩阵；该输出可能含本机路径，不直接公开。
@@ -23,7 +23,7 @@ PRJ01 双端项目管理已随 0.1.11 正式部署，发布当次原业务注册
 .venv/bin/wx-clawbot serve --config /absolute/path/to/private/config.json
 ```
 
-自定义状态根时所有命令均传同一个 `--state-dir`。默认只读发现既有 daemon；必要时 serve 可显式指定 `--socket /absolute/path/to/native-control.sock --codex-executable /absolute/path/to/native/codex --codex-home /absolute/path/to/codex-home`。原生可执行文件必须匹配既有 daemon，不能用依赖 GUI PATH／node 的包装脚本替代。
+自定义状态根时所有命令均传同一个 `--state-dir`。默认只读发现既有 Codex daemon 与 `agy` 可执行文件；必要时 serve 可显式指定 `--socket /absolute/path/to/native-control.sock --codex-executable /absolute/path/to/native/codex --codex-home /absolute/path/to/codex-home --agy-executable /absolute/path/to/agy --default-agent codex|agy`。原生 Codex 可执行文件必须匹配既有 daemon，不能用依赖 GUI PATH／node 的包装脚本替代。当仅使用 Antigravity（`agy` 可用且 `--codex-home` 不存在）时，0.2.0 起允许独立启动并仅运行 Antigravity 后端；`doctor --config` 在配置 `default_agent` 为 `agy`／`antigravity` 时按 Antigravity 可用性判定健康状态。
 
 另一个普通 Shell：
 
@@ -41,8 +41,9 @@ PRJ01 双端项目管理已随 0.1.11 正式部署，发布当次原业务注册
 | foreground_ready | 账本与微信入口准备好，不能证明目标可派发 |
 | running／supervision | 准确进程及锁有效；不能替代 host／native／本人收件验证 |
 | consumer_unverified | 有消费者但实例来源不足，不能假报健康 |
-| host ready | iTerm2 连接可用；可见创建仍需准确握手 |
-| native ready | 原生连接可用；每个新任务仍核验目标 |
+| host ready | iTerm2 连接可用；Codex 可见创建仍需准确握手 |
+| native ready | Codex 原生连接可用；每个新任务仍核验目标 |
+| antigravity ready | Antigravity ACP 子进程可用；与 Codex 独立升降级 |
 | stopped | 桥接消费者空闲；原生任务可能继续 |
 
 重启先恢复微信入口，再复验依赖和持久化选择；旧数字列表失效，旧同步／异步待答入口按恢复规则失效。原生换代或缺身份不能自动恢复选择，unknown 不重放。
@@ -77,7 +78,7 @@ PRJ01 双端项目管理已随 0.1.11 正式部署，发布当次原业务注册
 | 会话不在列表／不能输入 | 注册 cwd、loaded、完整身份与能力；不要求重新显示 ID，不猜最近窗口 |
 | host unavailable | iTerm2、API 和脚本权限；仅需可见创建时处理，无理由不重启其他应用 |
 | channel_receive／channel_send | 网络、已确认本人绑定、登录及回复上下文；失效由本人扫码，不迁移他人凭据 |
-| 任务 unknown／占用阻塞 | 看准确任务、原生终态与队列，按 REC01 核验；不重投输入或直接改库清锁 |
+| 任务 unknown／占用阻塞 | 看准确任务、原生终态与队列，按 REC01 核验；Codex 需原生终态证据，Antigravity 在前台停服与核对摘要后可由 `admission-release --apply` 审计释放占用，均不改写 `unknown` 结果或直接改库清锁 |
 | queued 长期不动 | 原端核对是否暂停、准确队列／turn；不强制启动或重复提交，后续能力见 ROADMAP |
 | 回执未收到 | 先分清执行终态、Outbox、发送尝试和 API accepted；没有本人证据不称已收件 |
 

@@ -20,12 +20,16 @@ class Subscriptions:
             raise ValueError("Bounded explicit subscription role required")
         async with self.lock:
             session = await self.catalog.require(target)
-            agent = self.catalog.agent
-            if not agent.capabilities.observe:
+            agent_kind = getattr(session.binding, "agent", "codex")
+            agent = self.catalog.backend_for(agent_kind) if hasattr(self.catalog, "backend_for") else self.catalog.agent
+            if agent is None or not agent.capabilities.observe:
                 raise SubscriptionUnavailable("Agent does not support native event observation")
+            if role == "observer" and not getattr(agent.capabilities, "external_observe", True):
+                raise SubscriptionUnavailable("Antigravity 会话采用后台协议托管，不支持桌面 TUI 实时观察（/attach）；请用 /focus 选择会话。")
             current = self.roles.get(target.session_id)
             if current is None:
-                shared = any(s.binding.thread_id == session.binding.thread_id for s in self.bound.values())
+                shared = any(getattr(s.binding, "agent", "codex") == agent_kind
+                             and s.binding.thread_id == session.binding.thread_id for s in self.bound.values())
                 if not shared:
                     await agent.observe_loaded(session.binding.thread_id, target.cwd)
                 current = set()
@@ -47,14 +51,18 @@ class Subscriptions:
             session = self.bound.get(target.session_id)
             if session is None or session.target != target:
                 raise SubscriptionUnavailable("Original subscription identity is no longer registered")
-            shared = any(key != target.session_id and s.binding.thread_id == session.binding.thread_id
+            agent_kind = getattr(session.binding, "agent", "codex")
+            shared = any(key != target.session_id and getattr(s.binding, "agent", "codex") == agent_kind
+                         and s.binding.thread_id == session.binding.thread_id
                          for key, s in self.bound.items())
             if not shared:
                 thread_id = session.binding.thread_id
                 finished = asyncio.Event()
                 self.releasing[thread_id] = finished
                 try:
-                    await self.catalog.agent.unsubscribe(thread_id)
+                    agent = self.catalog.backend_for(agent_kind) if hasattr(self.catalog, "backend_for") else self.catalog.agent
+                    if agent is not None:
+                        await agent.unsubscribe(thread_id)
                 finally:
                     self.releasing.pop(thread_id, None)
                     finished.set()

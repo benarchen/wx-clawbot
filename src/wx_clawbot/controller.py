@@ -8,6 +8,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .commands import Command, CommandError, NATIVE_CONTROLS, parse_command
+from .agents.registry import handoff_block, managed_key, resolve_control_agent, runtime_label, session_tag
 from .agents.rpc import ConnectionLost, RpcError
 from .catalog import DiscoveryUnavailable
 from .hosts.visible import LaunchPending, reconcile_launch
@@ -26,8 +27,8 @@ HELP = ("**项目与会话**\n\n"
         "`/project remove <别名>`：取消注册，保留目录及历史。\n\n"
         "`/project check [--request <请求 ID>]`：检查注册、目录或最近请求。\n\n"
         "`/projects`：兼容项目列表查询。\n\n"
-        "`/cd <别名或目录>`：复用或新建受管会话并选中。\n\n"
-        "`/new [标题]`：在当前目录新建并选中可见会话。\n\n"
+        "`/cd <别名或目录> [codex|agy]`：复用或新建受管会话并选中。\n\n"
+        "`/new [codex|agy] [标题]`：在当前目录新建并选中会话。\n\n"
         "`/sessions [关键词]`（`/ss`）：查询会话，保留输入目标和观察。\n\n"
         "`/focus <序号>`（`/f`）：选择后续普通消息的目标会话。\n\n"
         "`/unfocus`（`/uf`）：退出输入目标，保留观察和任务。\n\n"
@@ -35,11 +36,11 @@ HELP = ("**项目与会话**\n\n"
         "`/detach`（`/ua`）：取消观察，保留输入目标和任务。\n\n"
         "**Codex 原生命令**\n\n"
         "`/model`：查看模型和思考等级。\n\n"
-        "`/model list`：列出运行时模型。\n\n"
+        "`/model list [codex|agy]`：列出当前或指定运行时模型。\n\n"
         "`/model set <模型名称> [推理强度]`：设置模型及推理，省略用模型默认。\n\n"
         "`/fast`：查看 Fast 开关与支持情况。\n\n"
-        "`/fast on`、`/fast off`：开启或关闭 Fast。\n\n"
-        "`/codex status`：查看会话设置与账号额度。\n\n"
+        "`/fast on`、`/fast off`：开启或关闭 Codex Fast。\n\n"
+        "`/codex status`、`/agy status`、`/agent status`：查看会话设置与状态。\n\n"
         "思考等级控制模型思考投入；Fast 为快速模式设置。\n\n"
         "修改仅作用于选中会话，忙碌时拒绝；桌面并发可能影响排队任务。Fast 仅确认设置。\n\n"
         "**任务控制**\n\n"
@@ -64,6 +65,8 @@ class RouteCommitFailed(RuntimeError):
 
 def target_record(session):
     value = asdict(session.target)
+    if value.get("agent") == "codex":
+        value.pop("agent", None)
     value["cwd"] = str(session.target.cwd)
     value["thread_id"] = session.binding.thread_id
     value["runtime_identity"] = list(session.binding.runtime_identity)
@@ -72,10 +75,12 @@ def target_record(session):
 
 
 class Controller:
-    def __init__(self, projects, catalog, state, starter, executable, codex_home, *, launch_timeout=120, host=None):
+    def __init__(self, projects, catalog, state, starter, executable, codex_home, *,
+                 launch_timeout=120, host=None, default_agent="codex"):
         self.routes = Routes(projects)
         self.catalog, self.state, self.starter = catalog, state, starter
         self.executable, self.codex_home = executable, codex_home
+        self.default_agent = default_agent
         self.subscriptions = Subscriptions(catalog)
         self.engine = None  # Filled before polling starts; avoids a second native event consumer.
         self.selection_pending = 0
@@ -88,6 +93,9 @@ class Controller:
         self.recovering = False
         self.native_ready = True
         self.native_generation = 0
+        self.agy_enabled = False
+        self.agy_ready = False
+        self.agy_generation = 0
         self.operations = set()
         self.before_change = None
         self.retired = False
@@ -96,6 +104,17 @@ class Controller:
         self.project_manager = None
         self.project_reservations = {}
         self.task_reservations = {}
+
+    def backend_ready(self, agent_kind="codex") -> bool:
+        if agent_kind == "antigravity":
+            return self.agy_ready
+        return self.native_ready
+
+    def any_backend_ready(self) -> bool:
+        return self.native_ready or self.agy_ready
+
+    def resolve_agent(self, command) -> str:
+        return command.agent or self.default_agent
 
     def prepare(self, message):
         """Run at receive order, before any task awaits a network operation."""
@@ -117,16 +136,24 @@ class Controller:
         dispatch, target = None, None
         if command.name in {"focus", "attach", "send"}:
             target = self.routes.select(command.index, snapshot=snapshot)
-        if command.name in NATIVE_CONTROLS and not (command.name == "model" and command.argument == "list"):
-            if self.selection_pending:
-                raise RouteError("会话选择尚在处理中，请等待明确回执后重试。")
-            target = self.routes.target
-            if target is None:
-                raise RouteError("请先用 /sessions 和 /focus 选择输入目标。")
+        if command.name in NATIVE_CONTROLS:
+            if command.name == "model" and command.argument == "list":
+                if not self.selection_pending:
+                    target = self.routes.target
+            else:
+                if self.selection_pending:
+                    raise RouteError("会话选择尚在处理中，请等待明确回执后重试。")
+                target = self.routes.target
+                if target is None:
+                    raise RouteError("请先用 /sessions 和 /focus 选择输入目标。")
         if command.name in {"message", "send"}:
             if self.selection_pending:
                 raise RouteError("会话选择尚在处理中，请等待明确回执后再发送任务。")
-            if not self.native_ready:
+            chosen = target if target is not None else self.routes.target
+            if chosen is not None:
+                if not self.backend_ready(chosen.agent):
+                    raise RouteError(f"{runtime_label(chosen.agent)}尚未就绪，任务未接收；请查询 /status。")
+            elif not self.any_backend_ready():
                 raise RouteError("原生运行时尚未就绪，任务未接收；请查询 /status。")
             dispatch = self.routes.freeze(command.text, target=target, has_images=has_images)
         destination = None
@@ -146,7 +173,8 @@ class Controller:
         if dispatch is not None:
             self.task_reservations[token] = dispatch.target
         return self.execute(message, command, revision, target, dispatch, destination,
-                            generation=self.native_generation, project_token=token,
+                            generation=self.native_generation, agy_generation=self.agy_generation,
+                            project_token=token,
                             project_revision=self.project_manager.revision if self.project_manager else None)
 
     async def reply(self, message, text, *, priority=2, suffix=""):
@@ -165,7 +193,7 @@ class Controller:
                     raise
 
     async def execute(self, message, command, revision, target, dispatch, destination, *, generation=None,
-                      project_token=None, project_revision=None):
+                      agy_generation=None, project_token=None, project_revision=None):
         try:
             manager = self.project_manager
             if manager is not None and command.name not in {"help", "projects", "status", "stop", "approve", "deny", "answer"}:
@@ -178,20 +206,39 @@ class Controller:
                             if command.name in SELECTIONS | {"attach", "detach"}:
                                 self.selection_pending -= 1
                         return
-                    return await self._execute(message, command, revision, target, dispatch, destination, generation=generation)
-            return await self._execute(message, command, revision, target, dispatch, destination, generation=generation)
+                    return await self._execute(message, command, revision, target, dispatch, destination,
+                                               generation=generation, agy_generation=agy_generation)
+            return await self._execute(message, command, revision, target, dispatch, destination,
+                                       generation=generation, agy_generation=agy_generation)
         finally:
             self.project_reservations.pop(project_token, None)
             self.task_reservations.pop(project_token, None)
 
-    async def _execute(self, message, command, revision, target, dispatch, destination, *, generation=None):
+    def _generation_changed(self, command, target, dispatch, generation, agy_generation) -> bool:
+        agent_kind = None
+        if dispatch is not None:
+            agent_kind = dispatch.target.agent
+        elif command.name in NATIVE_CONTROLS and command.agent is not None:
+            agent_kind = command.agent
+        elif target is not None:
+            agent_kind = target.agent
+        elif command.name in {"cd", "new"}:
+            agent_kind = self.resolve_agent(command)
+        if agent_kind == "antigravity":
+            return agy_generation is not None and agy_generation != self.agy_generation
+        if agent_kind == "codex":
+            return generation is not None and generation != self.native_generation
+        return ((generation is not None and generation != self.native_generation)
+                or (agy_generation is not None and agy_generation != self.agy_generation))
+
+    async def _execute(self, message, command, revision, target, dispatch, destination, *, generation=None, agy_generation=None):
         operation = asyncio.current_task()
         dynamic = command.name not in {"help", "projects", "status"}
         if dynamic:
             self.operations.add(operation)
         try:
             name = command.name
-            if generation is not None and generation != self.native_generation:
+            if self._generation_changed(command, target, dispatch, generation, agy_generation):
                 raise RouteError("原生连接已变化，本条操作未重放，请刷新会话。")
             if dispatch:
                 await self.engine.submit(message.message_id, dispatch)
@@ -199,8 +246,11 @@ class Controller:
             if name in {"status", "stop", "approve", "deny", "answer"}:
                 text = await self.engine.control(command)
                 if name == "status" and self.host is not None:
+                    agy_line = (f"Antigravity 运行时：{'可用' if self.agy_ready else '未就绪'}\n"
+                                if self.agy_enabled or self.agy_ready or (hasattr(self.catalog, "extra_agents") and "antigravity" in self.catalog.extra_agents)
+                                else "")
                     text = (f"宿主：{self.host.state}（{self.host.phase}）\n"
-                            f"原生运行时：{'可用' if self.native_ready else '未就绪'}\n" + text)
+                            f"原生运行时：{'可用' if self.native_ready else '未就绪'}\n" + agy_line + text)
             elif name == "projects":
                 rows = []
                 for project in self.routes.projects.values():
@@ -211,25 +261,32 @@ class Controller:
             elif name == "help":
                 text = HELP
             elif name in NATIVE_CONTROLS:
-                if not self.native_ready:
-                    raise RouteError("原生运行时未就绪，本条原生命令未发送。")
+                agent_kind = resolve_control_agent(
+                    command, target, default_agent=self.default_agent, backend_ready=self.backend_ready
+                )
+                if not self.backend_ready(agent_kind):
+                    raise RouteError(f"{runtime_label(agent_kind)}未就绪，本条命令未发送。")
                 async with self.changes:
                     text = await self.engine.native_controls.execute(command, target, revision,
                                                                       message_id=message.message_id)
             elif name == "sessions":
-                text = await self._query_sessions(command.argument, generation)
+                text = await self._query_sessions(command.argument, generation, agy_generation)
             else:
-                if not self.native_ready and name not in {"cd", "new"}:
-                    raise RouteError("原生运行时未就绪，选择／观察操作未改变，请查询 /status。")
-                budget = self.selection_timeout + (self.launch_timeout + 15 if name in {"cd", "new"} else 0)
+                requested_agent = self.resolve_agent(command) if name in {"cd", "new"} else (target.agent if target is not None else None)
+                if name not in {"cd", "new"}:
+                    ready = (self.backend_ready(requested_agent) if requested_agent is not None else self.any_backend_ready())
+                    if not ready:
+                        raise RouteError("原生运行时未就绪，选择／观察操作未改变，请查询 /status。")
+                need_codex_host = name in {"cd", "new"} and requested_agent == "codex"
+                budget = self.selection_timeout + (self.launch_timeout + 15 if need_codex_host else 0)
                 host_deadline = asyncio.get_running_loop().time() + self.selection_timeout
                 async with asyncio.timeout(budget):
-                    if self.host is not None and name in {"cd", "new"}:
+                    if self.host is not None and need_codex_host:
                         await self.reply(message, "已接收会话操作，正在核验；尚未就绪。", suffix="-processing")
-                    if self.host is not None and not self.native_ready and name in {"cd", "new"}:
+                    if self.host is not None and not self.native_ready and need_codex_host:
                         async with asyncio.timeout_at(host_deadline):
                             await self.host.ensure(launch=True, explicit=True)
-                    if self.before_change is not None:
+                    if self.before_change is not None and requested_agent != "antigravity":
                         async with asyncio.timeout_at(host_deadline):
                             if await self.before_change():
                                 revision = self.routes.revision
@@ -239,7 +296,7 @@ class Controller:
                         try:
                             text = await self._change(command, revision, target, destination, message.message_id,
                                                       candidate, host_deadline=host_deadline)
-                            if generation is not None and generation != self.native_generation:
+                            if self._generation_changed(command, target, dispatch, generation, agy_generation):
                                 raise RouteError("原生连接已变化，本条操作未重放，请刷新会话。")
                             try:
                                 snapshot = self._snapshot(candidate)
@@ -270,7 +327,7 @@ class Controller:
                                     self.recovery_requested.set()
                             raise
                         self.routes = candidate
-                    if self.host is not None and name in {"cd", "new"}:
+                    if self.host is not None and need_codex_host:
                         try:
                             self.host.connection
                         except HostUnavailable:
@@ -403,8 +460,8 @@ class Controller:
         async with asyncio.timeout(self.selection_timeout):
             return await self._refresh_contents(keyword)
 
-    async def _query_sessions(self, keyword, generation):
-        if not self.native_ready:
+    async def _query_sessions(self, keyword, generation, agy_generation=None):
+        if not self.any_backend_ready():
             raise RouteError("原生运行时未就绪，本次未刷新会话列表；输入目标和观察订阅未改变。请查询 /status。")
         async with asyncio.timeout(self.selection_timeout), self.changes:
             if self.routes.cwd is not None:
@@ -412,10 +469,12 @@ class Controller:
             # Discovery reads loaded native identities. Unlike selection refresh,
             # it must not reconcile launches, tasks, subscriptions or host recovery.
             sessions = await self.catalog.discover(keyword)
-            if not self.native_ready or generation is not None and generation != self.native_generation:
+            if (not self.any_backend_ready()
+                    or (self.native_ready and generation is not None and generation != self.native_generation)
+                    or (self.agy_ready and agy_generation is not None and agy_generation != self.agy_generation)):
                 raise RouteError("原生连接已变化，本次未刷新会话列表，请稍后重试。")
             snapshot = self.routes.snapshot(tuple(s.target for s in sessions))
-            rows = [bold_literal(f"{i}．{s.target.project_alias} · {s.title}")
+            rows = [bold_literal(f"{i}．{session_tag(s.target.agent)}{s.target.project_alias} · {s.title}")
                     + f"\n\n会话：{inline_literal(s.target.session_id)}\n\n目录：{inline_literal(s.target.cwd)}"
                     for i, s in enumerate(sessions, 1)]
             missing = len(self.catalog.unverified)
@@ -427,22 +486,23 @@ class Controller:
     async def _refresh_contents(self, keyword=""):
         if self.routes.cwd is not None:
             self.catalog.include_directory(self.routes.cwd)
-        registry = self.starter.registry
-        for filename in registry.root.glob("*.json"):
-            if filename.name.endswith(".boot.json"):
-                continue
-            record = registry.load(filename.stem)
-            project = self.routes.projects.get(record.get("project_alias"))
-            if project is None or record.get("project_root") != str(project.root):
-                continue
-            self.routes.validate_target(Target("launch-" + filename.stem, project.alias, Path(record["cwd"]), "managed"))
-            if record["phase"] in {"starting", "handshaking", "unknown", "ready"}:
-                try:
-                    binding = await reconcile_launch(registry, filename.stem, self.catalog.directory, self.catalog.agent)
-                except (SessionUnbound, LaunchPending, HostUnavailable):
+        if self.native_ready and self.starter is not None:
+            registry = self.starter.registry
+            for filename in registry.root.glob("*.json"):
+                if filename.name.endswith(".boot.json"):
                     continue
-                self.catalog.managed_threads.add(binding.thread_id)
-                self.catalog.remember_verified(binding, managed=True, title=record.get("title") or "Codex 会话")
+                record = registry.load(filename.stem)
+                project = self.routes.projects.get(record.get("project_alias"))
+                if project is None or record.get("project_root") != str(project.root):
+                    continue
+                self.routes.validate_target(Target("launch-" + filename.stem, project.alias, Path(record["cwd"]), "managed"))
+                if record["phase"] in {"starting", "handshaking", "unknown", "ready"}:
+                    try:
+                        binding = await reconcile_launch(registry, filename.stem, self.catalog.directory, self.catalog.agent)
+                    except (SessionUnbound, LaunchPending, HostUnavailable):
+                        continue
+                    self.catalog.managed_threads.add(binding.thread_id)
+                    self.catalog.remember_verified(binding, managed=True, title=record.get("title") or "Codex 会话")
         return await self.catalog.discover(keyword)
 
     def _snapshot(self, routes):
@@ -497,6 +557,24 @@ class Controller:
                     self.catalog.include_directory(Path(record["cwd"]))
                 except (ValueError, OSError):
                     pass
+        # Resume only the previously focused Antigravity session after a restart so
+        # /sessions stays active-only without losing the user's current selection.
+        saved_target = snapshot.get("target")
+        if (isinstance(saved_target, dict) and saved_target.get("agent") == "antigravity"
+                and isinstance(saved_target.get("thread_id"), str) and saved_target["thread_id"]
+                and isinstance(saved_target.get("cwd"), str)):
+            agy = self.catalog.backend_for("antigravity") if hasattr(self.catalog, "backend_for") else None
+            if agy is not None and agy.runtime_identity is not None:
+                try:
+                    saved_cwd = Path(saved_target["cwd"]).resolve(strict=True)
+                    if self.catalog.project_for(saved_cwd) is not None:
+                        await agy.resume_session(
+                            saved_target["thread_id"],
+                            saved_cwd,
+                            managed=(saved_target.get("origin") == "managed"),
+                        )
+                except (OSError, ValueError, RpcError, TimeoutError):
+                    pass
         await self._refresh()
         routes = Routes(tuple(self.routes.projects.values()))
         routes.revision = snapshot["revision"] + 1
@@ -517,11 +595,15 @@ class Controller:
             if session is None and snapshot["version"] == 1:
                 session = self.catalog.legacy_targets.get(record.get("session_id"))
             expected = target_record(session) if session is not None else None
+            record_cmp = {k: v for k, v in record.items() if not (k == "agent" and v == "codex")}
             if expected is not None and snapshot["version"] == 1:
                 expected.pop("runtime_identity")
                 expected.pop("native_session_id")
                 expected["session_id"] = record.get("session_id")
-            if session is None or expected != record:
+            elif expected is not None and record.get("agent") == "antigravity":
+                expected = {k: v for k, v in expected.items() if k != "runtime_identity"}
+                record_cmp = {k: v for k, v in record_cmp.items() if k != "runtime_identity"}
+            if session is None or expected != record_cmp:
                 if role:
                     reason = await self._restore_failure_reason(record) if snapshot["version"] == 2 else "evidence_missing"
                     failures.append((role, record, reason))
@@ -584,16 +666,92 @@ class Controller:
         for record in history:
             target = await verified(record)
             if target and target.origin == "managed":
-                self.last_managed[(target.project_alias, target.cwd)] = target
+                self.last_managed[self._managed_key(target)] = target
         # Old numeric lists never survive a restart, even when targets remain valid.
         await self.state.session_notifications.restore(self._snapshot(routes), failures)
         self.routes = routes
 
+    async def restore_agy_target(self):
+        """Restore a saved Antigravity focus if agy finishes connecting after Codex restore()."""
+        if self.retired or self.selection_pending or self.routes.target is not None:
+            return False
+        agy = self.catalog.backend_for("antigravity") if hasattr(self.catalog, "backend_for") else None
+        if not self.agy_ready or agy is None or agy.runtime_identity is None:
+            return False
+        async with self.changes:
+            if self.retired or self.selection_pending or self.routes.target is not None:
+                return False
+            saved_target = (self.unrestored_selection or {}).get("target")
+            mode = "managed"
+            if saved_target is None:
+                snapshot = await self.state.load_routes()
+                if self.project_manager is not None:
+                    from .project_registry import sanitize_routes
+                    snapshot = sanitize_routes(snapshot, self.project_manager.store.config)
+                if not isinstance(snapshot, dict):
+                    return False
+                saved_target = snapshot.get("target")
+                mode = snapshot.get("mode") if snapshot.get("mode") in {"focused", "managed"} else "managed"
+            elif saved_target.get("origin") != "managed":
+                mode = "focused"
+            if (not isinstance(saved_target, dict) or saved_target.get("agent") != "antigravity"
+                    or not isinstance(saved_target.get("thread_id"), str) or not saved_target["thread_id"]
+                    or not isinstance(saved_target.get("cwd"), str)):
+                return False
+            try:
+                saved_cwd = Path(saved_target["cwd"]).resolve(strict=True)
+            except OSError:
+                return False
+            project = self.catalog.project_for(saved_cwd)
+            if project is None or project.alias != saved_target.get("project_alias"):
+                return False
+            try:
+                await agy.resume_session(
+                    saved_target["thread_id"],
+                    saved_cwd,
+                    managed=(saved_target.get("origin") == "managed"),
+                )
+                await self.catalog.discover()
+            except (OSError, ValueError, RpcError, DiscoveryUnavailable, TimeoutError):
+                return False
+            session = self.catalog.sessions.get(saved_target.get("session_id"))
+            if session is None:
+                return False
+            expected = {k: v for k, v in target_record(session).items() if k != "runtime_identity"}
+            record_cmp = {k: v for k, v in saved_target.items() if k != "runtime_identity"}
+            if expected != record_cmp:
+                return False
+            candidate = copy.copy(self.routes)
+            try:
+                candidate.validate_target(session.target)
+                await self.catalog.require(session.target)
+                await self.subscriptions.acquire(session.target, "route")
+            except (SessionUnbound, RouteError, SubscriptionUnavailable, ValueError, RpcError, TimeoutError):
+                return False
+            candidate.target = session.target
+            candidate.mode = mode if (mode != "managed" or session.target.origin == "managed") else "focused"
+            candidate.project = candidate.projects[session.target.project_alias]
+            candidate.cwd = session.target.cwd
+            candidate.revision += 1
+            if session.target.origin == "managed":
+                self.last_managed[self._managed_key(session.target)] = session.target
+            if self.unrestored_selection is not None:
+                if self.unrestored_selection.get("observer") is None:
+                    self.unrestored_selection = None
+                else:
+                    self.unrestored_selection = {**self.unrestored_selection, "target": None}
+            await self.state.session_notifications.select(self._snapshot(candidate), ("target",))
+            self.routes = candidate
+            return True
+
     async def _restore_failure_reason(self, record):
-        agent = self.catalog.agent
+        agent_kind = record.get("agent", "codex")
+        agent = self.catalog.backend_for(agent_kind) if hasattr(self.catalog, "backend_for") else self.catalog.agent
         identity = record.get("runtime_identity")
-        if agent.runtime_identity is None:
+        if agent is None or agent.runtime_identity is None:
             return "verification_pending"
+        if agent_kind == "antigravity":
+            return "not_loaded"
         if isinstance(identity, list) and tuple(identity) != agent.runtime_identity:
             return "runtime_changed"
         if (not isinstance(record.get("thread_id"), str) or not record["thread_id"]
@@ -619,6 +777,10 @@ class Controller:
             return "evidence_missing"
         return "evidence_missing"
 
+    @staticmethod
+    def _managed_key(target: Target):
+        return managed_key(target)
+
     async def _set_focus(self, target, expected, routes, *, managed=False):
         previous = routes.target
         await self.subscriptions.acquire(target, "route")
@@ -632,8 +794,9 @@ class Controller:
             else:
                 routes.focus(target, expected=expected)
             if target.origin == "managed":
-                self.last_managed.pop((target.project_alias, target.cwd), None)
-                self.last_managed[(target.project_alias, target.cwd)] = target
+                key = self._managed_key(target)
+                self.last_managed.pop(key, None)
+                self.last_managed[key] = target
                 if len(self.last_managed) > 100:
                     self.last_managed.pop(next(iter(self.last_managed)))
         except BaseException:
@@ -641,12 +804,20 @@ class Controller:
                 await self.subscriptions.release(target, "route")
             raise
 
+    def _agy_handoff_hint(self, target: Target) -> str:
+        session = self.catalog.sessions.get(target.session_id) or self.subscriptions.bound.get(target.session_id)
+        if session is None:
+            return ""
+        block = handoff_block(target.agent, session.binding.thread_id)
+        return "\n\n" + block if block else ""
+
     async def _change(self, command, revision, target, destination, message_id, routes, *, host_deadline=None):
         name = command.name
         routes._check_revision(revision)
         if name == "focus":
             await self._set_focus(target, revision, routes)
-            return '**已选择会话**\n\n'+target_description(target)+'\n\n后续普通消息将发送到此会话。'
+            return ('**已选择会话**\n\n' + target_description(target)
+                    + self._agy_handoff_hint(target) + '\n\n后续普通消息将发送到此会话。')
         if name == "unfocus":
             previous = routes.target
             if previous:
@@ -676,13 +847,46 @@ class Controller:
         if name in {"cd", "new"}:
             project, cwd = destination
             self.catalog.include_directory(cwd)
+            requested_agent = self.resolve_agent(command)
+            if requested_agent == "antigravity":
+                agy = self.catalog.backend_for("antigravity") if hasattr(self.catalog, "backend_for") else None
+                if not self.agy_ready or agy is None or agy.runtime_identity is None:
+                    raise RouteError("Antigravity（agy）运行时尚未就绪；没有创建会话，请查询 /status。")
+                if name == "cd":
+                    async with asyncio.timeout_at(host_deadline):
+                        sessions = await self.catalog.discover()
+                    matches = [s for s in sessions if s.target.project_alias == project.alias
+                               and s.target.cwd == cwd and s.target.origin == "managed"
+                               and s.target.agent == "antigravity"]
+                    preferred = self.last_managed.get((project.alias, cwd, "antigravity"))
+                    if preferred:
+                        matches = sorted(matches, key=lambda s: s.target != preferred)
+                    if matches and (len(matches) == 1 or matches[0].target == preferred):
+                        chosen = matches[0].target
+                        async with asyncio.timeout_at(host_deadline):
+                            await self._set_focus(chosen, revision, routes, managed=True)
+                        return ('**已复用会话**\n\n' + target_description(chosen)
+                                + '\n\n目录：' + inline_literal(cwd) + self._agy_handoff_hint(chosen))
+                    if matches:
+                        raise RouteError("该目录有多个受管 Antigravity 会话，请用 /sessions 和 /focus 明确选择。")
+                created = await agy.create_session(cwd, title=command.argument if name == "new" else "")
+                binding = SessionBinding(None, cwd, agy.runtime_identity, created.session_id,
+                                         created.session_id, agent="antigravity")
+                self.catalog.managed_threads.add(created.session_id)
+                session = self.catalog.remember_verified(binding, managed=True, title=created.title)
+                chosen = session.target
+                await self._set_focus(chosen, revision, routes, managed=True)
+                self.last_managed[(project.alias, cwd, "antigravity")] = chosen
+                return ('**会话已就绪并选中**\n\n' + target_description(chosen)
+                        + '\n\n目录：' + inline_literal(cwd) + self._agy_handoff_hint(chosen))
             if not self.native_ready:
                 raise RouteError("iTerm2 已连接，但原生运行时尚未就绪；没有创建 Codex 会话，请查询 /status。")
             if name == "cd":
                 async with asyncio.timeout_at(host_deadline):
                     sessions = await self._refresh()
                 matches = [s for s in sessions if s.target.project_alias == project.alias
-                           and s.target.cwd == cwd and s.target.origin == "managed"]
+                           and s.target.cwd == cwd and s.target.origin == "managed"
+                           and s.target.agent == "codex"]
                 preferred = self.last_managed.get((project.alias, cwd))
                 if preferred:
                     matches = sorted(matches, key=lambda s: s.target != preferred)

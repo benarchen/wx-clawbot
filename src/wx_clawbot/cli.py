@@ -12,7 +12,9 @@ from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
 
 from . import __version__
-from .config import ConfigError, load_projects
+from .agents.antigravity import discover_agy_executable
+from .agents.base import normalize_agent
+from .config import ConfigError, load_config, load_projects
 
 
 def probe_host() -> dict:
@@ -42,18 +44,19 @@ def doctor(config: Path | None = None, *, iterm: bool = False) -> tuple[dict, bo
             pass
     report = {"version": __version__, "python": platform.python_version(),
               "codex_version": version, "config": "not_checked"}
-    ok = version is not None
+    codex_ok = version is not None
+    deps_ok = True
     dependencies = {}
     for name in ["iterm2", "protobuf", "websockets", "segno", "cryptography", "Pillow"]:
         try:
             dependencies[name] = package_version(name)
         except PackageNotFoundError:
             dependencies[name] = None
-            ok = False
+            deps_ok = False
     report["dependencies"] = dependencies
     git = shutil.which("git")
     report["git"] = "available" if git else "unavailable"
-    ok = ok and git is not None
+    base_ok = deps_ok and git is not None
     if codex:
         try:
             result = subprocess.run([codex, "app-server", "daemon", "version"],
@@ -70,22 +73,48 @@ def doctor(config: Path | None = None, *, iterm: bool = False) -> tuple[dict, bo
             report["runtime"]["verified_schema"] = app_version in SUPPORTED_SERVER_VERSIONS if isinstance(app_version, str) else False
             report["runtime"]["compatible"] = is_supported_server_version(app_version)
             if runtime.get("status") != "running" or not report["runtime"]["compatible"]:
-                ok = False
+                codex_ok = False
         except (OSError, ValueError, subprocess.TimeoutExpired):
             report["runtime"] = {"status": "unavailable"}
-            ok = False
+            codex_ok = False
+    iterm_ok = True
     if iterm:
         report["iterm2"] = probe_host()
-        ok = ok and report["iterm2"].get("status") == "connected"
+        iterm_ok = report["iterm2"].get("status") == "connected"
+    config_ok = True
+    default_agent = "codex"
     if config is not None:
         try:
-            report["project_count"] = len(load_projects(config))
+            cfg = load_config(config)
+            report["project_count"] = len(cfg.projects)
+            report["default_agent"] = cfg.default_agent
             report["config"] = "valid"
+            default_agent = cfg.default_agent
         except ConfigError as exc:
             report["config"] = "invalid"
             report["error"] = str(exc)
-            ok = False
+            config_ok = False
+    if default_agent == "antigravity" and config_ok:
+        agy_report = doctor_antigravity()
+        report["antigravity"] = agy_report
+        ok = base_ok and iterm_ok and config_ok and agy_report["status"] == "available"
+    else:
+        ok = base_ok and codex_ok and iterm_ok and config_ok
     return report, ok
+
+
+def doctor_antigravity() -> dict:
+    agy = discover_agy_executable()
+    if agy is None:
+        return {"status": "not_installed", "version": None}
+    agy_version = None
+    try:
+        result = subprocess.run([str(agy), "--version"], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            agy_version = result.stdout.strip().splitlines()[0][:64]
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return {"status": "available" if agy_version else "unavailable", "version": agy_version}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -146,6 +175,9 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--socket", type=Path, help="省略时只读发现既有 daemon，不自动启动")
     run.add_argument("--codex-executable", type=Path, help="省略时发现既有 daemon 的原生可执行文件")
     run.add_argument("--codex-home", type=Path, default=Path.home() / ".codex")
+    run.add_argument("--agy-executable", type=Path, help="可选 Antigravity（agy）可执行文件路径；省略时自动发现")
+    run.add_argument("--default-agent", choices=("codex", "agy", "antigravity"),
+                     help="可选默认 Agent，覆盖配置中的 default_agent")
     run.add_argument("--state-dir", type=Path,
                      default=Path.home() / "Library" / "Application Support" / "wx-clawbot")
     wechat = commands.add_parser("wechat", help="独立微信登录与本人文本联调")
@@ -233,8 +265,11 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             projects = load_projects(args.config)
+            default_agent = normalize_agent(args.default_agent) if args.default_agent else None
+            agy_executable = discover_agy_executable(args.agy_executable)
             asyncio.run(serve(projects, args.state_dir, args.socket,
-                              args.codex_executable, args.codex_home, emit=emit, config_path=args.config))
+                              args.codex_executable, args.codex_home, emit=emit, config_path=args.config,
+                              agy_executable=agy_executable, default_agent=default_agent))
         except KeyboardInterrupt:
             emit({"status": "stopped", "native_terminals_preserved": True})
             return 130
@@ -268,6 +303,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if ok else 1
     report, ok = doctor(args.config, iterm=args.iterm2)
+    report["antigravity"] = doctor_antigravity()
     if args.state_dir is not None:
         from .operations import status
         try:

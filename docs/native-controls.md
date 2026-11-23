@@ -6,12 +6,12 @@
 
 | 入口 | 含义 |
 | --- | --- |
-| `/model` | 查询选中原生会话的模型和推理强度 |
-| `/model list` | 查询当前已连接运行时的模型目录，无需选择会话 |
-| `/model set <模型名称> [推理强度]` | 同次设置模型及推理；省略使用所选模型的目录默认 |
-| `/fast` | 查询当前档位与 Fast 支持情况，不 toggle |
-| `/fast on`、`/fast off` | 请求显式开启／关闭，仅影响选中会话 |
-| `/codex status` | 查询原生设置、运行／队列及确实可取得的用量 |
+| `/model` | 查询选中会话的模型和思考等级（Codex 与 Antigravity 均支持） |
+| `/model list [codex\|agy]` | 跟随当前聚焦会话或显式指定后端查询模型目录，无需选择会话 |
+| `/model set <模型名称> [推理强度]` | 设置选中会话的模型及推理强度；Codex 省略使用目录默认，Antigravity 支持基础名加等级或完整 `modelId` |
+| `/fast` | 查询当前档位与 Fast 支持情况，不 toggle（仅 Codex，Antigravity 明确拒绝） |
+| `/fast on`、`/fast off` | 请求显式开启／关闭，仅影响选中 Codex 会话（Antigravity 明确拒绝） |
+| `/codex status`、`/agy status`、`/agent status` | 查询对应后端设置、运行／队列、可用额度或上下文占用，Antigravity 附可一键复制的 `agy --conversation <uuid>` 代码块 |
 
 0.1.12 已实现上述修改入口，原生版本／准确目标／忙碌／交互／占用／容量与确认条件不满足时明确拒绝或保留未知。0.169.0 已有联合设置、默认／显式推理、同值、Fast、手机及桌面后续采用、busy 拒绝和最终清理证据；旧单字段候选证据保留原适用范围。版本适配采用 SemVer 向前自适应门禁（`>= 0.169.0` 兼容放行，支持环境变量 `WX_CLAWBOT_STRICT_NATIVE_VERSIONS=1` 强制白名单）。`/status` 仍是桥接任务／占用／投递查询；`/help` 增加“Codex 原生命令”，不创建 `/codex help` 或把帮助冒充原生功能。每条用途尽量不超过 20 字。
 
@@ -68,3 +68,9 @@ RPC 前提交 intent；同一消息命中任何既有记录均不再发送。con
 ## 0.169.0 衔接候选
 
 实际 daemon 已确认为 0.169.0，准确 managed schema 和 43 份相关契约已对照；模型目录使用原 thread provider，不切换 provider。设置和环境管理保持边界，environments 不发送；0.169.0 图片输入及异步问题专项仍关闭。专用原生和本人手机已通过各自功能范围，0.1.12 正式制品已本机加载，逐阶段验收与原临时运行记录见 [衔接记录](validation/codex-0169.md)。
+
+## 0.2.0 Antigravity 对称控制契约
+
+- `/model list` 优先跟随当前聚焦会话的后端，也支持显式 `/model list codex` 或 `/model list agy`；未聚焦时可回退至缓存的 Antigravity 目录。
+- Antigravity `/model set` 自 0.2.0 起与 Codex 对称接入私有 `ControlJournal`（`native-controls/`）：发送 ACP `session/set_config_option` 前登记 `message_id` 与指纹意图；同值返回 `unchanged` 不发写请求；重复 `message_id` 直接返回原冻结回执不重放；若模型与思考等级两步写入中发生部分失败或超时，落盘 `unknown` 并提示核对，不自动回滚或重放。
+- Antigravity 不提供 Codex 专属 `/fast` 档位与账号级剩余百分比额度桶，`/fast` 明确拒绝；`/agy status` 展示当前模型、思考等级、执行模式、账号档位、空闲／忙碌与桥接排队数、上下文占用（如有）以及带复制按钮的 `sh` 代码块 `agy --conversation <uuid>`。

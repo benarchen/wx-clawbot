@@ -3,7 +3,7 @@
 import json
 
 from .commands import CommandError
-from .interactions import APPROVAL, QUESTION
+from .interactions import ACP_APPROVAL, APPROVAL, QUESTION
 from .output import inline_literal, target_description, task_state
 
 
@@ -16,17 +16,26 @@ async def handle_control(execution, command):
     if name in {'approve', 'deny'} and command.argument.startswith('q-'):
         raise CommandError('这是异步补充问题，不是审批；请使用 /answer。')
     if name in {"approve", "deny", "answer"}:
-        if not execution.native.capabilities.shared_interactions:
-            raise CommandError("当前 Agent 不支持共享交互，未发送答复。")
         candidates = [(b, b.records[command.argument]) for b in execution.brokers.values() if command.argument in b.records]
         if len(candidates) != 1:
+            if not execution.native.capabilities.shared_interactions and not (
+                (agy := execution.backend_for("antigravity")) is not None and agy.capabilities.shared_interactions
+            ):
+                raise CommandError("当前 Agent 不支持共享交互，未发送答复。")
             raise CommandError("请求不存在、已断连或不属于本次连接。")
         broker, record = candidates[0]
+        backend_kind = "antigravity" if record.method == ACP_APPROVAL else "codex"
+        backend = execution.backend_for(backend_kind)
+        if backend is None or not backend.capabilities.shared_interactions:
+            raise CommandError("当前 Agent 不支持共享交互，未发送答复。")
         if name in {"approve", "deny"}:
-            if record.method != APPROVAL:
+            if record.method not in {APPROVAL, ACP_APPROVAL}:
                 raise CommandError("这是追问，请使用 /answer。")
-            offered = record.params.get("availableDecisions")
-            answer = "accept" if name == "approve" else ("cancel" if offered is not None and "decline" not in offered else "decline")
+            if record.method == ACP_APPROVAL:
+                answer = "accept" if name == "approve" else "decline"
+            else:
+                offered = record.params.get("availableDecisions")
+                answer = "accept" if name == "approve" else ("cancel" if offered is not None and "decline" not in offered else "decline")
         else:
             if record.method != QUESTION:
                 raise CommandError("这是审批，请使用 /approve 或 /deny。")
@@ -39,6 +48,14 @@ async def handle_control(execution, command):
             await broker.answer(record.public_id, answer, generation=broker.generation, thread_id=broker.thread_id)
         except ValueError as exc:
             raise CommandError("答复未提交：请求已处理、已过期或回答格式不符合原生选项。") from exc
+        if record.method == ACP_APPROVAL:
+            record.state = "resolved"
+            await broker.sync(record)
+            task = await execution.state.tasks(native_turn=(record.thread_id, record.turn_id))
+            if task and task["state"] == "waiting_interaction":
+                await execution.state.task_update(task["id"], "running")
+            await execution.release_interaction(record.thread_id, record)
+            return f"审批已发送至 Antigravity：{record.public_id}。"
         return f"答复已发送，等待原生处理确认：{record.public_id}。"
     if name == "status" and not command.argument:
         routes = execution.controller.routes
@@ -88,10 +105,29 @@ async def handle_control(execution, command):
         task = await execution.state.tasks(task_id=task["id"])
         if task["state"] in TERMINAL:
             return f"任务已结束：{task['id']}｜{task['state']}。"
-    if not execution.native.capabilities.interrupt:
-        raise CommandError("当前 Agent 不支持已验证的原生停止操作，未发送中断。")
     target = restore_target(task["target"])
+    backend = execution.backend_for(target.agent)
+    if backend is None or not backend.capabilities.interrupt:
+        raise CommandError("当前 Agent 不支持已验证的原生停止操作，未发送中断。")
     await execution.catalog.require(target)
+    if target.agent == "antigravity":
+        if not task["turn_id"]:
+            raise CommandError("尚无运行 turn 的准确关联，停止未确认；不会中断其他任务。")
+        await execution.state.task_update(task["id"], "stopping")
+        current = await execution.state.tasks(task_id=task["id"])
+        if current["state"] in TERMINAL:
+            return f"原生任务已结束：{task['id']}｜{current['state']}。"
+        try:
+            await backend.cancel_turn(task["thread_id"])
+        except Exception:
+            current = await execution.state.tasks(task_id=task["id"])
+            if current["state"] in TERMINAL:
+                return f"原生任务已结束：{task['id']}｜{current['state']}。"
+            raise
+        current = await execution.state.tasks(task_id=task["id"])
+        if current["state"] in TERMINAL:
+            return f"原生任务已结束：{task['id']}｜{current['state']}。"
+        return f"已请求中断 Antigravity 任务：{task['id']}；等待确认。"
     queue = execution.queue(task["thread_id"], target.cwd)
     if task["queue_id"] and await queue.delete(task["queue_id"]):
         await execution.state.task_finish(task["id"], "cancelled", f"原生队列已确认取消：{task['id']}。", reply_priority=0)

@@ -137,3 +137,12 @@
 ## 0.169.0 结果展示边界
 
 原生 agentMessage 新增 moderation／display 指令；桥接不实现其客户端专用动作。指令缺失／null 或明确 unmoderated 且无 display 时保留正常文本，否则整个结果仅提示在原生客户端查看，不转发部分正文或错误正文。原任务状态保持准确，不把展示限制伪造成任务执行失败；新增工具输出类型和 contentTokenCount 不自动扩展产品能力。
+
+## ADR-12：多 Agent 后端架构与 Antigravity（`agy acp`）接入边界
+
+- 记录日期／状态：2026-11-22 提出，2026-11-23 随 0.2.0 完成多 Agent 对称治理与架构收敛；离线、隔离真实 `agy 1.5.14` 与本人微信复测状态见 [ROADMAP](../ROADMAP.md)。
+- 背景：用户要求在保持 Codex 默认体验的前提下兼容 Antigravity（`agy`），支持 `/cd <项目> agy` 等显式指定，并可在后续通过配置将默认 Agent 切换为 `agy` 或在无 Codex 环境下独立运行。
+- 备选：在 iTerm2 启动 `agy` TUI 并模拟输入／读屏（违背 ADR-02 身份底线）；引入 `google-antigravity` Python SDK（自带独立二进制且不复用本机 CLI 生态）；直接基于官方 `agy acp --stdio`（ACP JSON-RPC 2.0 over stdio）。
+- 决策：采用 `agy acp --stdio` 作为 Antigravity 后端协议，零新增第三方依赖；Codex 与 Antigravity 生命周期独立运行、各自升降级，任一后端离线或无 `codex_home` 均不影响另一后端；共享同一 SQLite 账本（保持 schema 6 与路由快照 version 2 向后兼容）及仓库级 `occupancy` 互斥锁；通过 `agents/antigravity_codec.py` 与 `agents/registry.py` 收口编解码、标签、接手代码块与控制路由策略；Antigravity `/model set` 接入 `ControlJournal` 对称落盘，`admission-release` 支持前台停服下对 Antigravity `unknown` 占用的审计解锁。
+- 取舍与后果：Antigravity 会话由后台 ACP 子进程托管，桌面不自动弹出 iTerm2 窗口（通过独立 `sh` 代码块提供 `agy --conversation <id>` 一键复制续接）；`/sessions` 仅列当前活跃会话（过滤 `.tmp`），非聚焦闲置 24 小时自动释放内存句柄不删磁盘历史；同一 Antigravity 会话由桥接按 SQLite `received` 队列严格串行派发；严禁传递 `--dangerously-skip-permissions`，权限审批仅映射一次性 `allow_once`／`reject_once`／`cancelled`；`/fast` 与 `/attach` 等不适用能力按能力门禁明确拒绝。
+- 重评条件：当 `agy` 未来公开稳定的本地共享多客户端 daemon 协议，或新增第 3 个 Agent 后端需要进一步扩展统一适配层时，再按独立 Goal 评估；不通过读屏或按键模拟绕过协议边界。

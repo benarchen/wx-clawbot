@@ -82,3 +82,17 @@ iTerm2 未运行时后台不反复拉起；显式合法会话命令可按需连�
 ## 0.169.0 衔接核验
 
 会话列表指定 currentAccountOnly=true／includeAttachedThreads=false，准确读取拒绝 attached 对象；模型目录的 modelProvider 使用已选原生 provider，未指定的目录查询保持运行时默认。新增结果 moderation／display 指令保守提示由原生客户端处理，不能直接透传正文；可选 environments／responsesapiClientMetadata 不发送，不管理新环境或元数据。0.1.12 当次交付关闭图片和异步，历史范围、失败记录及动态操作卡见 [0.169.0 记录](validation/codex-0169.md)。2026-11-16 开发树仅扩展异步，问题卡也复用展示限制检查；图片门禁保持，候选证据和未验层级见本页矩阵及[专项记录](validation/async-questions-0169.md)。
+
+## AGY01：Antigravity（`agy acp`）协议基线
+
+2026-11-22 开发树新增 Antigravity 后端，采用官方 `agy acp --stdio`（Agent Client Protocol，JSON-RPC 2.0 over stdio，零新增第三方依赖），隔离实测基线为 `Antigravity ACP Server 1.5.14`（`protocolVersion: 1`），最小脱敏契约样本见 [antigravity-acp-contract.json](../tests/fixtures/antigravity-acp-contract.json)。
+
+| 能力项 | 实测状态（`agy 1.5.14`） | 实现约束与边界 |
+| --- | --- | --- |
+| 握手与会话新建／恢复 | `initialize`、`session/new`、`session/resume`、`session/close` 实测通过；`agy --conversation <id>` 互通 | 不拉起 iTerm2；不修改全局 `~/.gemini/antigravity-cli/settings.json` |
+| 会话发现 | 仅列出当前桥接活跃加载的 Antigravity 会话；重启仅恢复上次聚焦目标；未选中且空闲超 24 小时自动释放内存句柄（不删磁盘历史） | 过滤 `.tmp` 临时子目录与越界目录；`/cd`、`/new`、`/focus` 与 `/agy status` 附带 `agy --conversation <id>` 电脑接手命令 |
+| 文本与单图执行 | `session/prompt` 文本与单张 PNG／JPEG base64 `image` 块实测通过 | `session/update` 在 stdout 字节流内同步按序归集，消除流式块与响应竞态；并发 `session/prompt` 由桥接强制单会话串行 FIFO 排队 |
+| 中断 | `session/cancel` 返回 `stopReason: "cancelled"` 实测通过 | `/stop` 撤销 `received` 或发送 `session/cancel` 等待确认 |
+| 模型与思考强度 | `session/set_config_option`（`model`/`thought_level`）与 `session/set_model` 实测通过 | 仅影响当前会话，忙碌时拒绝；不支持 Codex 专属 `/fast` |
+| 权限审批与追问 | `session/request_permission` 遵循 ACP v1；`ask_question` 以 `end_turn` 文本结束当轮 | 严禁传 `--dangerously-skip-permissions`；仅映射一次性 `allow_once`／`reject_once`／`cancelled`；受用户本机 Antigravity 权限配置影响 |
+| 桌面实时观察 | 无本地共享多客户端 daemon | `/attach` 对 Antigravity 会话明确拒绝 |

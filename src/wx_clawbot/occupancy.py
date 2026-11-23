@@ -30,6 +30,7 @@ CHECK_REASONS = {
     'native_generation_changed':'原生连接已变化，等待重新核验',
     'occupancy_revision_changed':'任务占用记录已变化，等待重新核验',
     'late_native_activity':'收到迟到的原生活动，已恢复占用保护',
+    'antigravity_manual_verification_required':'Antigravity 未知任务需经人工核对并通过正式维护入口释放占用',
 }
 
 
@@ -53,10 +54,23 @@ def transition(db, task_id, state, reason, evidence=None):
 def release_rows(db, expected, evidence, *, reason="native_terminal"):
     if (not isinstance(expected, list) or not 1 <= len(expected) <= 128
             or len({t['id'] for t in expected}) != len(expected)
-            or not isinstance(evidence, dict) or evidence.get("kind") != "native_terminal"
-            or evidence.get("queue_empty") is not True or not isinstance(evidence.get('turns'),dict) or not evidence['turns']
-            or any(not isinstance(k,str) or not k or v not in {'completed','failed','interrupted'} for k,v in evidence['turns'].items())
-            or not isinstance(evidence.get("generation"), str) or not evidence['generation']):
+            or not isinstance(evidence, dict)):
+        raise ValueError("Exact snapshots and audited release evidence required")
+    kind = evidence.get("kind")
+    if kind == "native_terminal":
+        if (evidence.get("queue_empty") is not True or not isinstance(evidence.get('turns'), dict) or not evidence['turns']
+                or any(not isinstance(k, str) or not k or v not in {'completed', 'failed', 'interrupted'}
+                       for k, v in evidence['turns'].items())
+                or not isinstance(evidence.get("generation"), str) or not evidence['generation']):
+            raise ValueError("Exact snapshots and native terminal/queue evidence required")
+    elif kind == "operator_verified_antigravity":
+        if (evidence.get("agent") != "antigravity"
+                or evidence.get("verified_consumer_stopped") is not True
+                or not isinstance(evidence.get("thread_id"), str) or not evidence["thread_id"]
+                or not isinstance(evidence.get("operator_reason"), str) or not evidence["operator_reason"].strip()
+                or not isinstance(evidence.get("operator_report"), str) or len(evidence["operator_report"]) != 64):
+            raise ValueError("Exact snapshots and audited Antigravity operator evidence required")
+    else:
         raise ValueError("Exact snapshots and native terminal/queue evidence required")
     db.execute("BEGIN IMMEDIATE")
     try:
@@ -65,7 +79,10 @@ def release_rows(db, expected, evidence, *, reason="native_terminal"):
                 JOIN task_occupancy o ON o.task_id=t.id WHERE t.id=?""", (task["id"],)).fetchone()
             if row != ("unknown", task["thread_id"], task["turn_id"], "holding", task["occupancy"]["revision"]):
                 raise ProtocolError("Occupancy evidence became stale")
-            if evidence.get("thread_id") != task["thread_id"] or task["turn_id"] not in evidence["turns"]:
+            if kind == "operator_verified_antigravity":
+                if task.get("target", {}).get("agent", "codex") != "antigravity" or evidence.get("thread_id") != task["thread_id"]:
+                    raise ProtocolError("Antigravity release evidence escaped its original session")
+            elif evidence.get("thread_id") != task["thread_id"] or task["turn_id"] not in evidence["turns"]:
                 raise ProtocolError("Native terminal evidence escaped its original turn")
         for task in expected:
             transition(db, task["id"], "released", reason, evidence)

@@ -43,3 +43,22 @@ class DoctorTests(unittest.TestCase):
         result = probe_host()
         self.assertEqual(result["status"], "failed")
         self.assertNotIn("private", str(result))
+
+    @patch("wx_clawbot.cli.shutil.which")
+    def test_default_agent_antigravity_doctor_passes_without_codex(self, which):
+        import json, tempfile
+        from pathlib import Path
+        which.side_effect = lambda name: "/usr/bin/git" if name == "git" else None
+        with tempfile.TemporaryDirectory() as tmp:
+            proj = Path(tmp) / "proj"
+            proj.mkdir()
+            cfg = Path(tmp) / "config.json"
+            cfg.write_text(json.dumps({"default_agent": "agy", "projects": [{"alias": "p1", "root": str(proj)}]}))
+            with patch("wx_clawbot.cli.doctor_antigravity", return_value={"status": "available", "version": "1.5.14"}):
+                report, ok = doctor(cfg)
+            self.assertTrue(ok)
+            self.assertEqual(report["default_agent"], "antigravity")
+            self.assertEqual(report["antigravity"]["status"], "available")
+            with patch("wx_clawbot.cli.doctor_antigravity", return_value={"status": "not_installed", "version": None}):
+                _, ok_missing = doctor(cfg)
+            self.assertFalse(ok_missing)

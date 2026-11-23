@@ -1,4 +1,5 @@
 {
+  "default_agent": "codex",
   "projects": [
     {"alias": "sample-one", "root": "/absolute/path/to/sample-one"},
     {"alias": "sample-two", "root": "/absolute/path/to/sample-two"}

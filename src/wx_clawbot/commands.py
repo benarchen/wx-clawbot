@@ -4,6 +4,8 @@ import re
 import shlex
 from dataclasses import dataclass
 
+from .agents.base import normalize_agent
+
 
 class CommandError(ValueError):
     pass
@@ -15,7 +17,7 @@ NO_ARGUMENTS = {"projects", "unfocus", "detach", "help"}
 OPTIONAL_TEXT = {"sessions", "new"}
 OPTIONAL_ID = {"status", "stop"}
 REQUEST_ID = re.compile(r"[A-Za-z0-9_.:-]{1,128}\Z")
-NATIVE_CONTROLS = frozenset({"model", "fast", "codex"})
+NATIVE_CONTROLS = frozenset({"model", "fast", "codex", "agy", "agent"})
 MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}\Z")
 
 
@@ -26,6 +28,7 @@ class Command:
     index: int | None = None
     text: str = ""
     reasoning: str | None = None
+    agent: str | None = None
 
 
 def parse_project(value, *, local=False):
@@ -71,15 +74,18 @@ def parse_command(value: str) -> Command:
         if name == "model":
             if argument in {"", "list"}:
                 return Command(name, argument=argument or "get")
+            list_match = re.fullmatch(r"list[ \t]+(codex|agy|antigravity)", argument, re.IGNORECASE)
+            if list_match is not None:
+                return Command(name, argument="list", agent=normalize_agent(list_match[1]))
             setting = re.fullmatch(r"set[ \t]+([^ \t\r\n]+)(?:[ \t]+([a-z][a-z0-9_-]{0,31}))?", argument)
             if setting and MODEL_ID.fullmatch(setting[1]):
                 return Command(name, argument="set", text=setting[1], reasoning=setting[2])
-            raise CommandError("用法：/model、/model list 或 /model set <模型名称> [推理强度]；省略强度用模型目录默认。")
+            raise CommandError("用法：/model、/model list [codex|agy] 或 /model set <模型名称> [推理强度]；省略强度用模型目录默认。")
         if name == "fast" and argument in {"", "on", "off"}:
             return Command(name, argument=argument or "get")
-        if name == "codex" and argument == "status":
+        if name in {"codex", "agy", "agent"} and argument == "status":
             return Command(name, argument=argument)
-        raise CommandError("用法：/fast、/fast on、/fast off 或 /codex status；帮助请用 /help。")
+        raise CommandError("用法：/fast、/fast on、/fast off、/codex status、/agy status 或 /agent status；帮助请用 /help。")
     if name == "project":
         parse_project(argument)
         return Command(name, argument=argument)
@@ -89,9 +95,32 @@ def parse_command(value: str) -> Command:
         return Command(name)
     if name in OPTIONAL_TEXT or name == "cd":
         argument = argument.strip()
-        if name == "cd" and not argument:
-            raise CommandError("请指定项目别名或目录。")
-        if len(argument) > (128 if name == "new" else 4096):
+        if name == "cd":
+            if not argument:
+                raise CommandError("请指定项目别名或目录。")
+            agent = None
+            cd_match = re.fullmatch(r"(.+?)[ \t]+(codex|agy|antigravity)", argument, re.IGNORECASE)
+            if cd_match is not None:
+                argument = cd_match[1].strip()
+                agent = normalize_agent(cd_match[2])
+            if len(argument) > 4096:
+                raise CommandError("命令参数过长。")
+            return Command(name, argument=argument, agent=agent)
+        if name == "new":
+            agent = None
+            exact_agent = normalize_agent(argument) if argument else None
+            if exact_agent is not None:
+                agent = exact_agent
+                argument = ""
+            else:
+                lead = re.fullmatch(r"(codex|agy|antigravity)[ \t]+([\s\S]+)", argument, re.IGNORECASE)
+                if lead is not None:
+                    agent = normalize_agent(lead[1])
+                    argument = lead[2].strip()
+            if len(argument) > 128:
+                raise CommandError("命令参数过长。")
+            return Command(name, argument=argument, agent=agent)
+        if len(argument) > 4096:
             raise CommandError("命令参数过长。")
         return Command(name, argument=argument)
     if name in OPTIONAL_ID or name in {"approve", "deny"}:

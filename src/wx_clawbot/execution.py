@@ -9,11 +9,12 @@ import uuid
 from pathlib import Path
 
 from .agents.queue import NativeQueue, QueueFull
+from .agents.registry import queue_label
 from .admission import conflict, repository_key
 from .commands import CommandError
 from .catalog import DiscoveryUnavailable
 from .controller import target_record
-from .interactions import APPROVAL, QUESTION, InteractionBroker
+from .interactions import ACP_APPROVAL, APPROVAL, QUESTION, InteractionBroker
 from .routing import Target
 from .sessions import SessionUnbound
 from .output import native_output, render_segments, render_in_worker, inline_literal, target_description, task_state
@@ -31,7 +32,8 @@ TERMINAL = {"completed", "failed", "interrupted", "cancelled"}
 
 
 def restore_target(record):
-    return Target(record["session_id"], record["project_alias"], Path(record["cwd"]), record["origin"])
+    return Target(record["session_id"], record["project_alias"], Path(record["cwd"]),
+                  record["origin"], record.get("agent", "codex"))
 
 
 class Execution:
@@ -121,13 +123,25 @@ class Execution:
                     await self.state.queue_reply(record.public_id + "-expired",
                         f"交互已过期：{record.public_id}；未发送自动答复，请在原终端核对。", priority=0)
 
+    def backend_for(self, agent_kind="codex"):
+        if hasattr(self.catalog, "backend_for"):
+            return self.catalog.backend_for(agent_kind)
+        return self.native if agent_kind == "codex" else None
+
     def queue(self, thread_id, cwd):
         key = (thread_id, cwd)
         if key not in self.queues:
             self.queues[key] = NativeQueue(self.native, thread_id, cwd)
         return self.queues[key]
 
-    def verified_native(self, expected=None):
+    def verified_native(self, expected=None, *, agent="codex"):
+        if agent == "antigravity":
+            backend = self.backend_for("antigravity")
+            generation = (getattr(self.controller, "agy_generation", 0),
+                          backend.runtime_identity if backend is not None else None)
+            if not getattr(self.controller, "agy_ready", False) or generation[1] is None or expected is not None and generation != expected:
+                raise CommandError("Antigravity 连接已变化，本条操作未确认完成；请核对状态，不要重发未知任务。")
+            return generation
         generation = (self.controller.native_generation, self.native.runtime_identity)
         if not self.controller.native_ready or generation[1] is None or expected is not None and generation != expected:
             raise CommandError("原生连接已变化，本条操作未确认完成；请核对状态，不要重发未知任务。")
@@ -142,10 +156,12 @@ class Execution:
                 await self._submit_locked(message_id, dispatch)
 
     async def _submit_locked(self, message_id, dispatch):
-        self.verified_native()
-        if not self.native.capabilities.queue:
-            raise CommandError("当前 Agent 未提供已验证的原生队列能力，任务未接收。")
-        if dispatch.has_images and not self.native.capabilities.image_input:
+        agent_kind = dispatch.target.agent
+        backend = self.backend_for(agent_kind)
+        self.verified_native(agent=agent_kind)
+        if backend is None or not (backend.capabilities.queue or backend.capabilities.bridge_queue):
+            raise CommandError("当前 Agent 未提供已验证的队列能力，任务未接收。")
+        if dispatch.has_images and not backend.capabilities.image_input:
             raise CommandError("当前原生运行时的图片输入尚未核验，任务未提交；不会更换模型或运行时。")
         if not (await self.state.admission_budget())["allowed"]:
             raise CommandError("待核对回执已达容量上限，新任务未接收；请先恢复通道并处理未知投递。")
@@ -169,7 +185,7 @@ class Execution:
         if task.get("input_items"):
             self.start_image_preparation(task)
             await self.state.queue_reply(task["id"] + "-preparing",
-                f"图片任务已接收，正在准备：{task['id']}；尚未进入原生队列。",
+                f"图片任务已接收，正在准备：{task['id']}；尚未进入{queue_label(agent_kind)}。",
                 priority=2, task_id=task["id"], kind="progress")
             return
         try:
@@ -187,34 +203,50 @@ class Execution:
 
     async def dispatch(self, task):
         target = restore_target(task["target"])
+        agent_kind = target.agent
+        backend = self.backend_for(agent_kind)
         record, text = task["target"], task["input"]
         task_id, thread_id = task["id"], record["thread_id"]
         attempted = False
         try:
-            native_generation = self.verified_native()
+            native_generation = self.verified_native(agent=agent_kind)
             await self.controller.subscriptions.acquire(target, "task-" + task_id)
             await self.catalog.require(target)
             content = await self.images.inputs(task) if task.get("input_items") else None
             if not await self.state.task_update(task_id, "dispatching"):
                 await self.controller.subscriptions.release(target, "task-" + task_id)
                 return
-            self.verified_native(native_generation)
+            self.verified_native(native_generation, agent=agent_kind)
             attempted = True
-            queue = self.queue(thread_id, target.cwd)
             self.inflight[thread_id] += 1
             try:
-                receipt = (await queue.add(text, task["client_id"], input_items=content) if content is not None
-                           else await queue.add(text, task["client_id"]))
+                if agent_kind == "antigravity":
+                    receipt = await backend.submit_idle(thread_id, target.cwd, text, task["client_id"],
+                                                        input_items=content)
+                    # Register turn_id synchronously before any await so immediate
+                    # permission requests or fast completions always resolve task_id.
+                    self.turn_tasks[(thread_id, receipt.turn_id)] = task_id
+                else:
+                    queue = self.queue(thread_id, target.cwd)
+                    receipt = (await queue.add(text, task["client_id"], input_items=content) if content is not None
+                               else await queue.add(text, task["client_id"]))
             finally:
                 self.inflight[thread_id] -= 1
                 if self.inflight[thread_id] <= 0:
                     self.inflight.pop(thread_id, None)
             current = await self.state.tasks(task_id=task_id)
-            if current["state"] not in TERMINAL:
-                await self.state.task_update(task_id, "queued", queue_id=receipt["id"])
-            await self.state.queue_reply(task_id + "-accepted",
-                f"**任务已排队**\n\n项目：{inline_literal(target.project_alias)}\n\n任务：{inline_literal(task_id)}",
-                priority=4, task_id=task_id, kind="accepted")
+            if agent_kind == "antigravity":
+                if current["state"] not in TERMINAL:
+                    await self.state.task_update(task_id, "running", turn_id=receipt.turn_id)
+                    await self.state.queue_reply(task_id + "-running",
+                        f"**任务执行中**\n\n项目：{inline_literal(target.project_alias)}\n\n任务：{inline_literal(task_id)}",
+                        priority=3, task_id=task_id, kind="progress")
+            else:
+                if current["state"] not in TERMINAL:
+                    await self.state.task_update(task_id, "queued", queue_id=receipt["id"])
+                await self.state.queue_reply(task_id + "-accepted",
+                    f"**任务已排队**\n\n项目：{inline_literal(target.project_alias)}\n\n任务：{inline_literal(task_id)}",
+                    priority=4, task_id=task_id, kind="accepted")
         except QueueFull:
             await self.state.task_finish(task_id, "failed", f"原生队列已满，任务未提交：{task_id}；请等待队列空位。")
             await self.controller.subscriptions.release(target, "task-" + task_id)
@@ -236,7 +268,9 @@ class Execution:
             raise
 
     async def drain_admission(self):
-        if not self.controller.native_ready:
+        any_ready = (self.controller.any_backend_ready() if hasattr(self.controller, "any_backend_ready")
+                     else self.controller.native_ready)
+        if not any_ready:
             return
         if self.controller.recovering:
             return
@@ -256,6 +290,10 @@ class Execution:
                 if self.earlier_waiting(task, active):
                     continue
                 target = restore_target(task["target"])
+                backend_ready = (self.controller.backend_ready(target.agent)
+                                 if hasattr(self.controller, "backend_ready") else self.controller.native_ready)
+                if not backend_ready:
+                    continue
                 try:
                     await self.catalog.require(target)
                     current_key = await repository_key(target.cwd,
@@ -379,6 +417,8 @@ class Execution:
         groups = {}
         for task in tasks:
             target = restore_target(task["target"])
+            if target.agent != "codex":
+                continue
             try:
                 session = await self.catalog.require(target)
             except SessionUnbound:
@@ -476,6 +516,8 @@ class Execution:
         return task
 
     async def sync_external(self, target):
+        if target.agent != "codex":
+            return
         session = await self.catalog.require(target)
         thread_id = session.binding.thread_id
         if (await self.native.inspect(thread_id)).get("status", {}).get("type") != "active":
@@ -524,8 +566,40 @@ class Execution:
         session = self.controller.subscriptions.bound.get(target.session_id) if target else None
         return target if session and session.binding.thread_id == thread_id else None
 
+    async def complete_agy(self, params):
+        thread_id = params.get("threadId")
+        turn_id = params.get("turnId")
+        status = params.get("status")
+        if not isinstance(thread_id, str) or not isinstance(turn_id, str) or status not in {"completed", "failed", "interrupted"}:
+            return
+        task_id = self.turn_tasks.get((thread_id, turn_id))
+        task = await self.state.tasks(task_id=task_id) if task_id else await self.state.tasks(native_turn=(thread_id, turn_id))
+        if task is None and isinstance(params.get("clientId"), str):
+            task = await self.state.tasks(client_id=params["clientId"])
+        if task is None:
+            return
+        raw_text = params.get("text") if isinstance(params.get("text"), str) else ""
+        error_text = params.get("error") if isinstance(params.get("error"), str) else ""
+        if status == "failed" and error_text:
+            output = (raw_text.strip() + "\n\n" if raw_text.strip() else "") + "原生错误：" + error_text
+        elif raw_text.strip():
+            output = raw_text.strip()
+        elif status == "interrupted":
+            output = "任务已中断。"
+        else:
+            output = "任务已结束，未返回文本内容。"
+        text = (f"**任务{task_state(status).removeprefix('已')}**\n\n项目：{inline_literal(task['target']['project_alias'])}"
+                f"\n\n任务：{inline_literal(task['id'])}\n\n" + output)
+        await self.state.task_finish(task["id"], status, text, turn_id=turn_id, deliver=True)
+        await self.controller.subscriptions.release(restore_target(task["target"]), "task-" + task["id"])
+        self.turn_tasks.pop((thread_id, turn_id), None)
+        self.recovery.wake.set()
+
     async def event(self, event):
         method, params = event.get("method"), event.get("params", {})
+        if method == "agy/turn/completed":
+            await self.complete_agy(params)
+            return
         thread_id, turn_id = params.get("threadId"), params.get("turnId")
         if not isinstance(thread_id, str):
             return
@@ -572,7 +646,7 @@ class Execution:
             item = params['item']
             if item.get('delivery') == 'async' and item.get('questions') is not None:
                 await self.async_questions.register(thread_id, turn_id, item)
-        elif method in {APPROVAL, QUESTION}:
+        elif method in {APPROVAL, QUESTION, ACP_APPROVAL}:
             task_id = self.turn_tasks.get((thread_id, turn_id))
             target = self.observed(thread_id)
             if task_id:
@@ -580,13 +654,17 @@ class Execution:
                 if task["target"].get("source") == "external" and not self.observed(thread_id):
                     return  # Focus alone does not subscribe to new desktop interactions.
                 target = restore_target(task["target"])
-            if target is None:
+            if target is None and method != ACP_APPROVAL:
                 # Map using the exact native turn, without adopting unrelated desktop tasks.
                 turn = await self.read_turn(thread_id, turn_id)
                 task = await self.map_turn(thread_id, turn)
                 if task:
                     if task["target"].get("source") == "external" and not self.observed(thread_id):
                         return
+                    target = restore_target(task["target"])
+            if target is None and method == ACP_APPROVAL:
+                task = await self.state.tasks(native_turn=(thread_id, turn_id))
+                if task:
                     target = restore_target(task["target"])
             if target is None:
                 return  # No approval is synthesized for an unobserved desktop task.
@@ -598,7 +676,8 @@ class Execution:
                 await self.state.queue_reply("interaction-limit-" + key,
                     "交互记录已达容量上限，请在原终端处理本次请求；没有发送自动答复。", priority=0)
                 return
-            broker = self.brokers.setdefault(thread_id, InteractionBroker(self.native.rpc, thread_id,
+            rpc = (self.backend_for("antigravity").rpc if method == ACP_APPROVAL else self.native.rpc)
+            broker = self.brokers.setdefault(thread_id, InteractionBroker(rpc, thread_id,
                                             generation=self.generation, persist=self.persist_interaction))
             record = broker.register(event)
             if record.public_id not in self.interaction_targets:
@@ -611,8 +690,9 @@ class Execution:
             task = await self.state.tasks(native_turn=(thread_id, turn_id))
             if task and task["state"] not in TERMINAL:
                 await self.state.task_update(task["id"], "waiting_interaction")
-            if method == APPROVAL:
-                text = (f"审批：{target.project_alias}｜{record.public_id}\n\n```sh\n{params['command']}\n```\n\n"
+            if method in {APPROVAL, ACP_APPROVAL}:
+                prefix = "Antigravity 审批" if method == ACP_APPROVAL else "审批"
+                text = (f"{prefix}：{target.project_alias}｜{record.public_id}\n\n```sh\n{params['command']}\n```\n\n"
                         f"/approve {record.public_id}\n/deny {record.public_id}")
             else:
                 lines = []
@@ -685,6 +765,21 @@ class Execution:
         for thread_id, broker in tuple(self.brokers.items()):
             if not broker.records and thread_id not in bound_threads:
                 del self.brokers[thread_id]
+        agy = self.backend_for("antigravity")
+        if agy is not None and agy.runtime_identity is not None and hasattr(agy, "evict_idle_sessions"):
+            protected = set()
+            focused = self.controller.routes.target
+            if focused is not None and focused.agent == "antigravity":
+                s = self.catalog.sessions.get(focused.session_id) or subscriptions.bound.get(focused.session_id)
+                if s is not None:
+                    protected.add(s.binding.thread_id)
+            for s in subscriptions.bound.values():
+                if getattr(s.binding, "agent", "codex") == "antigravity":
+                    protected.add(s.binding.thread_id)
+            for t in active:
+                if t["target"].get("agent") == "antigravity" and t.get("thread_id"):
+                    protected.add(t["thread_id"])
+            await agy.evict_idle_sessions(protected_session_ids=protected)
 
     async def complete_turn(self, thread_id, turn_id):
         await self.complete(thread_id, await self.read_turn(thread_id, turn_id))
@@ -697,12 +792,29 @@ class Execution:
                 continue
             await self.event(event)
 
+    async def consume_agy_events(self):
+        while True:
+            agy = self.backend_for("antigravity")
+            if agy is None or agy.runtime_identity is None:
+                await asyncio.sleep(0.2)
+                continue
+            try:
+                event = await agy.next_event(timeout=0.5)
+            except TimeoutError:
+                continue
+            except Exception:
+                await asyncio.sleep(0.2)
+                continue
+            await self.event(event)
+
     async def run(self):
         self.results = ResultWork(self.complete_turn)
         try:
             async with asyncio.TaskGroup() as tasks:
                 tasks.create_task(self.results.run())
-                tasks.create_task(self.consume_events())
+                if hasattr(self.native, "rpc"):
+                    tasks.create_task(self.consume_events())
+                tasks.create_task(self.consume_agy_events())
                 tasks.create_task(self.recovery.run())
         finally:
             self.results = None

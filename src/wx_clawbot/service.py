@@ -107,13 +107,19 @@ async def poll(controller, api, *, emit=None):
         await asyncio.gather(*jobs, return_exceptions=True)
 
 
-async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex_home: Path, *, emit=None, config_path=None):
+async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex_home: Path, *,
+                emit=None, config_path=None, agy_executable=None, default_agent=None):
     host = state = http = instance = project_server = None
     stage = "state"
     try:
         root = private_directory(state_dir.expanduser().absolute())
         credentials = load_credentials(root / "credentials.json")
-        codex_home = codex_home.resolve(strict=True)
+        try:
+            codex_home = codex_home.resolve(strict=True) if codex_home is not None else None
+        except OSError:
+            if agy_executable is None:
+                raise
+            codex_home = None
         with private_lease(root / "project-edit.lock"):
             state = await RuntimeState.open(root / "runtime.sqlite3", credentials)
             instance = ForegroundInstance(root)
@@ -121,6 +127,9 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
                 from .project_registry import ProjectStore
                 project_store = ProjectStore(config_path, root)
                 projects = project_store.config.projects
+                if default_agent is None and project_store.config.has_default_agent:
+                    default_agent = project_store.config.default_agent
+        default_agent = default_agent or "codex"
         host = HostLifecycle()
         starter = VisibleStarter(LaunchRegistry(root / "launches"), ItermWindowStarter(lifecycle=host))
         last_health = None
@@ -128,7 +137,7 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
         def runtime_emit(report):
             nonlocal last_health
             if report.get("status") == "capabilities":
-                health = {key: report[key] for key in ("host", "native")}
+                health = {key: report[key] for key in ("host", "native", "antigravity") if key in report}
                 if health == last_health:
                     return
                 instance.health(health)
@@ -136,7 +145,8 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
             if emit:
                 emit(report)
 
-        runtime = BridgeRuntime(projects, state, starter, host, socket, executable, codex_home, emit=runtime_emit)
+        runtime = BridgeRuntime(projects, state, starter, host, socket, executable, codex_home,
+                                emit=runtime_emit, agy_executable=agy_executable, default_agent=default_agent)
         if config_path is not None:
             from .project_registry import ProjectManager
             from .project_control import ProjectServer
@@ -155,6 +165,8 @@ async def serve(projects, state_dir: Path, socket: Path, executable: Path, codex
                 tasks.create_task(component_task("channel_receive", poll(runtime, api, emit=emit)))
                 tasks.create_task(component_task("channel_send", Sender(state, api, emit=emit).run()))
                 tasks.create_task(component_task("agent", runtime.run()))
+                if agy_executable is not None:
+                    tasks.create_task(component_task("antigravity", runtime.watch_agy()))
                 tasks.create_task(component_task("host", runtime.watch_host()))
                 tasks.create_task(component_task("session_notifications", runtime.watch_notifications()))
                 tasks.create_task(component_task("lifecycle", instance.watch_stop()))

@@ -18,6 +18,7 @@ class Target:
     project_alias: str
     cwd: Path
     origin: str = "original"
+    agent: str = "codex"
 
 
 @dataclass(frozen=True)
@@ -51,7 +52,8 @@ class Routes:
 
     def validate_target(self, target: Target):
         project = self.projects.get(target.project_alias)
-        if not target.session_id or project is None or target.origin not in {"original", "managed"}:
+        if (not target.session_id or project is None or target.origin not in {"original", "managed"}
+                or target.agent not in {"codex", "antigravity"}):
             raise RouteError("会话尚未注册或身份未核验。")
         try:
             cwd = resolve_directory(project, str(target.cwd))
