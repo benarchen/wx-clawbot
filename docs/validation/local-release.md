@@ -1,6 +1,6 @@
 # W08：0.1.0 本机部署与正式交付
 
-本页按版本保留历史；最新 0.1.17 原生版本基线向前自适应正式发布与本机运行见[交付记录](codex-forward-compatibility-release.md)，0.1.16 静态审计缺陷修复与工程治理见[审计治理记录](audit-remediation-release.md)，0.1.15 异步追问修复见[追问修复记录](async-questions-release.md)，0.1.14 会话通知见[通知记录](session-notifications.md)，0.1.13 可见启动修复见[启动修复记录](visible-launch-manifest.md)。此前内部 0.1.11 兼容候选和旧正式 0.1.11 属不同历史制品；首次接入无需状态栏 ID、sessions 纯查询及冷启动修复保持，旧章节的版本和时间只表示当次交付。
+本页按版本保留历史；最新 0.2.0 多 Agent 架构与 Antigravity（`agy acp`）完整兼容正式发布与本机运行见[0.2.0 验证与发布归档](v020-multi-agent-release.md)，0.1.17 原生版本基线向前自适应正式发布与本机运行见[交付记录](codex-forward-compatibility-release.md)，0.1.16 静态审计缺陷修复与工程治理见[审计治理记录](audit-remediation-release.md)，0.1.15 异步追问修复见[追问修复记录](async-questions-release.md)，0.1.14 会话通知见[通知记录](session-notifications.md)，0.1.13 可见启动修复见[启动修复记录](visible-launch-manifest.md)。此前内部 0.1.11 兼容候选和旧正式 0.1.11 属不同历史制品；首次接入无需状态栏 ID、sessions 纯查询及冷启动修复保持，旧章节的版本和时间只表示当次交付。
 
 本次由本人明确授权按版本整合、验证／隐私审查、本机切换和 Git 交付顺序执行，详细边界见[W08 清单](../../goals/20261025-2148-w08-product-acceptance.md#2026-11-02-本机上线与最终交付)。不涉及云部署、微信 UI、额外测试消息、原生任务、全局配置、其他服务、tag 或 Release。
 

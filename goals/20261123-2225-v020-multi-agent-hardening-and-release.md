@@ -3,7 +3,7 @@
 ## 一、 状态、目标与授权边界
 
 - **编制时间**：2026-11-23 22:25（北京时间 `Asia/Shanghai`）。
-- **当前状态**：`g06_completed（G00–G06 全部完成并通过 1064 项离线回归、本机 agy 1.5.14 隔离 9 步自测、架构图视觉核验及 0.2.0 冻结制品校验；待本人触发标准收尾执行 Git 发布与生产切换）`。
+- **当前状态**：`completed（G00–G06 及 0.2.0 标准收尾全部完成：提交 d87587e、main 快进、annotated tag v0.2.0 与远端双分支／标签原子推送核验通过；本机已切换至同一正式独立制品 0.2.0-d7356c74be88 并恢复就绪）`。
 - **目标版本**：由当前 `0.1.17` 推进至 **`0.2.0`**（首个完成多 Agent 架构抽象、Codex 与 Antigravity 对称治理及完整运维闭环的次版本号里程碑）。
 - **核心目标**：
   1. **全部 8 项架构与负责人审查问题 100% 闭环**：覆盖 2 项 P1、4 项 P2 与 2 项 P3，不留已知技术债或孤儿代码。
@@ -235,3 +235,4 @@
 - `2026-11-23 22:37` **[G00–G03 实施与回归通过]**：完成 `admission-release` Antigravity 审计解锁、`watch_agy()` 断连清理 `catalog.sessions`、Antigravity `/model set` 接入 `ControlJournal`、解耦纯 `agy` 启动与 `doctor` 判定、清理死代码 `agent_label()` 与 `list_all_sessions()`、拆分 `agents/antigravity_codec.py` 与 `agents/registry.py` 并补齐 5 项端到端回归测试（95 项专项回归全绿）。
 - `2026-11-23 22:39` **[G04 隔离真机自测通过]**：本机 `agy 1.5.14` 隔离 9 步自测（含 6.5 秒空闲存活、可复制 `sh` 代码块、`/model list`、`/model set` + `ControlJournal`、`V020_LIVE_OK`、64×64 红色 PNG 识别、`admission-release` 释放 `agy` `unknown` 占用、纯 `agy` 无 `codex_home` 独立启动）全部通过，临时目录已清理。
 - `2026-11-23 22:45` **[G05–G06 文档、架构图、`0.2.0` 冻结包与归档完成]**：同步全量受影响文档并重渲染视觉复核 F01–F03 SVG，版本推进至 `0.2.0`，完成独立非 editable 冻结制品（`source e11a11fb294a` / `wheel d7356c74be88`）验证、隐私扫描及 `docs/validation/v020-multi-agent-release.md` 归档，同步 `ROADMAP.md` 并执行最终全量 `scripts/check.py`。
+- `2026-11-23 23:20` **[`0.2.0` 标准收尾交付完成]**：功能提交 `d87587e` 落盘 `dev`、`main` 快进、创建 annotated tag `v0.2.0`（`6422db13`）并原子推送远端独立核验一致；停服完成 13 表一致性备份后，本机切换至同一正式独立制品 `0.2.0-d7356c74be88`，1.307 秒恢复就绪（PID `79593`），旧数据与 12 注册项完整保护。

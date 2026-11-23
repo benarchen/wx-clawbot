@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-V020 多 Agent 架构全面加固与 `0.2.0` 里程碑已完成 `dev` 分支全部施工（`G00`–`G06`）：8 项架构与项目负责人审查问题 100% 闭环，包括 `admission-release` 支持 Antigravity `unknown` 占用审计解锁、`agy` `/model set` 接入 `ControlJournal` 对称持久化幂等、`watch_agy()` 断连清理 `catalog.sessions`、解耦 `serve()`/`doctor()` 支持纯 `agy` 无 Codex 独立启动、删除死代码 `agent_label()` 与 `list_all_sessions()`、拆分 `agents/antigravity_codec.py` 与 `agents/registry.py` 收口多 Agent 策略层、全量同步受影响专题文档并重渲染视觉复核 F01–F03 架构 SVG；版本已推进至 `0.2.0` 并通过 1064 项离线检查、9 项本机 `agy 1.5.14` 隔离真机自测与 `0.2.0` 非 editable 冻结制品校验（保持 SQLite schema 6 与路由快照 version 2）。尚未提交、合并 `main`、打 `v0.2.0` tag 或切换本机正式版本，待本人触发标准收尾。[施工清单](goals/20261123-2225-v020-multi-agent-hardening-and-release.md)、[验证归档](docs/validation/v020-multi-agent-release.md)。
+V020 多 Agent 架构全面加固与 Antigravity（`agy acp`）完整兼容已随 **`0.2.0`** 正式交付并本机加载：8 项架构与项目负责人审查问题 100% 闭环（`admission-release` 支持 Antigravity `unknown` 占用审计解锁、`agy` `/model set` 接入 `ControlJournal`、`watch_agy()` 断连清 `catalog.sessions`、支持纯 `agy` 无 Codex 独立启动、死代码清理与 `antigravity_codec`/`registry` 策略收口、全量跨文档与 F01–F03 架构 SVG 重渲染视觉核验）。正式冻结包 1064 项／57.50 秒及全部必需检查、本机 `agy 1.5.14` 隔离 9 步自测与本人微信复测通过；功能提交 `d87587e`、`main` 快进、固定 annotated `v0.2.0`、双分支／标签原子推送及独立远端核验通过；本机同一正式独立制品 `0.2.0-d7356c74be88` 在 13 表一致性备份后 1.307 秒恢复 `native`/`antigravity` ready（PID `79593`），12 项注册项目与旧数据完整保持（SQLite schema 6 / 路由快照 version 2）。[施工清单](goals/20261123-2225-v020-multi-agent-hardening-and-release.md)、[发布与运行](docs/validation/v020-multi-agent-release.md)。
 
 Codex 原生版本基线向前自适应已随 0.1.17 正式交付并本机加载：支持 SemVer 向前自适应门禁（兼容放行 0.170.0+ 等静默升级版本并自适应高级特性，支持 WX_CLAWBOT_STRICT_NATIVE_VERSIONS 严格模式）。正式冻结包 1041 项／52.829 秒及必需检查全部通过；新增针对性单测覆盖版本自适应与严格模式。功能提交、main 快进、固定 annotated v0.1.17、双分支／标签原子推送及独立远端核验通过。本机同一正式 wheel 恢复 host／native ready，旧数据、当前设置与其他原生进程保护通过。[发布与运行](docs/validation/codex-forward-compatibility-release.md)。
 
@@ -20,7 +20,7 @@ Codex 原生版本基线向前自适应已随 0.1.17 正式交付并本机加载
 
 NCM01 已按确认范围验收交付，原生 Goal 已实际 complete：统一模型／推理、Fast、status、help，以及输出精简／分组／同名去重均已完成。0.169.0 专用原生、本人微信功能及最后四图展示实收通过；最终 source b380026／wheel 54e9ad5c 同包 932 项／47.553 秒及必需检查、36 T／16 A／8 D 与跨文档核对通过。一次性程序在准确终态／空闲后正常备份切换，6.972 秒 ready；实际来源、旧账本／控制记录／配置／12 注册项及所选目标独立复核通过，程序已退出。测试设置及自有双标签已收尾，原兼容候选的临时阶段结束；0.1.12 已提交、main 快进合并、annotated v0.1.12 及双分支／标签原子推送并独立核验；冻结包 932 项／47.572 秒与必需检查通过；本人后续已授权切换同一 0.1.12 正式独立制品，16.641 秒 ready、实际来源及旧数据保护通过。[Git 记录](docs/validation/native-controls-release.md)。[最终记录](docs/validation/codex-0169.md)。
 
-MVP 已按确认范围交付。最近正式发布及日常运行均为独立非 editable 0.1.17／schema 6，路由快照 version 2；dev／main 及 annotated v0.1.17 已公开同步。[正式发布与运行证据](docs/validation/codex-forward-compatibility-release.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
+MVP 已按确认范围交付。最近正式发布及日常运行均为独立非 editable 0.2.0／schema 6，路由快照 version 2；dev／main 及 annotated v0.2.0 已公开同步。[正式发布与运行证据](docs/validation/v020-multi-agent-release.md)。这是一份进度快照，不代表每次读文档均实时探测服务。
 
 微信独立选择且首次接入无需状态栏／标题 ID：后台按注册根及已知准确 cwd 发现，准确原生身份／loaded／订阅复验；可见新建保留自有 boot 与唯一完成握手。桌面切换不改投，关闭窗口后以原生可用性为准，unknown 不重放。[当前身份契约](docs/native-session-identity.md)、[TGT02 验收](docs/validation/native-session-no-footer.md)。
 
@@ -76,6 +76,8 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 ## 最近完成
 
+- 2026-11-23 23:20 `0.2.0` 标准收尾完成：功能提交 `d87587e` 已在 `dev` 提交、`main` 快进合并并固定 annotated tag `v0.2.0`（`6422db13`），双分支与标签原子推送至 `origin` 并独立核验一致；本机托管 `local.wx-clawbot` 正常停服并完成 13 表一致性备份后，切换至同一冻结制品 `0.2.0-d7356c74be88`（`source e11a11fb294a` / `wheel d7356c74be88`），1.307 秒恢复 `native`/`antigravity` ready（PID `79593`），12 注册项、161 条任务（2 条历史 `unknown`）及 894 条 Outbox 保持完整。[发布与运行](docs/validation/v020-multi-agent-release.md)。
+
 - 2026-11-23 22:45 V020 多 Agent 架构全面加固与 `0.2.0` 施工完成（`G00`–`G06`）：全部 8 项审查问题闭环（`admission-release` 支持 Antigravity `unknown` 占用审计解锁、`agy` `/model set` 接入 `ControlJournal`、`watch_agy()` 断连清 `catalog.sessions`、支持纯 `agy` 无 `codex_home` 独立启动与 `doctor` 判定、清理死代码 `agent_label()` 与 `list_all_sessions()`、拆分 `agents/antigravity_codec.py` 与 `agents/registry.py`、同步全量专题文档并重渲染视觉检查 F01–F03 SVG、版本号推进至 `0.2.0` 并产出交付归档）；未提交、未推送、未切换正式生产制品。[施工清单](goals/20261123-2225-v020-multi-agent-hardening-and-release.md)、[验证归档](docs/validation/v020-multi-agent-release.md)。
 
 - 2026-11-23 21:50 AGY01 首轮真机联调 5 项修复与深度代码审计加固完成：修复 `/model list` 未跟随已聚焦 `agy` 会话（新增 `/model list [codex|agy]`）；修复 `AntigravityConnection._pump()` 空闲 5 秒因 `TimeoutError` 静默退出及通知与 RPC 返回帧顺序竞态导致文本／图片任务无正文返回；`/sessions` 改为仅列当前活跃 `agy` 会话并过滤 `.tmp` 子目录，引入非聚焦闲置 24 小时内存句柄自动回收（不删磁盘历史）与重启仅恢复上次聚焦 `agy` 会话；在 `/cd ... agy`、`/new agy`、`/focus` 与 `/agy status` 补充 `agy --conversation <uuid>` 电脑接手提示；同步修复深度审计发现的 5 处隐患（Codex `idle()` 检查同项目 `agy` 会话误调 Codex `inspect`、冷启动 Codex 与 `watch_agy()` 恢复竞态、`dispatch()` 同步登记 `turn_tasks` 防极快响应／审批竞态、`_pump()` 单条异常保护与 `agy` 断连清理审批 broker、`/status` 持续展示已启用 Antigravity 状态）。未提交或正式发布。[施工清单](goals/20261122-2143-antigravity-agent-support.md)。
@@ -114,9 +116,9 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 
 - 2026-11-14 10:00 NCM01 功能闭环及展示候选：0.169.0 本人手机／桌面／busy、原设置和双自有标签清理核对完成；默认状态去技术明细、模型分组及常用回执中文化实现并临时加载。新制品 931 项及本地窄屏预览通过，新版微信排版仍待，不完成 Goal，不正式发行。[记录](docs/validation/codex-0169.md)。
 
-- 2026-11-10 00:18 NCM01 查询阶段候选：严格解析首批入口、help 新分组、准确 route 的只读设置／目录与已订阅 token 用量接入；写命令全部在原生请求前拒绝。规范／ADR／协议及阶段文档同步，专用探针已 prepare，真实设置关卡待执行，不宣称完整交付。[记录](docs/validation/native-controls.md)。
-
 ## 最近验证
+
+- 2026-11-23 23:20 `0.2.0` 正式发布与本机部署复核：独立核对 `origin/dev`、`origin/main` 与 `origin/refs/tags/v0.2.0^{}` 均为 `d87587e`，既有 tag 未动；停服后 13 表一致性备份（`integrity_check=ok`、外键 0 异常）通过；切换 `0.2.0-d7356c74be88` 后 1.307 秒就绪（PID `79593`、`cli --version == 0.2.0`、`managed.json` 源码摘要与冻结 manifest 精确一致、`native`/`antigravity` ready），12 注册项、161 条任务及 894 条 Outbox 完整保持。[发布与运行](docs/validation/v020-multi-agent-release.md)。
 
 - 2026-11-23 22:45 V020 `0.2.0` 全量验证：离线 `scripts/check.py` 全部通过（1064 项单测、compileall、pip check、git diff --check、documents）；本机 `agy 1.5.14` 隔离 9 步自测（6.5 秒空闲存活、可复制 `sh` 代码块、`/model list`、`/model set` + `ControlJournal` 审计文件、`/sessions`、文本 `V020_LIVE_OK`、64×64 红色 PNG 识别、`admission-release` 释放 `agy` `unknown` 占用、纯 `agy` 无 `codex_home` 独立启动）全部通过；F01–F03 SVG 用隔离 Mermaid CLI 12.2.0 重渲染并逐张视觉核对通过；`0.2.0` 非 editable 冻结包（`source e11a11fb294a` / `wheel d7356c74be88`）版本、隔离包测试与隐私扫描通过。未提交或切换正式生产版本。[归档](docs/validation/v020-multi-agent-release.md)。
 
@@ -155,5 +157,3 @@ DOC01 文档整理已验收交付：标准 PRD、五类实际渲染／视觉检�
 - 2026-11-14 21:44 同一冻结维护候选 934 项／47.460 秒及编译／依赖／文档／diff 通过；真实原生 0.169.0 两启动 turn 完成、两归档各一次、零额外输入／微信消息，独立核验自有终端关闭与线程未加载。首轮脚本格式检查失败保留，未重建或重放；配置保护通过。[记录](docs/validation/native-settings-lifecycle.md)。
 
 - 2026-11-14 20:51 残留修正工作树：933 项／47.271 秒及编译／依赖／文档／diff 通过，零失败／错误／跳过；阶段计数与历史范围、所有相对链接、开发版本元数据及运行制品完整性通过。当前正式 0.1.12 服务保持，未执行真实原生写入或微信测试。[记录](docs/validation/native-controls-release.md)。
-
-- 2026-11-14 15:51 0.1.12 实际部署核验：新目录 manifest 与已验 wheel 一致，父／子来源、实际 argv／cwd、host／native ready 及单消费者通过；13 表旧数据／冻结回执、控制文件、配置及准确路由独立复核，历史 unknown 保持，无恢复覆盖或重放。[结果](docs/validation/native-controls-release.md)。

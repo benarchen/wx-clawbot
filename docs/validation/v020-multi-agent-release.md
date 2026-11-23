@@ -3,7 +3,7 @@
 - **记录时间**：2026-11-23 22:45（北京时间 `Asia/Shanghai`）
 - **版本与存储基线**：`0.2.0` / SQLite `schema 6` / 路由快照 `version 2`
 - **对应施工清单**：[V020 施工清单](../../goals/20261123-2225-v020-multi-agent-hardening-and-release.md) 、[AGY01 初始清单](../../goals/20261122-2143-antigravity-agent-support.md)
-- **当前交付阶段**：`dev` 分支已完成 `G00`–`G06` 全部实现、离线回归、本机 `agy 1.5.14` 隔离自测、架构图重渲染与视觉复核、以及 `0.2.0` 独立非 editable 冻结制品校验；**尚未执行** Git 提交、`main` 合并、`v0.2.0` 标签推送或正式生产切换（待本人确认后按标准收尾执行）。
+- **当前交付阶段**：`0.2.0` 已正式完成标准收尾 -- 功能提交 `d87587e` 已合入 `main`、固定 annotated tag `v0.2.0`（`6422db13`）、双分支与标签原子推送至 `origin` 并独立核验一致；本机托管服务 `local.wx-clawbot` 已切换至同一冻结制品 `0.2.0-d7356c74be88` 并恢复就绪。
 
 ---
 
@@ -65,4 +65,7 @@
 
 - **已验证真机微信链路**：本人已于 2026-11-23 在手机／桌面微信对候选版本完成 `/cd <proj> agy`、可复制 `sh` 代码块、`/model list`、`/model set`、`/agy status`、文本对话、单图上下文识别、`/stop` 中断、`/fast` 拒绝、`/sessions` 仅列活跃会话与 `〔agy〕`/`〔codex〕` 标签实测通过。
 - **未覆盖／保留边界**：真实 `agy 1.5.14` 进程触发 `session/request_permission` → 微信 `/approve` `/deny` 因本机用户全局策略未弹窗，当前仅通过离线 ACP 协议与 `InteractionBroker` 回归验证，本记录不将其扩写为已通过真机弹窗审批验收。
-- **尚未执行**：Git 提交、`main` 合并、`v0.2.0` annotated tag、远端推送及本机生产正式切换（待本人明确触发标准收尾后补充于本文末）。
+- **正式发布与本机切换结果（2026-11-23 23:20 北京时间）**：
+  - **Git 发布与远端核验**：发布提交 `d87587e89b2edc02953d59ccc357fa2b8cfe4d22`（`d87587e`）已在 `dev` 提交、`main` 正常快进合并，并在 `main` 上创建 annotated tag `v0.2.0`（标签对象 `6422db13228735a1783e6ab50364f091de2457de`，解引用至 `d87587e89b2edc02953d59ccc357fa2b8cfe4d22`）；双分支与 `v0.2.0` 原子推送至 `origin` 后经 `git ls-remote` 独立核验完全一致，既有历史 tag 未移动。
+  - **一致性备份**：正常停服并确认 `stopped` 与 `consumer_busy: false` 后，通过 SQLite `Connection.backup` 完成 13 表一致性备份（`schema 6`、`PRAGMA integrity_check=ok`、`foreign_key_check` 0 异常，161 条任务、894 条 Outbox），同步备份私有配置、凭据、`native-controls/` 与 `local.wx-clawbot.plist`（目录 `0700` / 文件 `0600`）。
+  - **正式制品切换与复核**：将同一已验冻结包安装至独立非 editable 目录 `0.2.0-d7356c74be88`（`source_sha256: e11a11fb294a...`、`wheel_sha256: d7356c74be88...`、`lock_sha256: 0bea01a999e4...`），原子更新 `local.wx-clawbot.plist` 并经 `plutil -lint` 校验后重载；**1.307 秒**恢复 `native: ready` 与 `antigravity: ready`，PID `79593`，`cli --version` 为 `0.2.0`，`managed.json` 源码摘要与冻结 manifest 精确一致；12 项注册项目、161 条历史任务（含 2 条历史 `unknown` 未重放）、894 条 Outbox 回执全部完整保持。
